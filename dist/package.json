@@ -1,0 +1,20 @@
+{
+  "name": "Autograder",
+  "version": "0.0.1",
+  "description": "",
+  "main": "server.js",
+  "author": {
+    "name": "Rik",
+    "email": "rikmuld@gmail.com"
+  },
+  "dependencies": {
+    "body-parser": "^1.15.2",
+    "connect-busboy": "0.0.2",
+    "express": "^4.14.0",
+    "jade": "^1.11.0",
+    "mongoose": "^4.6.3",
+    "python-shell": "^0.4.0",
+    "socket.io": "^1.5.0",
+    "stylus": "^0.54.5"
+  }
+}
