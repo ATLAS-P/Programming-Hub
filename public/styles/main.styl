@@ -1,0 +1,113 @@
+﻿blueish = rgb(0, 129, 221)
+
+transform(n)
+	-webkit-transform n
+	transform n
+	
+body, html
+	height 100%
+	margin 0px
+	box-sizing border-box
+
+.wrapper
+	min-height 100%
+	width 100%
+	position relative
+	overflow auto
+
+#upload
+	display none
+	margin-bottom 40px
+
+#failedTests
+
+.miniproject
+	cursor pointer
+
+.right-align
+	text-align right
+
+.dz-image
+	background rgba(0, 0, 0, 0) !important
+
+.dz-progress
+	height 6px !important
+	margin-top 10px !important
+	border-radius 4px !important
+	span
+		background blueish !important
+
+.dz-details
+	margin-top 20px !important
+
+.dz-size
+	display none
+
+.dz-filename:hover
+	span
+		border none !important
+
+.dz-preview, .dz-file-preview, .dz-processing
+	margin 0px !important
+
+.dz-details
+	margin-top: 6px
+
+div
+	box-sizing border-box
+
+.hide
+	display none
+
+body
+	background-color #fefefe
+
+h2
+	font-family Open Sans Light
+	font-weight 100
+	font-size 22px
+	color blueish
+	text-align left
+
+#subheader
+	margin-top -12px
+	font-family Open Sans Light
+	font-weight 100
+	font-size 20px
+	text-align left
+
+.dz-message
+	font-family Open Sans Light
+	font-size 14px
+	padding 25px
+
+.dropzone
+	border 1px dashed blueish
+	background-color #fefefe
+	text-align: center
+	padding 0px
+	min-height 128px
+
+#errMessage
+	font-family Open Sans Light
+	margin-top 10px
+	color #df0000
+	display none
+
+#uploadButtons
+	margin-top 8px
+	//display none
+	:not(:nth-child(1))
+		margin-left 6px
+
+.left
+	float left
+
+.right
+	float right
+
+.btn:focus, .btn:active
+	outline none !important
+
+#testResults
+	display none
