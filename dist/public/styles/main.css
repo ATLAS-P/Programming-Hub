@@ -59,7 +59,7 @@ body {
   background-color: #fefefe;
 }
 h2 {
-  font-family: Open Sans Light;
+  font-family: Open Sans;
   font-weight: 100;
   font-size: 22px;
   color: #0081dd;
@@ -67,13 +67,13 @@ h2 {
 }
 #subheader {
   margin-top: -12px;
-  font-family: Open Sans Light;
+  font-family: Open Sans;
   font-weight: 100;
   font-size: 20px;
   text-align: left;
 }
 .dz-message {
-  font-family: Open Sans Light;
+  font-family: Open Sans;
   font-size: 14px;
   padding: 25px;
 }
@@ -85,7 +85,7 @@ h2 {
   min-height: 128px;
 }
 #errMessage {
-  font-family: Open Sans Light;
+  font-family: Open Sans;
   margin-top: 10px;
   color: #df0000;
   display: none;
