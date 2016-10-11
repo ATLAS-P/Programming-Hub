@@ -21,7 +21,7 @@ app.post('/file-upload', function (req, res) {
         fstream.on('close', function () {
             console.log("Upload Finished of " + filename);
             let script = (s) => new Promise((resolve, reject) => {
-                var shell = new py("uploads/" + filename, { mode: 'text', pythonPath: 'C:/Python35/python3.exe' });
+                var shell = new py("uploads/" + filename, { mode: 'text', pythonPath: 'C:/Users/rikmu/AppData/Local/Programs/Python/Python35-32/python.exe' });
                 shell.send(s);
                 shell.on('message', function (message) {
                     if (message.endsWith("\r"))
