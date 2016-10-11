@@ -41,4 +41,14 @@ block content
                         th Succeeded Tests
                         th Failed Input
                 tbody#completedTests
-                
+        #studentInfo
+            hr
+            form
+                .student
+                    .row
+                        .col-lg-3.col-md-4.col-sm-6
+                            +text("snr", "Student Number")
+                    .row
+                        .form-group.col-md-6
+                            label(for="reflection") Reflection
+                            textarea.form-control#reflection(row="5" name="reflection" placeholder="Please write a short reflection, max 500 characters...")

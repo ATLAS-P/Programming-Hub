@@ -1,84 +1,19 @@
-﻿class AutoChecker<In, Out, A> {
-    run: (r: AutoChecker.Runnable<In, Out>) => Promise<A>
+﻿//was originally written in scala, sadly, it became quite bulky in typescript
+//needs a small cleanup, be split over some differnet files
 
-    constructor(run: (r: AutoChecker.Runnable<In, Out>) => Promise<A>) {
-        this.run = run
-    }
+type Run<In, Out> = AutoChecker.Runnable<In, Out>
+type AC<In, Out, A> = AutoChecker<In, Out, A>
 
-    map<B>(f: (a: A) => B): AutoChecker<In, Out, B> {
-        return new AutoChecker((r: AutoChecker.Runnable<In, Out>) => PromiseHelper.map(this.run(r), f))
-    }
-
-    flatMapfuture<B>(f: (a: A) => Promise<B>): AutoChecker<In, Out, B> {
-        return new AutoChecker((r: AutoChecker.Runnable<In, Out>) => PromiseHelper.flatMap(this.run(r), f))
-    }
-
-    flatMap<B>(f: (a: A) => AutoChecker<In, Out, B>): AutoChecker<In, Out, B> {
-        return new AutoChecker((r: AutoChecker.Runnable<In, Out>) => PromiseHelper.flatMap(PromiseHelper.map(this.run(r), f), (a: AutoChecker<In, Out, B>) => a.run(r)))
-    }
-
-    map2<B, C>(f: (a: A, b: B) => C, b: AutoChecker<In, Out, B>): AutoChecker<In, Out, C> {
-        return this.flatMap((a:A) => b.map((b:B) => f(a, b)))
-    }
-
-    eval(f: (a: A) => Result): AutoChecker<In, Out, Result> {
-        return this.map((a:A) => f(a))
-    }
-}
-
-module AutoChecker {
-    export type Runnable<In, Out> = (input: In) => Promise<Out>
-
-    export function unit<In, Out>(data: In): AutoChecker<In, Out, Out> {
-        return new AutoChecker((r: Runnable<In, Out>) => r(data))
-    }
-
-    export function unitKeepInput<In, Out>(data: In): AutoChecker<In, Out, [In, Out]> {
-        return new AutoChecker((r: Runnable<In, Out>) => PromiseHelper.map(r(data), p => [data, p]))
-    }
-
-    export function list<In, Out, A>(data: In[], f: (input: In) => AutoChecker<In, Out, A>): AutoChecker<In, Out, A[]> {
-        return sequence(forall(data, f))
-    }
-
-    export function list2<In, Out, A>(f: (input: In) => AutoChecker<In, Out, A>, ...data:In[]): AutoChecker<In, Out, A[]> {
-        return sequence(forall(data, f))
-    }
-
-    export function forall<In, Out, A>(data: In[], f: (input: In) => AutoChecker<In, Out, A>): AutoChecker<In, Out, A>[] {
-        return ArrayHelper.foldLeft(ArrayHelper.reverse(data), [], (acc: AutoChecker<In, Out, A>[], next: In) =>
-            [f(next)].concat(acc))
-    }
-
-    export function sequence<In, Out, A>(seq: AutoChecker<In, Out, A>[]): AutoChecker<In, Out, A[]> {
-        return new AutoChecker((r: Runnable<In, Out>) =>
-            ArrayHelper.foldLeft(ArrayHelper.reverse(seq), PromiseHelper.unit([]), (acc: Promise<A[]>, next: AutoChecker<In, Out, A>) =>
-                next.flatMapfuture((a: A) => PromiseHelper.map(acc, (f: A[]) => [a].concat(f))).run(r)
-            ))
-    }
-
-    export function evalList<In, Out, A, B>(checker: AutoChecker<In, Out, A[]>, g: (a: A[]) => B[], f: (b: B) => Result): AutoChecker<In, Out, Result> {
-        return checker.eval((a: A[]) =>
-            ArrayHelper.foldLeft(g(a), new Success(0), (acc: Result, next: B) =>
-                acc.combine(f(next))
-            ))
-    }
-
-    export function evalList2<In, Out, A, B>(checker: AutoChecker<In, Out, A[]>, data: B[], f: (a:A, b: B) => Result): AutoChecker<In, Out, Result> {
-        return evalList(checker, (a: A[]) => ArrayHelper.zip(a, data), (b:[A, B]) => f(b[0], b[1]))
-    }
-}
-
-module PromiseHelper {
+namespace PromiseHelper {
     export function map<A, B>(promise: Promise<A>, f: (a: A) => B): Promise<B> {
         return new Promise<B>((resolve, reject) => {
-            promise.then((result: A) => resolve(f(result)), (err: string) => reject(err))
+            promise.then(r => resolve(f(r)), err => reject(err))
         })
     }
 
     export function flatMap<A, B>(promise: Promise<A>, f: (a: A) => Promise<B>): Promise<B> {
         return new Promise<B>((resolve, reject) => {
-            promise.then((result: A) => f(result).then((r2: B) => resolve(r2), (err: string) => reject(err)), (err: string) => reject(err))
+            promise.then(r => f(r).then(r2 => resolve(r2), err => reject(err)), (err: string) => reject(err))
         })
     }
 
@@ -89,8 +24,8 @@ module PromiseHelper {
     }
 }
 
-export module ArrayHelper {
-    export function foldLeft<A, B>(list:A[], z:B, f: (acc:B, next:A) => B):B {
+export namespace ArrayHelper {
+    export function foldLeft<A, B>(list: A[], z: B, f: (acc: B, next: A) => B): B {
         function go(rest: A[], acc: B): B {
             if (rest.length == 0) return acc
             else return go(rest.slice(1), f(acc, rest[0]))
@@ -117,6 +52,82 @@ export module ArrayHelper {
     }
 }
 
+//make as own types, the array and promise to I can just call the functions on them
+import array = ArrayHelper
+import promise = PromiseHelper
+
+class AutoChecker<In, Out, A> {
+    run: (r: Run<In, Out>) => Promise<A>
+
+    constructor(run: (r: Run<In, Out>) => Promise<A>) {
+        this.run = run
+    }
+
+    map<B>(f: (a: A) => B): AC<In, Out, B> {
+        return new AutoChecker(r => promise.map(this.run(r), f))
+    }
+
+    flatMapfuture<B>(f: (a: A) => Promise<B>): AC<In, Out, B> {
+        return new AutoChecker(r => promise.flatMap(this.run(r), f))
+    }
+
+    flatMap<B>(f: (a: A) => AC<In, Out, B>): AC<In, Out, B> {
+        return new AutoChecker(r => promise.flatMap(promise.map(this.run(r), f), a => a.run(r)))
+    }
+
+    map2<B, C>(f: (a: A, b: B) => C, b: AC<In, Out, B>): AC<In, Out, C> {
+        return this.flatMap(a => b.map(b => f(a, b)))
+    }
+}
+
+namespace AutoChecker {
+    export type Runnable<In, Out> = (input: In) => Promise<Out>
+
+    export function unit<In, Out>(data: In): AC<In, Out, Out> {
+        return new AutoChecker(r => r(data))
+    }
+
+    export function unitKeepInput<In, Out>(data: In): AC<In, Out, [In, Out]> {
+        return new AutoChecker(r => promise.map(r(data), p => [data, p]))
+    }
+
+    export function list<In, Out, A>(data: In[], f: (input: In) => AC<In, Out, A>): AC<In, Out, A[]> {
+        return sequence(forall(data, f))
+    }
+
+    export function list2<In, Out, A>(f: (input: In) => AC<In, Out, A>, ...data: In[]): AC<In, Out, A[]> {
+        return sequence(forall(data, f))
+    }
+
+    export function forall<In, Out, A>(data: In[], f: (input: In) => AC<In, Out, A>): AC<In, Out, A>[] {
+        return array.foldLeft(array.reverse(data), [], (acc: AC<In, Out, A>[], next: In) =>
+            [f(next)].concat(acc))
+    }
+
+    export function sequence<In, Out, A>(seq: AC<In, Out, A>[]): AC<In, Out, A[]> {
+        return new AutoChecker(r =>
+            array.foldLeft(array.reverse(seq), promise.unit([]), (acc: Promise<A[]>, next: AC<In, Out, A>) =>
+                next.flatMapfuture(a => promise.map(acc, f => [a].concat(f))).run(r)
+            ))
+    }
+
+    //slightly more general foldleft, which allows for a transformed final output of the ac
+    export function evalList<In, Out, A, B, C>(checker: AC<In, Out, A[]>, g: (a: A[]) => B[], f: (c: C, b: B) => C, z: C): AC<In, Out, C> {
+        return checker.map(a => array.foldLeft(g(a), z, f))
+    }
+
+    //more specific version of evallist, thus foldleft, which does not use the final output of the ac, but the final output zipped with data (B[])
+    export function evalListWith<In, Out, A, B, C>(checker: AC<In, Out, A[]>, data: B[], f: (c:C, ab: [A, B]) => C, z: C): AC<In, Out, C> {
+        return evalList(checker, a => array.zip(a, data), b => f(b[0], b[1]), z)
+    }
+
+    export function foldLeft<In, Out, A, B>(checker: AC<In, Out, A[]>, f: (c: B, b: A) => B, z: B): AC<In, Out, B> {
+        return evalList(checker, a => a, f, z)
+    }
+}
+
+import checker = AutoChecker
+
 export abstract class Result {
     abstract totalTests(): number
     abstract totalFail(): number
@@ -125,46 +136,6 @@ export abstract class Result {
 
     totalSuccess(): number {
         return this.totalTests() - this.totalFail()
-    }
-}
-
-class Passed extends Result {
-    totalTests(): number {
-        return 1
-    }
-
-    totalFail(): number {
-        return 0
-    }
-
-    addTries(n: number): Result {
-        return new Passed()
-    }
-
-    combine(r2: Result): Result {
-        return r2
-    }
-
-    clone(): Result {
-        return new Passed()
-    }
-}
-
-class Failed extends Result {
-    totalTests(): number {
-        return 1
-    }
-
-    totalFail(): number {
-        return 1
-    }
-
-    addTries(n: number): Result {
-        return this
-    }
-
-    combine(r2: Result): Result {
-        return this
     }
 }
 
@@ -206,7 +177,7 @@ class Fail<A> extends Result {
     }
 
     getFailed(): A[] {
-        return this.failed.slice()
+        return this.failed
     }
 
     totalTests(): number {
@@ -218,42 +189,62 @@ class Fail<A> extends Result {
     }
 
     addTries(n: number): Result {
-        return new Fail(this.tries + n, this.failed.slice())
+        return new Fail(this.tries + n, this.failed)
     }
 
     combine(r2: Result): Result {
-        if (r2 instanceof Passed) {
-            return this
-        } else if (r2 instanceof Failed) {
-            return r2
-        } else if (r2 instanceof Success) {
-            return new Fail(this.tries + r2.tries, this.failed.slice())
+        if (r2 instanceof Success) {
+            return new Fail(this.tries + r2.tries, this.failed)
         } else if (r2 instanceof Fail) {
             return new Fail(this.tries + r2.tries, this.failed.concat(r2.failed))
         }
     }
 }
 
-export module Result {
-    export function apply<A>(a: A, f: () => boolean): Result {
-        return unit(a, f)
+export namespace Result {
+    export function unit<A>(a: A, f: boolean): Result {
+        return f ? new Success(1) : new Fail(1, [a])
     }
 
-    export function unit<A>(a: A, f: () => boolean): Result {
-        if (f()) return new Success(1)
-        else return new Fail(1, [a])
+    //more specific versions of evalList and evalListWith for when final reduce type is Result, C == Result
+
+    export function evalList<In, Out, A>(a: AC<In, Out, [In, A][]>, f: (a: In, b: A) => Result): AC<In, Out, Result> {
+        return checker.foldLeft(a, (s, b) => s.combine(f(b[0], b[1])), new Success(0) as Result)
+    }
+
+    export function evalList2<In, Out, A>(a: AC<In, Out, [In, A][]>, f: (a: In, b: A) => boolean): AC<In, Out, Result> {
+        return evalList(a, (a, b) => Result.unit(a, f(a, b)))
+    }
+
+    export function evalListWith<In, Out, A>(a: AC<In, Out, [In, A][]>, data: A[], f: (a: [In, A], b: A) => Result): AC<In, Out, Result> {
+        return checker.evalListWith(a, data, (acc, next) => acc.combine(f(next[0], next[1])), new Success(0) as Result)
+    }
+
+    export function evalListWith2<In, Out, A>(a: AC<In, Out, [In, A][]>, data: A[], f: (a: A, b: A) => boolean): AC<In, Out, Result> {
+        return evalListWith(a, data, (a, b) => Result.unit(a[0], f(a[1], b)))
     }
 }
 
-//Messing arround
-function inIsOut<In>(a: AutoChecker<In, In, [In, In][]>) {
-    return AutoChecker.evalList(a, (a: [In, In][]) => a, (s: [In, In]) => Result.apply(s[0], () => s[0] == s[1]))
-}
+//end of lib, code that uses it below
+import ioTest = Result.evalList2
+import dataTest = Result.evalListWith2
+import unit = checker.unitKeepInput
 
+//test map evaluation definitions
+const inIsOut = a => ioTest(a, (i, o) => i == o)
+const expected = (a, data) => dataTest(a, data, (a, b) => a == b)
+
+//test input definitions
 const randomStrings = ["this", "is", "a", "simple", "input", "output", "echo", "test", "for", "testing", "the", "autograder"]
+const rndStringTest = checker.list(randomStrings, s => unit(s))
 
-export function gradeInIsOut(r: AutoChecker.Runnable<string, string>, success: (r: Result) => void, error: (err:string) => void) {
-    inIsOut(AutoChecker.list(randomStrings, (s: string) => AutoChecker.unitKeepInput<string, string>(s))).run(r).then(success, error)
+//generic grading function
+export function grade<In, Out, A, B>(r: Run<In, Out>, algebra: (a: AC<In, Out, A>) => AC<In, Out, B>, test: AC<In, Out, A>, success: (r: B) => void, error: (err: string) => void) {
+    algebra(test).run(r).then(success, error)
+}
+
+export function gradeIOEcho(r: Run<string, string>, success: (r: Result) => void, error: (err: string) => void) {
+    grade(r, inIsOut, rndStringTest, success, error)
 }
 
 //export function test() {

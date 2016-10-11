@@ -1,54 +1,10 @@
-﻿declare var Dropzone
-declare var $
+﻿//needs major cleanups
 
+declare var $
 declare var io
 
 var socket = io()
-
-let zone
 let project:string
-
-Dropzone.options.zonemini = {
-    createImageThumbnails: false,
-    parallelUploads: 5,
-    accept: function (file, done) {   
-        if (!isPython(file)) {
-            this.removeFile(file)
-            $('#errMessage').show()
-            done()
-        } else { done(); }
-    },
-    init: function () {
-        zone = this
-
-        this.on("addedfile", function (file) {
-            if (isPython(file)) $('#errMessage').hide()
-            else {
-                this.removeFile(file)
-                $('#errMessage').show()
-            }
-        });
-    },
-    success: function (file, response) {
-        zone.removeFile(file)
-        addResult(file.name, response)
-        $('#testResults').show()
-        //let name = (data.children.item(1) as HTMLDivElement).children.item(1) as HTMLDivElement
-
-        //name.appendChild(document.createElement("br"))
-        //let result = document.createElement("span")
-        //if (!response.success) {
-        //    result.classList.add("error")
-        //    result.innerText = response.err
-        //} else result.innerText = "Passed " + response.passed + "/" + response.tests + "!"
-        //name.appendChild(result)
-    }
-}
-
-function removeResults() {
-    $('#completedTests').html("")
-    $('#testResults').hide()
-}
 
 interface Response {
     success: boolean
@@ -58,6 +14,41 @@ interface Response {
     failed?: string[]
 }
 
+interface Miniprojects {
+    success: boolean,
+    html?: string,
+    err?: string
+}
+
+$(document).ready(init)
+
+function init() {
+    socket.emit('getMiniprojects')
+    socket.on('setMiniprojects', setMiniprojects)
+
+    $('#switchProject').click(stopGrade)
+    $('#clearAllFiles').click(removeResults)
+}
+
+function removeResults() {
+    $('#completedTests').html("")
+    showResults(false)
+}
+
+function showResults(show: boolean) {
+    showOrHide("#testResults", show)
+}
+
+function showErrorNoPython(show: boolean) {
+    showOrHide("#errMessage", show)
+}
+
+function showOrHide(sel:string, show: boolean) {
+    if (show) $(sel).show()
+    else $(sel).hide()
+}
+
+//cleanups requiered below
 function addResult(name:string, response: Response) {
     if (response.success) {
         const el = document.createElement("tr")
@@ -84,26 +75,6 @@ function addResult(name:string, response: Response) {
     }
 }
 
-function isPython(file): boolean {
-    return file.name.split(".").pop() == "py"
-}
-
-$('#clearAllFiles').click(function () {
-    removeResults()
-})
-
-$(document).ready(function () {
-    socket.emit('getMiniprojects')
-    $('#switchProject').click(stopGrade)
-})
-socket.on('setMiniprojects', setMiniprojects)
-
-interface Miniprojects {
-    success: boolean,
-    html?: string,
-    err?: string
-}
-
 function setMiniprojects(data: Miniprojects) {
     if (data.success) {
         $("#miniprojects").html(data.html)
@@ -125,4 +96,8 @@ function stopGrade() {
     $("#upload").fadeOut(100, () =>
         $("#miniprojects").fadeIn(100, () =>
             removeResults()))
+}
+
+function showGroup(i: number) {
+    $(".group:not([gnum=" + i + "])").fadeOut(() => $(".group[gnum=" + i + "]").fadeOut(100), 100)
 }
