@@ -9,12 +9,14 @@ var fs = require('fs');
 var app = server.app
 var io = server.io
 
+var passport = require('passport')
+
 app.get('/result', function (req, res) {
     res.render('result', {success: true, tests: 10, pass: 10, failed: [1, 2, 3, 4]})
 })
 
 app.get('/?', function (req, res) {
-    res.render('grader')
+    res.render('grader', { user: req.user })
 })
 
 app.post('/file-upload', function (req, res) {
@@ -47,6 +49,23 @@ app.post('/file-upload', function (req, res) {
         });
     });
 })
+
+app.get('/auth/google', passport.authenticate('google', {
+    scope: [
+        'https://www.googleapis.com/auth/plus.login',
+        'https://www.googleapis.com/auth/plus.profile.emails.read']
+}));
+
+app.get('/auth/google/callback',
+    passport.authenticate('google', {
+        successRedirect: '/',
+        failureRedirect: '/'
+    }));
+
+app.get('/logout', function (req, res) {
+    req.logout();
+    res.redirect('/');
+});
 
 io.on('connection', function (socket) {
     socket.on('getMiniprojects', function () {
