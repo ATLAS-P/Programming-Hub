@@ -1,22 +1,30 @@
-﻿table.table.table-striped
-    thead
-        tr
-            th Miniproject
-            th
-                |Level 
-                span.glyphicon.glyphicon-question-sign
-            th
-                |Lecture 
-                span.glyphicon.glyphicon-question-sign
-            th Github Link
-            th Test or Grade
-    tbody
-        each project in miniprojects
-            tr
-                td= project.name
-                td= project.level
-                td= project.lecture
-                td 
-                    a(href="https://github.com/ATLAS-P/Python-Course/tree/master/Miniprojects/" + project.link) GitHub
-                td
-                    a(href="javascript:gradeProject('" + project.id + "', '" + project.name + "')") Upload
+﻿for group in groups
+    .group
+        h2= group.name
+        p There are #{group.open} open assignments.
+        if group.open > 0
+            p The next deadline is #{group.nextd}, for project #{group.nextp}
+        a(href="/group/" + group.id) view all assignments
+
+//table.table.table-striped
+    //thead
+    //    tr
+    //        th Miniproject
+    //        th
+    //            |Level 
+    //            span.glyphicon.glyphicon-question-sign
+    //        th
+    //            |Lecture 
+    //            span.glyphicon.glyphicon-question-sign
+    //        th Github Link
+    //        th Test or Grade
+    //tbody
+    //    each project in miniprojects
+    //        tr
+    //            td= project.name
+    //            td= project.level
+    //            td= project.lecture
+    //            td 
+    //                a(href="https://github.com/ATLAS-P/Python-Course/tree/master/Miniprojects/" + project.link) GitHub
+    //            td
+    //                a(href="javascript:gradeProject('" + project.id + "', '" + project.name + "')") Upload

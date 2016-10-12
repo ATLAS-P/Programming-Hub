@@ -2,7 +2,8 @@
 
 var server = require('./server')
 var grader = require('./Autograder')
-var miniprojects = require('./miniprojects')
+import * as miniprojects from './miniprojects'
+import * as students from './students'
 
 var fs = require('fs');
 
@@ -15,8 +16,8 @@ app.get('/result', function (req, res) {
     res.render('result', {success: true, tests: 10, pass: 10, failed: [1, 2, 3, 4]})
 })
 
-app.get('/?', function (req, res) {
-    res.render('grader', { user: req.user })
+app.get('/', function (req, res) {
+    res.render('grader', { user: req.user,  })
 })
 
 //cleanup below
@@ -70,12 +71,15 @@ app.get('/logout', function (req, res) {
 
 io.on('connection', function (socket) {
     socket.on('getMiniprojects', function () {
-        const projects = miniprojects.getAll((projects) =>
-            app.render("miniprojects", { miniprojects: projects }, function (err, html) {
-                if (err) socket.emit('setMiniprojects', { success: false, err: err.toString() })
-                else socket.emit('setMiniprojects', { success: true, html: html })
-            }), (err) => 
-                socket.emit('setMiniprojects', { success: false, err: err})
-            )
+        if (socket.request.session.passport) {
+            students.getSimpleGroups(socket.request.session.passport.user.email, function (projects) {
+                console.log(projects)
+                app.render("miniprojects", { groups: projects }, function (err, html) {
+                    if (err) socket.emit('setMiniprojects', { success: false, err: err.toString() })
+                    else socket.emit('setMiniprojects', { success: true, html: html })
+                }), (err) =>
+                        socket.emit('setMiniprojects', { success: false, err: err })
+            }, (err) => console.log(err))
+        }
     })
 })

@@ -1,8 +1,8 @@
 ﻿//was originally written in scala, sadly, it became quite bulky in typescript
 //needs a small cleanup, be split over some differnet files
 
-type Run<In, Out> = AutoChecker.Runnable<In, Out>
-type AC<In, Out, A> = AutoChecker<In, Out, A>
+export type Run<In, Out> = AutoChecker.Runnable<In, Out>
+export type AC<In, Out, A> = AutoChecker<In, Out, A>
 
 namespace PromiseHelper {
     export function map<A, B>(promise: Promise<A>, f: (a: A) => B): Promise<B> {
@@ -47,6 +47,10 @@ export namespace ArrayHelper {
         return list.map((a: A, i: number) => [a, other[i]]) as [A, B][]
     }
 
+    export function map2<A, B, C>(list: A[], other: B[], f: (A, B) => C): C[] {
+        return list.map((a: A, i: number) => f(a, other[i]))
+    }
+
     export function reverse<A>(list: A[]): A[] {
         return foldLeft(list, [], (acc: A[], next: A) => [next].concat(acc))
     }
@@ -56,7 +60,9 @@ export namespace ArrayHelper {
 import array = ArrayHelper
 import promise = PromiseHelper
 
-class AutoChecker<In, Out, A> {
+//I call it autochecker, but it does not do anything remotely connected to autochecking, but it can be used for it with some helpfull functions.
+//But it is usefull for so, so much more. A nice use is database seraching.
+export class AutoChecker<In, Out, A> {
     run: (r: Run<In, Out>) => Promise<A>
 
     constructor(run: (r: Run<In, Out>) => Promise<A>) {
@@ -80,7 +86,7 @@ class AutoChecker<In, Out, A> {
     }
 }
 
-namespace AutoChecker {
+export namespace AutoChecker {
     export type Runnable<In, Out> = (input: In) => Promise<Out>
 
     export function unit<In, Out>(data: In): AC<In, Out, Out> {

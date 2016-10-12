@@ -187,7 +187,7 @@ declare module NodeJS {
         hrtime(time?: number[]): number[];
 
         // Worker
-        send? (message: any, sendHandle?: any): void;
+        send?(message: any, sendHandle?: any): void;
     }
 
     export interface Timer {
