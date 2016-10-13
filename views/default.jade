@@ -11,5 +11,36 @@ block title
 
 block body
     block heading
+        .container
+            .row
+                .col-sm-8
+                    h1 Programming in Python
+                    p#subheader Miniproject Autograder
+                .col-sm-4
+                    #profileImage
+                        if user
+                            a(href="/")
+                                //if user.photos[0].type == "default"  
+                                #profileImageID(name=user.name family=user.surename)
+                                //else
+                                    //img(src=user.photos[0].value)
+                        else
+                            a(href="/auth/google")
+                                img(src="https://lh3.googleusercontent.com/-DRxN-2PbFjM/AAAAAAAAAAI/AAAAAAAAAAA/-8ZeTxDsXQg/photo.jpg")
+            if user                        
+                p
+                    a(href="/logout") Logout
+                    |&nbsp;&nbsp;&nbsp;
+                    a(href="/auth/google") Change User
+                    |&nbsp;&nbsp;&nbsp;
+                    a(href="/") User Home
+            hr
     .wrapper
-        block content
+        if user
+            block content
+        else
+            block content_nouser
+                .container
+                    p Please 
+                        a(href="/auth/google") login
+                        |&nbsp;with your utwente email address first.
