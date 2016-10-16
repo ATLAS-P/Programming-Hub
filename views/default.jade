@@ -29,11 +29,15 @@ block body
                                 img(src="https://lh3.googleusercontent.com/-DRxN-2PbFjM/AAAAAAAAAAI/AAAAAAAAAAA/-8ZeTxDsXQg/photo.jpg")
             if user                        
                 p
+                    a(href="/") Dashboard
+                    |&nbsp;&nbsp;&nbsp;
+                    a(href="#") Results
+                    |&nbsp;&nbsp;&nbsp;
+                    a(href="#") Classes
+                    |&nbsp;&nbsp;&nbsp;
                     a(href="/logout") Logout
                     |&nbsp;&nbsp;&nbsp;
                     a(href="/auth/google") Change User
-                    |&nbsp;&nbsp;&nbsp;
-                    a(href="/") User Home
             hr
     .wrapper
         if user

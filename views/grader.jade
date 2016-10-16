@@ -1,48 +1,15 @@
 ﻿extends default.jade
 
-include form.jade
-
 block title
     title Programming in Python
 
 block content
     .container
+        h2 Active classes
         #miniprojects
-        .row#upload
-            .col-md-3
-            .col-md-6
-                h2 
-                    |Upload your 
-                    span#mpname undefined 
-                    |miniproject!
-                form.dropzone#zonemini(action="file-upload" method="post" enctype="multipart/form-data")
-                    input.hide(type="file" name="miniproject")
-                    .dz-message
-                        |Drop miniproject here or click to upload.
-                #uploadButtons
-                    button.btn.btn-info#switchProject(type="button") Switch miniproject
-                    button.btn.btn-success(type="button") Submit best result
-                    button.btn.btn-warning#clearAllFiles(type="button") Clear miniprojects
-                p#errMessage Please only use python files!
-        #testResults
-            hr
-            h2 Autograder results
-            table.table.table-striped
-                thead
-                    tr
-                        th File name
-                        th Total tests
-                        th Succeeded Tests
-                        th Failed Input
-                tbody#completedTests
-        #studentInfo
-            hr
-            form
-                .student
-                    .row
-                        .col-lg-3.col-md-4.col-sm-6
-                            +text("snr", "Student Number")
-                    .row
-                        .form-group.col-md-6
-                            label(for="reflection") Reflection
-                            textarea.form-control#reflection(row="5" name="reflection" placeholder="Please write a short reflection, max 500 characters...")
+        hr
+        h2 Upcomming deadlines
+        p To be implemented
+        hr
+        h2 Recent feedback
+        p To be implemented

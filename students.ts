@@ -9,7 +9,6 @@ const student = new mongoose.Schema({
     surename: String,
     email: String,
     groups: [String],
-    files: [String]
 })
 const Student = mongoose.model('students', student)
 
@@ -24,14 +23,16 @@ const assignments = new mongoose.Schema({
     name: String,
     project: String,
     id: String,
-    due: Date
+    due: Date,
+    files: [String]
 })
 const Task = mongoose.model('assignments', assignments)
 
 const file = new mongoose.Schema({
     student: String,
-    timestamp: Date,
     assignment: String,
+    timestamp: Date,
+    partners: [String],
     html: String,
     reflection: String,
     feedback: String
@@ -49,6 +50,14 @@ export interface Profile {
 export function getUser(profile: Profile, fail, success: (student) => void) {
     Student.find({ email: profile.email.split("@")[0] }, (err, students: mongoose.Document[]) =>
         err ? fail(err.toString()) : createProfile(profile, students, fail, success))
+}
+
+export function getStudentsInGroup(query: {}, group: string, success: (s:mongoose.Document[]) => void, fail) {  
+
+    Student.find({ groups: { $eq: group } }).find(query).sort({ name: 1 }).exec(function (err, res) {
+        if (err) fail(err)
+        else success(res)
+    })
 }
 
 function createProfile(profile: Profile, current: mongoose.Document[], fail, success: (student) => void) {
@@ -76,11 +85,16 @@ function getGroups(user: string, success, fail) {
 }
 
 interface Group {
-    id: string, 
+    id: string,
     name: string,
     open: number,
     nextp: string,
     nextd: string
+}
+
+interface GroupSimple {
+    id: string,
+    name: string
 }
 
 interface Assignment {
@@ -115,11 +129,11 @@ function mapGroup(group: mongoose.Document, assignments: mongoose.Document[]): G
     const next = futuremap.ArrayHelper.foldLeft<mongoose.Document, [number, mongoose.Document]>(assignments, [0, null], function (acc: [number, mongoose.Document], next: mongoose.Document): [number, mongoose.Document] {
         const nextDate = (next.get("due") as Date)
         const open = nextDate > today
-        console.log(next)
+
         if (!acc[1]) {
-            if (nextDate > today) return [1, next]
+            if (open) return [1, next]
             else return acc
-        } else if (nextDate < (acc[1].get("due") as Date)) return [acc[0] + (open? 1 : 0), next]
+        } else if (open && nextDate < (acc[1].get("due") as Date)) return [acc[0] + 1, next]
         else return [acc[0] + (open ? 1 : 0), acc[1]]
     })
     const open = next[0]
@@ -132,29 +146,52 @@ function mapGroup(group: mongoose.Document, assignments: mongoose.Document[]): G
     }
 }
 
-//unexpected use of the autochecker, but using some mongodb query for it will be much quicker so read into that.
-//whoops, the id parameter should be array and runner in begin, after that normal find, not reversed as it is now FIX
-//function collectAssignment(id: string, success: (a: Assignment[]) => void, fail) {
-//    Task.find({ id: id }).sort({ due: -1 }).exec(function (err, tasks: mongoose.Document[]) {
-//        const runner = (project: mongoose.Document) => new Promise<mongoose.Document>(function (resolve, reject) {
-//            projects.get({ id: project.get("project") }, (data: mongoose.Document[]) => resolve(data[0]), reject)
-//        })
+export function collectAssignments(group: string, success: (ao: Assignment[], ac: Assignment[], g: GroupSimple) => void, fail) {
+    Group.find({ id: group }, function (err, theGroup: mongoose.Document[]) {
+        if (err) fail(err)
+        else if (theGroup.length == 0) fail("The group does not exsit!")
+        else {
+            let assignments = theGroup[0].get("assignments")
+            Task.find({ id: { $in: assignments } }).sort({ due: -1 }).exec(function (err, asses: mongoose.Document[]) {
+                const runnerGetProject = (ass: mongoose.Document) => new Promise<mongoose.Document>(function (resolve, reject) {
+                    projects.getFull({ id: ass.get("project") }, (data: mongoose.Document[]) => resolve(data[0]), reject)
+                })
 
-//        const collector = checker.AutoChecker.list(tasks, checker.AutoChecker.unit)
-//        collector.run(runner).then(function (projects: mongoose.Document[]) {
-//            success(checker.ArrayHelper.map2(tasks, projects, buildAssignment))
-//        }, fail)
-//    })
-//}
+                const collector = futuremap.AutoChecker.list(asses, futuremap.AutoChecker.unit)
+                collector.run(runnerGetProject).then(function (projects: mongoose.Document[]) {
+                    let assignments = futuremap.ArrayHelper.map2(asses, projects, buildAssignment)
+                    let openClosed = splitOpenClosed(assignments)
+                    success(openClosed[0], openClosed[1], mapGroupSimple(theGroup[0]))
+                }, fail)
+            })
+        }
+    })
+}
 
-//input is task/project
-//function buildAssignment(task: mongoose.Document, project: mongoose.Document): Assignment {
-//    return {
-//        name: project.get("name"),
-//        due: task.get("due"),
-//        level: project.get("level"),
-//        id: project.get("id"),
-//        link: project.get("id") + ".py" //remove and just do it in js
-//    }
-//}
+function splitOpenClosed(ass: Assignment[]): [Assignment[], Assignment[]] {
+    return futuremap.ArrayHelper.foldLeft<Assignment, [Assignment[], Assignment[]]>(ass, [[], []], function (acc: [Assignment[], Assignment[]], next: Assignment) {
+        if (new Date(next.due) > new Date()) {
+            return [acc[0].concat(next), acc[1]]
+        } else {
+            return [acc[0], acc[1].concat(next)]
+        }
+    })
+}
 
+function mapGroupSimple(g: mongoose.Document): GroupSimple {
+    return {
+        id: g.get("id"),
+        name: g.get("name")
+    }
+}
+
+function buildAssignment(task: mongoose.Document, project: mongoose.Document): Assignment {
+    console.log(task, project)
+    return {
+        name: project.get("name"),
+        due: task.get("due"),
+        level: project.get("level"),
+        id: project.get("id"),
+        link: project.get("id") + ".py" //remove and just do it in js
+    }
+}

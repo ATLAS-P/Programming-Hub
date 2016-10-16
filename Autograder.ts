@@ -171,7 +171,7 @@ class Success extends Result {
     }
 }
 
-class Fail<A> extends Result {
+export class Fail<A> extends Result {
     tries: number
     failed: A[]
 

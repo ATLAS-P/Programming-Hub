@@ -25,6 +25,10 @@ export function get(query, success, fail) {
     getprojects(query, (p) => success(helper.ArrayHelper.map(p, transformProject)), fail)
 }
 
+export function getFull(query, success, fail) {
+    getprojects(query, (p) => success(p), fail)
+}
+
 export const getAll = (success, fail) => get({}, success, fail)
 export const getProject = (id:string, success, fail) => get({id:id}, success, fail)
 
