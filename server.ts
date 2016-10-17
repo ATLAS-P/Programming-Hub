@@ -26,7 +26,6 @@ var GOOGLE_CLIENT_ID = "149489641596-1gjod03kio5biqdcaf4cs6hpgvu8nmof.apps.googl
 var GOOGLE_CLIENT_SECRET = "F7giEmz6HL9N2ZZ-1GVewAw7"//secret;
 
 passport.serializeUser(function (user: students.Profile, done) {
-    console.log(user)
     done(null, user);
 });
 

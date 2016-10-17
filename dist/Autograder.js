@@ -1,69 +1,17 @@
+//was originally written in scala, sadly, it became quite bulky in typescript
+//needs a small cleanup, be split over some differnet files
 "use strict";
-class AutoChecker {
-    constructor(run) {
-        this.run = run;
-    }
-    map(f) {
-        return new AutoChecker((r) => PromiseHelper.map(this.run(r), f));
-    }
-    flatMapfuture(f) {
-        return new AutoChecker((r) => PromiseHelper.flatMap(this.run(r), f));
-    }
-    flatMap(f) {
-        return new AutoChecker((r) => PromiseHelper.flatMap(PromiseHelper.map(this.run(r), f), (a) => a.run(r)));
-    }
-    map2(f, b) {
-        return this.flatMap((a) => b.map((b) => f(a, b)));
-    }
-    eval(f) {
-        return this.map((a) => f(a));
-    }
-}
-(function (AutoChecker) {
-    function unit(data) {
-        return new AutoChecker((r) => r(data));
-    }
-    AutoChecker.unit = unit;
-    function unitKeepInput(data) {
-        return new AutoChecker((r) => PromiseHelper.map(r(data), p => [data, p]));
-    }
-    AutoChecker.unitKeepInput = unitKeepInput;
-    function list(data, f) {
-        return sequence(forall(data, f));
-    }
-    AutoChecker.list = list;
-    function list2(f, ...data) {
-        return sequence(forall(data, f));
-    }
-    AutoChecker.list2 = list2;
-    function forall(data, f) {
-        return ArrayHelper.foldLeft(ArrayHelper.reverse(data), [], (acc, next) => [f(next)].concat(acc));
-    }
-    AutoChecker.forall = forall;
-    function sequence(seq) {
-        return new AutoChecker((r) => ArrayHelper.foldLeft(ArrayHelper.reverse(seq), PromiseHelper.unit([]), (acc, next) => next.flatMapfuture((a) => PromiseHelper.map(acc, (f) => [a].concat(f))).run(r)));
-    }
-    AutoChecker.sequence = sequence;
-    function evalList(checker, g, f) {
-        return checker.eval((a) => ArrayHelper.foldLeft(g(a), new Success(0), (acc, next) => acc.combine(f(next))));
-    }
-    AutoChecker.evalList = evalList;
-    function evalList2(checker, data, f) {
-        return evalList(checker, (a) => ArrayHelper.zip(a, data), (b) => f(b[0], b[1]));
-    }
-    AutoChecker.evalList2 = evalList2;
-})(AutoChecker || (AutoChecker = {}));
 var PromiseHelper;
 (function (PromiseHelper) {
     function map(promise, f) {
         return new Promise((resolve, reject) => {
-            promise.then((result) => resolve(f(result)), (err) => reject(err));
+            promise.then(r => resolve(f(r)), err => reject(err));
         });
     }
     PromiseHelper.map = map;
     function flatMap(promise, f) {
         return new Promise((resolve, reject) => {
-            promise.then((result) => f(result).then((r2) => resolve(r2), (err) => reject(err)), (err) => reject(err));
+            promise.then(r => f(r).then(r2 => resolve(r2), err => reject(err)), (err) => reject(err));
         });
     }
     PromiseHelper.flatMap = flatMap;
@@ -100,48 +48,85 @@ var ArrayHelper;
         return list.map((a, i) => [a, other[i]]);
     }
     ArrayHelper.zip = zip;
+    function map2(list, other, f) {
+        return list.map((a, i) => f(a, other[i]));
+    }
+    ArrayHelper.map2 = map2;
     function reverse(list) {
         return foldLeft(list, [], (acc, next) => [next].concat(acc));
     }
     ArrayHelper.reverse = reverse;
 })(ArrayHelper = exports.ArrayHelper || (exports.ArrayHelper = {}));
+//make as own types, the array and promise to I can just call the functions on them
+var array = ArrayHelper;
+var promise = PromiseHelper;
+//I call it autochecker, but it does not do anything remotely connected to autochecking, but it can be used for it with some helpfull functions.
+//But it is usefull for so, so much more. A nice use is database seraching.
+class AutoChecker {
+    constructor(run) {
+        this.run = run;
+    }
+    map(f) {
+        return new AutoChecker(r => promise.map(this.run(r), f));
+    }
+    flatMapfuture(f) {
+        return new AutoChecker(r => promise.flatMap(this.run(r), f));
+    }
+    flatMap(f) {
+        return new AutoChecker(r => promise.flatMap(promise.map(this.run(r), f), a => a.run(r)));
+    }
+    map2(f, b) {
+        return this.flatMap(a => b.map(b => f(a, b)));
+    }
+}
+exports.AutoChecker = AutoChecker;
+(function (AutoChecker) {
+    function unit(data) {
+        return new AutoChecker(r => r(data));
+    }
+    AutoChecker.unit = unit;
+    function unitKeepInput(data) {
+        return new AutoChecker(r => promise.map(r(data), p => [data, p]));
+    }
+    AutoChecker.unitKeepInput = unitKeepInput;
+    function list(data, f) {
+        return sequence(forall(data, f));
+    }
+    AutoChecker.list = list;
+    function list2(f, ...data) {
+        return sequence(forall(data, f));
+    }
+    AutoChecker.list2 = list2;
+    function forall(data, f) {
+        return array.foldLeft(array.reverse(data), [], (acc, next) => [f(next)].concat(acc));
+    }
+    AutoChecker.forall = forall;
+    function sequence(seq) {
+        return new AutoChecker(r => array.foldLeft(array.reverse(seq), promise.unit([]), (acc, next) => next.flatMapfuture(a => promise.map(acc, f => [a].concat(f))).run(r)));
+    }
+    AutoChecker.sequence = sequence;
+    //slightly more general foldleft, which allows for a transformed final output of the ac
+    function evalList(checker, g, f, z) {
+        return checker.map(a => array.foldLeft(g(a), z, f));
+    }
+    AutoChecker.evalList = evalList;
+    //more specific version of evallist, thus foldleft, which does not use the final output of the ac, but the final output zipped with data (B[])
+    function evalListWith(checker, data, f, z) {
+        return evalList(checker, a => array.zip(a, data), b => f(b[0], b[1]), z);
+    }
+    AutoChecker.evalListWith = evalListWith;
+    function foldLeft(checker, f, z) {
+        return evalList(checker, a => a, f, z);
+    }
+    AutoChecker.foldLeft = foldLeft;
+})(AutoChecker = exports.AutoChecker || (exports.AutoChecker = {}));
+var checker = AutoChecker;
 class Result {
     totalSuccess() {
         return this.totalTests() - this.totalFail();
     }
 }
 exports.Result = Result;
-class Passed extends Result {
-    totalTests() {
-        return 1;
-    }
-    totalFail() {
-        return 0;
-    }
-    addTries(n) {
-        return new Passed();
-    }
-    combine(r2) {
-        return r2;
-    }
-    clone() {
-        return new Passed();
-    }
-}
-class Failed extends Result {
-    totalTests() {
-        return 1;
-    }
-    totalFail() {
-        return 1;
-    }
-    addTries(n) {
-        return this;
-    }
-    combine(r2) {
-        return this;
-    }
-}
 class Success extends Result {
     constructor(tries) {
         super();
@@ -167,7 +152,7 @@ class Fail extends Result {
         this.failed = failed;
     }
     getFailed() {
-        return this.failed.slice();
+        return this.failed;
     }
     totalTests() {
         return this.tries;
@@ -176,45 +161,60 @@ class Fail extends Result {
         return this.failed.length;
     }
     addTries(n) {
-        return new Fail(this.tries + n, this.failed.slice());
+        return new Fail(this.tries + n, this.failed);
     }
     combine(r2) {
-        if (r2 instanceof Passed) {
-            return this;
-        }
-        else if (r2 instanceof Failed) {
-            return r2;
-        }
-        else if (r2 instanceof Success) {
-            return new Fail(this.tries + r2.tries, this.failed.slice());
+        if (r2 instanceof Success) {
+            return new Fail(this.tries + r2.tries, this.failed);
         }
         else if (r2 instanceof Fail) {
             return new Fail(this.tries + r2.tries, this.failed.concat(r2.failed));
         }
     }
 }
+exports.Fail = Fail;
 (function (Result) {
-    function apply(a, f) {
-        return unit(a, f);
-    }
-    Result.apply = apply;
     function unit(a, f) {
-        if (f())
-            return new Success(1);
-        else
-            return new Fail(1, [a]);
+        return f ? new Success(1) : new Fail(1, [a]);
     }
     Result.unit = unit;
+    //more specific versions of evalList and evalListWith for when final reduce type is Result, C == Result
+    function evalList(a, f) {
+        return checker.foldLeft(a, (s, b) => s.combine(f(b[0], b[1])), new Success(0));
+    }
+    Result.evalList = evalList;
+    function evalList2(a, f) {
+        return evalList(a, (a, b) => Result.unit(a, f(a, b)));
+    }
+    Result.evalList2 = evalList2;
+    function evalListWith(a, data, f) {
+        return checker.evalListWith(a, data, (acc, next) => acc.combine(f(next[0], next[1])), new Success(0));
+    }
+    Result.evalListWith = evalListWith;
+    function evalListWith2(a, data, f) {
+        return evalListWith(a, data, (a, b) => Result.unit(a[0], f(a[1], b)));
+    }
+    Result.evalListWith2 = evalListWith2;
 })(Result = exports.Result || (exports.Result = {}));
-//Messing arround
-function inIsOut(a) {
-    return AutoChecker.evalList(a, (a) => a, (s) => Result.apply(s[0], () => s[0] == s[1]));
-}
+//end of lib, code that uses it below
+var ioTest = Result.evalList2;
+var dataTest = Result.evalListWith2;
+var unit = checker.unitKeepInput;
+//test map evaluation definitions
+const inIsOut = a => ioTest(a, (i, o) => i == o);
+const expected = (a, data) => dataTest(a, data, (a, b) => a == b);
+//test input definitions
 const randomStrings = ["this", "is", "a", "simple", "input", "output", "echo", "test", "for", "testing", "the", "autograder"];
-function gradeInIsOut(r, success, error) {
-    inIsOut(AutoChecker.list(randomStrings, (s) => AutoChecker.unitKeepInput(s))).run(r).then(success, error);
+const rndStringTest = checker.list(randomStrings, s => unit(s));
+//generic grading function
+function grade(r, algebra, test, success, error) {
+    algebra(test).run(r).then(success, error);
 }
-exports.gradeInIsOut = gradeInIsOut;
+exports.grade = grade;
+function gradeIOEcho(r, success, error) {
+    grade(r, inIsOut, rndStringTest, success, error);
+}
+exports.gradeIOEcho = gradeIOEcho;
 //export function test() {
 //    const tests2 = AutoChecker.list([298347, 234265, 345346, 86574], (i: number) => AutoChecker.unitKeepInput<number, string>(i))
 //    const helloWorld = AutoChecker.evalList2(tests2, ["Hallo", "world", "bye", "bye!"], (a: [number, string], b: string) => Result.apply(a[0], () => a[1] == b))

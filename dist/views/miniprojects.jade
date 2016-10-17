@@ -1,22 +1,14 @@
-﻿table.table.table-striped
-    thead
-        tr
-            th Miniproject
-            th
-                |Level 
-                span.glyphicon.glyphicon-question-sign
-            th
-                |Lecture 
-                span.glyphicon.glyphicon-question-sign
-            th Github Link
-            th Test or Grade
-    tbody
-        each project in miniprojects
-            tr
-                td= project.name
-                td= project.level
-                td= project.lecture
-                td 
-                    a(href="https://github.com/ATLAS-P/Python-Course/tree/master/Miniprojects/" + project.link) GitHub
-                td
-                    a(href="javascript:gradeProject('" + project.id + "', '" + project.name + "')") Upload
+﻿.row.groups
+    for group in groups
+        .col-lg-4.col-sm-6
+            .group(group=group.id)
+                h3.special= group.name
+                if group.open > 0
+                    if group.open == 1
+                        p There is 1 open assignment.
+                    else 
+                        p There are #{group.open} open assignments.
+                    p The next deadline is in:
+                    date(format="in")= group.nextd
+                else 
+                    p There are no open assignments.
