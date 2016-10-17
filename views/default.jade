@@ -1,46 +1,42 @@
-﻿extends generic.jade
+﻿extends simple.jade
 
-block scripts
-    include scripts.jade
+block header
+    .container
+        .row
+            .col-sm-8
+                h1 Programming HUB
+                p#subheader University college Twente
+            .col-sm-4
+                #profileImage
+                    if user
+                        a(href="/")
+                            //if user.photos[0].type == "default"  
+                            #profileImageID(name=user.name family=user.surename)
+                            //else
+                                //img(src=user.photos[0].value)
+                    else
+                        a(href="/auth/google")
+                            img(src="https://lh3.googleusercontent.com/-DRxN-2PbFjM/AAAAAAAAAAI/AAAAAAAAAAA/-8ZeTxDsXQg/photo.jpg")
+        if user                        
+            p
+                a(href="/logout") Logout
+                |&nbsp;&nbsp;&nbsp;
+                a(href="/auth/google") Change User
+                |&nbsp;&nbsp;&nbsp;
+                a(href="/") User Home
+        hr
 
-block styles
-    include styles.jade
+block content_nouser
+    .container
+        p Please 
+            a(href="/auth/google") login
+            |&nbsp;with your utwente email address first.
 
-block title
-    title ATLAS Python Course
-
-block body
-    block heading
-        .container
-            .row
-                .col-sm-8
-                    h1 Programming in Python
-                    p#subheader Miniproject Autograder
-                .col-sm-4
-                    #profileImage
-                        if user
-                            a(href="/")
-                                //if user.photos[0].type == "default"  
-                                #profileImageID(name=user.name family=user.surename)
-                                //else
-                                    //img(src=user.photos[0].value)
-                        else
-                            a(href="/auth/google")
-                                img(src="https://lh3.googleusercontent.com/-DRxN-2PbFjM/AAAAAAAAAAI/AAAAAAAAAAA/-8ZeTxDsXQg/photo.jpg")
-            if user                        
-                p
-                    a(href="/logout") Logout
-                    |&nbsp;&nbsp;&nbsp;
-                    a(href="/auth/google") Change User
-                    |&nbsp;&nbsp;&nbsp;
-                    a(href="/") User Home
-            hr
-    .wrapper
-        if user
-            block content
-        else
-            block content_nouser
-                .container
-                    p Please 
-                        a(href="/auth/google") login
-                        |&nbsp;with your utwente email address first.
+block footer
+    .container
+        hr
+        .right
+            p Copyright © Rik Mulder 2016. All rights reserved.
+        .left
+            p
+                |Huon v. 0.1
