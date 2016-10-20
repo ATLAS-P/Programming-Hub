@@ -27,7 +27,7 @@ block content
                                 td 
                                     a(href="https://github.com/ATLAS-P/Python-Course/tree/master/Miniprojects/" + project.link) GitHub
                                 td
-                                    a(href="javascript:gradeProject('" + project.id + "', '" + project.name + "', true)") Upload
+                                    a(href="javascript:gradeProject('" + project.id + "', '" + project.assignment + "', '" + project.name + "', true)") Upload
             else 
                 p There are no open assignments.
             h3.special.top40 Closed Assignments
@@ -51,7 +51,7 @@ block content
                                 td 
                                     a(href="https://github.com/ATLAS-P/Python-Course/tree/master/Miniprojects/" + project.link) GitHub
                                 td
-                                    a(href="javascript:gradeProject('" + project.id + "', '" + project.name + "', false)") Upload
+                                    a(href="javascript:gradeProject('" + project.id + "', '" + project.assignment + "', '" + project.name + "', false)") Upload
                                 td
                                     a(href="#") View
             else
@@ -92,11 +92,15 @@ block content
                         select.form-control(name="partners" multiple="")#partners
                 .col-sm-9
                     h3 Reflections
-                    #reflections
-                        .form-group.reflection(student=user.id)
-                            label(for=user.id) #{user.name} #{user.surename}
-                            textarea.form-control(maxlength="500" rows="5" name=user.id placeholder="Please write a short reflection, max 500 characters...")
+                    form#finalizeResults(action="sendResults" method="post")
+                        #reflections
+                            .form-group.reflection(student=user.email)
+                                label(for=user.email) #{user.name} #{user.surename}
+                                textarea.form-control(maxlength="500" rows="5" name=user.email placeholder="Please write a short reflection, max 500 characters...")
+                        input#projectID.hide(type="text" name="project")
+                        input#assignmentID.hide(type="text" name="assignment")
+                        input#groupID.hide(type="text" name="group")
             hr
             #sendButtons
                 button.btn.btn-info#cencelSubmit(type="button") Go back
-                button.btn.btn-success#submitResult(type="button") Submit
+                button.btn.btn-success#finalizeResult(type="button") Submit

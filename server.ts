@@ -1,84 +1,25 @@
-﻿import path = require('path')
-import stylus = require('stylus')
+﻿import * as express from 'express'
+import * as http from 'http'
+import * as socket from 'socket.io'
 
-var passport = require('passport')
-var googleLogin = require('passport-google-oauth2').Strategy;
-var express = require('express')
-var mongoose = require('mongoose')
-var bodyParser = require('body-parser')
-var app = express()
-var server = require('http').Server(app)
-var io = require('socket.io')(server)
-var busboy = require('connect-busboy');
-var session = require("express-session")
+import {Setup} from "./server/server/setup"
+import {Routes} from "./server/server/routes"
 
-import * as students from "./students"
+const app = express()
+const server = http.createServer(app)
+const io = socket(server)
 
-mongoose.connect("mongodb://ds033986.mlab.com:33986/autograder", { user: "rikmuld", pass: "atlaspass" })//user pass
-var db = mongoose.connection
+const GOOGLE_CLIENT_ID = "149489641596-1gjod03kio5biqdcaf4cs6hpgvu8nmof.apps.googleusercontent.com"
+const GOOGLE_CLIENT_SECRET = "F7giEmz6HL9N2ZZ-1GVewAw7"
 
-db.on('error', console.error.bind(console, 'connection error:'));
-db.once('open', function (callback) {
-    console.log("Connected to database")
-});
+const db = Setup.setupDatabase()
 
-var GOOGLE_CLIENT_ID = "149489641596-1gjod03kio5biqdcaf4cs6hpgvu8nmof.apps.googleusercontent.com"//id
-var GOOGLE_CLIENT_SECRET = "F7giEmz6HL9N2ZZ-1GVewAw7"//secret;
+Setup.setupAuthGoogle(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET)
+Setup.setupExpress(app)
+Setup.setupSession(app, io)
+Setup.addAuthMiddleware(app)
+Setup.addAsMiddleware(app, "db", db)
 
-passport.serializeUser(function (user: students.Profile, done) {
-    done(null, user);
-});
+Routes.addRoutes(app, io)
 
-passport.deserializeUser(function (obj, done) {
-    done(null, obj);
-});
-
-passport.use(new googleLogin({
-        clientID: GOOGLE_CLIENT_ID,
-        clientSecret: GOOGLE_CLIENT_SECRET,
-        callbackURL: "http://localhost:3000/auth/google/callback",
-        passReqToCallback: true
-    }, function (request, accessToken, refreshToken, profile, done) {
-        process.nextTick(function () {
-            if (profile._json.domain == "student.utwente.nl") {
-                students.getUser(profile, function (err: string) {
-                    done(null, null)
-                }, (s: string) => done(null, s))
-            } else done(null, null);
-        });
-    }
-));
-
-const sessionMiddle = session({//might want to imporve this before deployment
-    resave: false,
-    saveUninitialized: true,
-    secret: 'Pssssst, keep it a secret!'
-})
-
-app.set('view engine', 'jade')
-app.set('views', path.join(__dirname, 'views'))
-app.use(bodyParser.urlencoded({ extended: false }))
-app.use(bodyParser.json())
-app.use(stylus.middleware(path.join(__dirname, 'public')))
-app.use(express.static(path.join(__dirname, 'public')))
-app.use(busboy());
-
-io.use(function (socket, next) {
-    sessionMiddle(socket.request, socket.request.res, next)
-})
-
-app.use(sessionMiddle)
-app.use(passport.initialize());
-app.use(passport.session());
-
-app.use(function (req, res, next) {
-    req.db = db
-    next()
-})
-
-exports.app = app
-exports.io = io
-
-require('./routes')
-
-server.listen(3000)
+Setup.startServer(server)

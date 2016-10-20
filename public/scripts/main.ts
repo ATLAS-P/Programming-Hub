@@ -5,6 +5,7 @@ declare var io
 
 var socket = io()
 let project: string
+let assignment: string
 
 let bestResult: Response
 let hasStudents = false
@@ -38,6 +39,7 @@ function init() {
     $('#switchProject').click(stopGrade)
     $('#clearAllFiles').click(removeResults)
     $('#submitResult').click(submitResult)
+    $('#finalizeResult').click(finalizeResult)
 
     $("#partners").change(partnersChanged).change();
 
@@ -48,7 +50,6 @@ function init() {
 }
 
 function href(to: string) {
-    console.log(to)
     document.location.href = to
 }
 
@@ -78,7 +79,16 @@ function hashCode(str:string):number {
     for (var i = 0; i < str.length; i++) {
         hash = str.charCodeAt(i) + ((hash << 5) - hash);
     }
+
     return hash;
+}
+
+function finalizeResult() {
+    $("#projectID").attr('value', project)
+    $("#assignmentID").attr('value', assignment)
+    $("#groupID").attr('value', (window.location.pathname + window.location.search).split("/")[2])
+
+    $("#finalizeResults").submit()
 }
 
 function intToRGB(i): string {
@@ -167,8 +177,12 @@ function setMiniprojects(data: Miniprojects) {
     $(".group").click(function () { href("group/" + $(this).attr("group")) })
 }
 
-function gradeProject(id: string, name:string, submit:boolean) {
+function gradeProject(id: string, ass: string, name:string, submit:boolean) {
     project = id
+    assignment = ass
+
+    $("#projectid").attr("value", id)
+
     canSubmit = submit
     if (submit) $("#submitResult").removeClass("disabled")
     else $("#submitResult").addClass("disabled")
@@ -212,27 +226,41 @@ function setOtherStudents(res) {
 }
 
 function partnersChanged() {
-    let partners = []
-    let names = []
+    const partners = []
+    const names = []
+    const refs = $("#reflections").get()[0] as HTMLDivElement
+
     $("#partners option:selected").each(function () {
         partners.push($(this).val())
         names.push($(this).text())
     })
 
-    let refs = $("#reflections").get()[0] as HTMLDivElement
-    let childs = refs.children
+    const none = partners.indexOf("none") >= 0
 
-    for (let i = 1; i < childs.length; i++) {
-        let student = childs.item(i)
-        let index = partners.indexOf(student.getAttribute("student"))
-        if (index == -1) {
-            refs.removeChild(student)
-        } else partners.splice(index, 1)
+    console.log(names, partners, none)
+
+    if (none) {
+        while (refs.childNodes.length > 1) {
+            refs.removeChild(refs.lastChild)
+        }
+    } else {
+        const length = refs.childNodes.length
+        for (let i = 1; i < length; i++) {
+            let student = refs.children.item(i)
+            let index = partners.indexOf(student.getAttribute("student"))
+
+            if (index == -1) {
+                refs.removeChild(student)
+            } else {
+                partners.splice(index, 1)
+                names.splice(index, 1)
+            }
+        }
+
+        partners.forEach(function (val: string, index: number) {
+            refs.appendChild(mkReflectionArea(val, names[index]))
+        })
     }
-
-    if (partners.indexOf("none") == -1) partners.forEach(function (val: string, index: number) {
-        refs.appendChild(mkReflectionArea(val, names[index]))
-    })
 }
 
 function mkReflectionArea(id: string, text:string): HTMLDivElement {

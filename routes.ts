@@ -1,8 +1,12 @@
-﻿var spawn = require('child_process').spawn
+﻿//todo update, clean and move to server/server/routes
+
+var spawn = require('child_process').spawn
 var server = require('./server')
-import * as grader from "./Autograder"
 import * as miniprojects from './miniprojects'
 import * as students from './students'
+import * as grader from "./server/autograder/AutoGrader"
+import {Future} from "./server/functional/Future"
+import {Result, Fail, Success} from "./server/autograder/Result"
 
 var fs = require('fs');
 
@@ -23,28 +27,49 @@ app.get('/result', function (req, res) {
 })
 
 app.get('/', function (req, res) {
-    res.render('grader', { user: req.user,  })
+    res.render('grader', { user: req.user, })
 })
 
-//cleanup below
-app.post('/group/file-upload', function (req, res) {//ask for is in post data and use for best result
+app.post('/group/sendResults', function (req, res) {
+    const data = req.body
+    const project = data.project
+    const group = data.group
+    const assignment = data.assignment
+    const result = req.session.bestResult[project]
+
+    res.end()
+
+    //check if assignment.project == project
+        //check if assignment is in group
+            //check if all students are in same group, and the group.id is equal to group
+                //check if students did not hand in already (only if final)
+                    //hand in for main student, and hand in non final for others -- only if test passed
+
+    //if passed for main student then redirect to result of assignment page
+    //else show error on submit page
+})
+
+app.post('/group/file-upload', function (req, res) {
     let sess = req.session
+    console.log(sess.bestResult)
+    
+    let project = new Promise<string>((resolve, reject) => {
+        req.busboy.on('field', function (fieldname, val, fieldnameTruncated, valTruncated, encoding, mimetype) {
+            if (fieldname == "project") resolve(val)
+        })
+    })
 
     req.pipe(req.busboy);
     req.busboy.on('file', function (fieldname, file, filename) {
-        console.log("Uploading: " + filename);
-
         let filepath = __dirname + '/uploads/' + filename
         let fstream = fs.createWriteStream(filepath);
 
         file.pipe(fstream);
         fstream.on('close', function () {
-            console.log("Upload Finished of " + filename);
-
-            //simple io
-            let simpleio = (s: string) => new Promise<string>((resolve, reject) => {
+            //simpleio (mk one for n io and only use that one)
+            let simpleio = (s: string) => new Future<string>((resolve, reject) => {
                 let running = true
-                let py = spawn("python", ['uploads/' + filename])
+                let py = spawn("python3", ['uploads/' + filename])
                 let output = []
 
                 py.stdout.on('data', function (data) {
@@ -76,17 +101,22 @@ app.post('/group/file-upload', function (req, res) {//ask for is in post data an
                 }, 10000)
             })
 
-            grader.gradeIOEcho(simpleio, function (r) {
-                req.session.bestResult = getBest(r, req.session.bestResult)//set best result together with assignmenet ID, so it will definitely be submited for the right assignmnet
-                res.json({ success: true, tests: r.totalTests(), passed: r.totalSuccess(), failed: (r instanceof grader.Fail)? r.getFailed() : [] })
-            }, (err: string) => res.json({ success: false, err: err }))
+            project.then((project: string) => {
+                //remove file in both cases
+                grader.gradeProject(project, simpleio, function (r) {
+                    if (!sess.bestResult || typeof sess.bestResult == "undefined" || sess.bestResult == null) sess.bestResult = {}
+
+                    sess.bestResult[project] = getBest(r, sess.bestResult.project)
+                    res.json({ success: true, tests: r.totalTests(), passed: r.totalSuccess(), failed: (r instanceof Fail) ? r.getFailed().toArray() : [] })
+                }, (err: string) => res.json({ success: false, err: err }))
+            }, () => console.log("the impossible happend"))
         });
     });
 })
 
-function getBest(r1: grader.Result, r2: grader.Result): grader.Result {
-    if (r2 instanceof grader.Result && r1.totalTests() != r2.totalTests()) return null
-    else if (!(r2 instanceof grader.Result) || r1.totalSuccess() > r2.totalSuccess()) return r1
+function getBest(r1: Result, r2: Result): Result {
+    if (r2 instanceof Result && r1.totalTests() != r2.totalTests()) return null
+    else if (!(r2 instanceof Result) || r1.totalSuccess() > r2.totalSuccess()) return r1
     else return r2
 }
 
@@ -120,18 +150,9 @@ io.on('connection', function (socket) {
         }
     })
 
-    socket.on("sendResult", function (project: string, group: string, student_reflection: [string, string][]) {
-        let result = socket.request.session.bestResult //index with project id and then find with project parameter.
-
-        //create a Task for every student with the reflection and project
-        //send tasks to database
-        //send socket back to redirect to group main page
-    })
-
     socket.on("getOtherStudents", function (group: string) {
         let user = socket.request.session.passport.user.email
         students.getStudentsInGroup({ email: { $ne: user } }, group, function (docs) {
-            console.log(docs)
             app.render("partners", { students: docs }, function (err, html) {
                 if (err) socket.emit('setPartners', { success: false, err: err.toString() })
                 else socket.emit('setPartners', { success: true, html: html })
