@@ -1,0 +1,22 @@
+﻿extends generic.jade
+
+block scripts
+    include scripts.jade
+
+block styles
+    include styles.jade
+
+block title
+    title Programming Hub
+
+block body
+    .wrapper
+        #header
+            block header
+        #content
+            if user
+                block content
+            else
+                block content_nouser
+        #footer
+            block footer
