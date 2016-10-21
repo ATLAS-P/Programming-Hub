@@ -1,6 +1,7 @@
 ﻿import * as mongoose from 'mongoose'
 import {List} from '../functional/List'
 
+//change all to use promise no callback
 export class Table<A extends mongoose.Document> {
     model: mongoose.Model<A>
 
@@ -34,12 +35,26 @@ export class Table<A extends mongoose.Document> {
         }, fail)
     }
 
+    do(query: mongoose.DocumentQuery<A[], A>, success: Table.Suc<A>, fail: Table.Err) {
+        query.exec((err, res) => {
+            if (err) fail(err)
+            else success(res)
+        })
+    }
+
+    doOne(query: mongoose.DocumentQuery<A, A>, success: Table.SucOne<A>, fail: Table.Err) {
+        query.exec((err, res) => {
+            if (err) fail(err)
+            else success(res)
+        })
+    }
+
     getByID(id: string, success: Table.SucOne<A>, fail: Table.Err) {
-        this.getOne({ id: id }, {}, success, fail)
+        this.getOne({ _id: id }, {}, success, fail)
     }
 
     getByIDs(ids: string[], success: Table.Suc<A>, fail: Table.Err) {
-        this.get({ id: { $in: ids } }, {}, success, fail)
+        this.get({ _id: { $in: ids } }, {}, success, fail)
     }
 
     getAll(success: Table.Suc<A>, fail: Table.Err) {
@@ -64,14 +79,14 @@ export namespace Table {
     }
 
     export function done() {
-        
+        console.log("done!")
     }
 }
 
 export namespace Tables {
     interface ProjectTemplate {
+        _id: any,
         name: string,
-        id: string,
         level: number,
         info: string,
         type: string
@@ -80,7 +95,7 @@ export namespace Tables {
     export function mkProject(id: string, name: string, level: number, info: string, type: string): ProjectTemplate {
         return {
             name: name,
-            id: id,
+            _id: id,
             level: level,
             info: info,
             type: type
@@ -88,38 +103,58 @@ export namespace Tables {
     }
 
     export interface UserTemplate {
+        _id: any,
         name: string,
         surename: string,
-        id: string,
         groups: string[],
-        admin: boolean
     }
     export interface User extends mongoose.Document, UserTemplate { }
-    export function mkUser(id: string, name: string, surename: string, admin: boolean = false, groups: string[] = []): UserTemplate {
+    export function mkUser(id: string, name: string, surename: string): UserTemplate {
         return {
             name: name,
-            id: id,
+            _id: id,
             surename: surename,
-            admin: admin,
-            groups: groups
+            groups: []
         }
     }
 
-    export interface Assignment {
-        project: string,
+    interface GenericAssignment {
+        _id: any
         due: Date
     }
-    export interface GroupTemplate {
-        id: string,
-        name: string,
+    export interface AssignmentTemplate extends GenericAssignment {
+        project: string
+    }
+    export interface PopulatedAssignment extends GenericAssignment {
+        project: ProjectTemplate,
+    }
+    export interface Assignment extends mongoose.Document, AssignmentTemplate { }
+    export function mkAssignment(id: string, project: string, due: Date): AssignmentTemplate {
+        return {
+            _id: id,
+            project: project,
+            due: due
+        }
+    }
+
+    interface GenericGroup {
+        _id: any,
+        name: string
+    }
+    export interface GroupTemplate extends GenericGroup {
+        assignments: string[],
         students: string[],
         admins: string[],
-        assignments: Assignment[]
+    }
+    export interface PopulatedGroup extends GenericGroup {
+        assignments: PopulatedAssignment[]
+        students: UserTemplate,
+        admins: UserTemplate
     }
     export interface Group extends mongoose.Document, GroupTemplate { }
     export function mkGroup(id: string, name: string, students: string[] = [], admins: string[] = []): GroupTemplate {
         return {
-            id: id,
+            _id: id,
             name: name,
             admins: admins,
             students: students,
@@ -152,45 +187,53 @@ export namespace Tables {
     }
 
     export const project = new mongoose.Schema({
+        _id: String,
         name: String,
-        id: String,
         level: Number,
         info: String,
         type: String
     })
 
     export const user = new mongoose.Schema({
-        id: String,
+        _id: String,
         name: String,
         surename: String,
-        groups: [String],
+        groups: [refrence("Group")],
         admin: Boolean
     })
 
-    export const group = new mongoose.Schema({
-        id: String,
-        name: String,
-        assignments: [String],
-        students: [String],
-        admins: [String]
-    }) 
-
     export const assignment = new mongoose.Schema({
-        id: String,
-        name: String,
-        project: String,
-        group: String,
+        _id: String,
+        project: refrence("Project"),
         due: Date
     })
 
+    export const group = new mongoose.Schema({
+        _id: String,
+        name: String,
+        assignments: [refrence("Assignment")],
+        students: [refrence("User")],
+        admins: [refrence("User")]
+    }) 
+
     export const file = new mongoose.Schema({
-        student: String,
-        assignment: String,
+        student: refrence("User"),
+        assignment: refrence("Assignment"),
         timestamp: Date,
-        partners: [String],
+        partners: [refrence("User")],
         html: String,
         final: Boolean,
         reflection: String,
         feedback: String
     })
+
+    function refrence(to: string): {} {
+        return { type: String, ref: to }
+    }
+
+    export const Assignment = mongoose.model<Tables.Assignment>('Assignment', Tables.assignment)
+    export const File = mongoose.model<Tables.File>('File', Tables.file)
+    export const Group = mongoose.model<Group>('Group', Tables.group)
+    export const User = mongoose.model<User>('User', Tables.user)
+    export const Project = mongoose.model<Project>('Project', Tables.project)
 }

@@ -10,10 +10,7 @@ block header
                 #profileImage
                     if user
                         a(href="/")
-                            //if user.photos[0].type == "default"  
                             #profileImageID(name=user.name family=user.surename)
-                            //else
-                                //img(src=user.photos[0].value)
                     else
                         a(href="/auth/google")
                             img(src="https://lh3.googleusercontent.com/-DRxN-2PbFjM/AAAAAAAAAAI/AAAAAAAAAAA/-8ZeTxDsXQg/photo.jpg")
@@ -42,5 +39,4 @@ block footer
         .right
             p Copyright © Rik Mulder 2016. All rights reserved.
         .left
-            p
-                |Huon v. 0.1
+            p Programming Hub v. 0.1

@@ -1,0 +1,21 @@
+﻿extends structure/default.jade
+
+block append scripts
+    script(src="/scripts/hub.js")
+
+block content
+    .container
+        .dashboardNode
+            h2 Active classes
+            #classes
+                p currently loading...
+            hr
+        .dashboardNode
+            h2 Upcoming deadlines
+            #deadlines
+                p to be implemented
+            hr
+        .dashboardNode
+            h2 Recent feedback
+            #feedback
+                p to be implemented

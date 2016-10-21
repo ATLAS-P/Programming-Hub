@@ -3,13 +3,7 @@ import { Table, Tables } from '../Table'
 import { Groups } from './Groups'
 
 class User extends Table<Tables.User> {
-    create(user: Tables.UserTemplate, done: () => void, err: Table.Err) {
-        super.create(user, () => {
-            user.groups.forEach((g: string) => Groups.instance.addUser(g, user.id, user.admin, false, done, err))
-        }, err)
-    }
-
-    addToGroup(s: string, g: string, admin:boolean, updateGroup: boolean, done: () => void, fail: Table.Err) {
+    addToGroup(s: string, g: string, updateGroup: boolean, admin: boolean, done: () => void, fail: Table.Err) {
         this.updateOne(s, (a: Tables.User) => {
             if (a.groups.indexOf(g) == -1) a.groups.push(g)
         }, a => {
@@ -18,12 +12,13 @@ class User extends Table<Tables.User> {
         }, fail)
     }
 
-    inGroup(g: string, sort: boolean, suc: Table.Suc<Tables.User>, err: Table.Err) {
-        this.get({ groups: { $eq: g } }, sort ? { name: 1 } : {}, suc, err)
+    inGroup(g: string, query: {}, sort: boolean, suc: Table.Suc<Tables.User>, err: Table.Err) {
+        query['groups'] = { $eq: g }
+        this.get(query, sort ? { name: 1 } : {}, suc, err)
     }
 
-    getGroups(s: string, suc: Table.Suc<Tables.Group>, err: Table.Err) {
-        this.getByID(s, u => Groups.instance.getByIDs(u.groups, suc, err), err)
+    getGroups(s: string, deep:boolean, suc: Table.Suc<Tables.PopulatedGroup>, err: Table.Err) {
+        this.getByID(s, u => Groups.instance.getAndPopulate({ _id: { $in: u.groups } }, false, deep, suc, err), err)
     }
 }
 
@@ -39,13 +34,31 @@ export namespace Users {
         }
     }
 
-    export const instance = new User(mongoose.model<Tables.User>('user', Tables.user))
+    export interface SimpleUser {
+        id: string, 
+        name: string,
+        surename: string
+    }
+
+    export const instance = new User(Tables.User)
 
     export function getByGProfile(p: GoogleProfile, suc: (u: Tables.UserTemplate) => void, err: Table.Err) {
         const id = getIDByGProfile(p)
 
         //TODO not sure if getByID (findOne) will return successfully if no were found, test
         instance.getByID(id, user => returnOrCreate(id, p, user, suc, err), err)
+    }
+
+    export function simplify(u: Tables.UserTemplate): SimpleUser {
+        return mkSimpleUser(u._id, u.name, u.surename)
+    }
+
+    export function mkSimpleUser(id:string, name:string, surename: string) {
+        return {
+            id: id,
+            name: name,
+            surename: surename
+        }
     }
 
     export function getIDByGProfile(p: GoogleProfile): string {

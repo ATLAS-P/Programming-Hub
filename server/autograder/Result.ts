@@ -9,6 +9,14 @@ export abstract class Result {
     totalSuccess(): number {
         return this.totalTests() - this.totalFail()
     }
+
+    best(r: Result): Result {
+        const isr = r instanceof Result
+
+        if (isr && this.totalTests() != r.totalTests()) return null
+        else if (isr && this.totalSuccess() < r.totalSuccess()) return r
+        else return this
+    }
 }
 
 export class Success extends Result {

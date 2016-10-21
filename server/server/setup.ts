@@ -12,15 +12,16 @@ import * as passport from 'passport'
 
 //no typings available for this one :(
 const authGoogle = require('passport-google-oauth2')
+const busboy = require('connect-busboy')
 
 export namespace Setup {
     export function startServer(server: http.Server) {
         server.listen(3000)
     }
 
-    export function setupExpress(app: express.Express) {
-        const viewsDir = path.join(__dirname, 'views')
-        const publicDir = path.join(__dirname, 'public')
+    export function setupExpress(app: express.Express, root:string) {
+        const viewsDir = path.join(root, 'views')
+        const publicDir = path.join(root, 'public')
 
         app.set('view engine', 'jade')
         app.set('views', viewsDir)
@@ -28,6 +29,7 @@ export namespace Setup {
         app.use(bodyParser.json())
         app.use(stylus.middleware(publicDir))
         app.use(express.static(publicDir))
+        app.use(busboy())
     }
 
     export function setupSession(app: express.Express, io: SocketIO.Server) {
@@ -40,9 +42,8 @@ export namespace Setup {
         io.use((socket, next) => sessionMiddle(socket.request, socket.request.res, next))
         app.use(sessionMiddle)
     }
-
-    export function setupDatabase(): mongoose.Connection {
-        mongoose.connect("mongodb://ds033986.mlab.com:33986/autograder", { user: "rikmuld", pass: "atlaspass" })//user pass.. and secret
+    export function setupDatabase(address:string, port:number, database:string, user:string, password:string): mongoose.Connection {
+        mongoose.connect("mongodb://" + address + ":" + port + "/" + database, { user: user, pass: password })
         var db = mongoose.connection
 
         db.on('error', console.error.bind(console, 'connection error:'))
@@ -64,13 +65,13 @@ export namespace Setup {
         const handleLogin = (request, accessToken, refreshToken, profile: Users.GoogleProfile, done) => {
             process.nextTick(() => {
                 if (profile._json.domain == "student.utwente.nl") {
-                    Users.getByGProfile(profile, u => done(null, u.id), e => done(null, null))
+                    Users.getByGProfile(profile, u => done(null, Users.simplify(u)), e => done(null, null))
                 } else done(null, null)
             })
         }
 
-        passport.serializeUser((userID: string, done) => done(null, userID))
-        passport.deserializeUser((userID, done) => done(null, userID))
+        passport.serializeUser((user, done) => done(null, user))
+        passport.deserializeUser((user, done) => done(null, user))
         passport.use(new authGoogle.Strategy(googleLogin, handleLogin))
     }
 

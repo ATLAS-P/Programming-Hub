@@ -2,7 +2,7 @@
 import { Table, Tables } from '../Table'
 
 class File extends Table<Tables.File> {
-    getByID(id: string, success: Table.Suc<Tables.File>, fail: Table.Err) {
+    getByID(id: string, success: Table.SucOne<Tables.File>, fail: Table.Err) {
         fail("Get by ID function not supported for file, use getForStudent instead")
     }
 
@@ -12,5 +12,5 @@ class File extends Table<Tables.File> {
 }
 
 export namespace Files {
-    export const instance = new File(mongoose.model<Tables.File>('file', Tables.file))
+    export const instance = new File(Tables.File)
 }

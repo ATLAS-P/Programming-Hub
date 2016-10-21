@@ -22,7 +22,7 @@ function dropzoneInit() {
 function canAcceptFile(file, accept) {
     if (!isPython(file)) {
         zone.removeFile(file)
-        showErrorNoPython(true, noPyhon)
+        Group.showErrorNoPython(true, noPyhon)
     } else accept()
 }
 
@@ -32,21 +32,21 @@ function sending(file, xhr, formData) {
 }
 
 function fileAdded(file) {
-    if (isPython(file)) showErrorNoPython(false)
+    if (isPython(file)) Group.showErrorNoPython(false)
     else {
         zone.removeFile(file)
-        showErrorNoPython(true, noPyhon)
+        Group.showErrorNoPython(true, noPyhon)
     }
 }
 
 function fileGraded(file, response: Response) {
     zone.removeFile(file)
-    addResult(file.name, response)
+    Group.addResult(file.name, response)
 }
 
 function fileError(file, error) {
     zone.removeFile(file)
-    showErrorNoPython(true, error)
+    Group.showErrorNoPython(true, error)
 }
 
 function isPython(file): boolean {
