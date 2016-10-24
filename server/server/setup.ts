@@ -64,7 +64,6 @@ export namespace Setup {
 
         const handleLogin = (request, accessToken, refreshToken, profile: Users.GoogleProfile, done) => {
             process.nextTick(() => {
-                console.log(profile)
                 if (profile._json.domain == "student.utwente.nl") {
                     Users.getByGProfile(profile, u => done(null, Users.simplify(u)), e => done(null, null))
                 } else done(null, null)

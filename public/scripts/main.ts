@@ -12,8 +12,10 @@ const socket = io()
 $(document).ready(init)
 
 function init() {
-    $('#profileImageID').text(getInitials())
-    $('#profileImageID').css("background-color", intToRGB(hashCode(getName())))
+    if ($("#profileImageID").get().length > 0) {
+        $('#profileImageID').text(getInitials())
+        $('#profileImageID').css("background-color", intToRGB(hashCode(getName())))
+    }
 }
 
 function href(to: string) {

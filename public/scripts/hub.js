@@ -2,6 +2,7 @@ var Hub;
 (function (Hub) {
     let count = 2;
     function init() {
+        alert("BIE");
         socket.emit('getGroups');
         socket.emit('getNonFinalHandIns');
         socket.on('setGroups', setGroups);
