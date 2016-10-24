@@ -252,11 +252,13 @@ export namespace Sockets {
         const sendGroups = (success: boolean, data: string | Error) => emitHtml(socket, SEND_GROUPS, success, data)
 
         return () => {
-            const user = socket.request.session.passport.user.id
+            if (socket.request.session.passport) {
+                const user = socket.request.session.passport.user.id
 
-            Groups.getOverviewForUser(user, lg => {
-                Render.groupsOverview(app, "groups", lg, data => sendGroups(true, data), err => sendGroups(false, err))
-            }, e => sendGroups(false, e))
+                Groups.getOverviewForUser(user, lg => {
+                    Render.groupsOverview(app, "groups", lg, data => sendGroups(true, data), err => sendGroups(false, err))
+                }, e => sendGroups(false, e))
+            }
         }
     }
 
@@ -275,10 +277,12 @@ export namespace Sockets {
         const send = (success: boolean, data: string | Error) => emitHtml(socket, SEND_NON_FINAL, success, data)
 
         return () => {
-            const user = socket.request.session.passport.user.id
-            Files.instance.getNonFinalFor(user, fl => {
-                Render.files(app, "nonFinal", fl, html => send(true, html), err => send(false, err))
-            }, e => send(false, e))
+            if (socket.request.session.passport) {
+                const user = socket.request.session.passport.user.id
+                Files.instance.getNonFinalFor(user, fl => {
+                    Render.files(app, "nonFinal", fl, html => send(true, html), err => send(false, err))
+                }, e => send(false, e))
+            }
         }
     }
 

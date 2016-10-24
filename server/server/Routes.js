@@ -212,10 +212,12 @@ var Sockets;
     function getGroupsOverview(app, socket) {
         const sendGroups = (success, data) => emitHtml(socket, SEND_GROUPS, success, data);
         return () => {
-            const user = socket.request.session.passport.user.id;
-            Groups_1.Groups.getOverviewForUser(user, lg => {
-                Render.groupsOverview(app, "groups", lg, data => sendGroups(true, data), err => sendGroups(false, err));
-            }, e => sendGroups(false, e));
+            if (socket.request.session.passport) {
+                const user = socket.request.session.passport.user.id;
+                Groups_1.Groups.getOverviewForUser(user, lg => {
+                    Render.groupsOverview(app, "groups", lg, data => sendGroups(true, data), err => sendGroups(false, err));
+                }, e => sendGroups(false, e));
+            }
         };
     }
     Sockets.getGroupsOverview = getGroupsOverview;
@@ -232,10 +234,12 @@ var Sockets;
     function getNonFinalFiles(app, socket) {
         const send = (success, data) => emitHtml(socket, SEND_NON_FINAL, success, data);
         return () => {
-            const user = socket.request.session.passport.user.id;
-            Files_1.Files.instance.getNonFinalFor(user, fl => {
-                Render.files(app, "nonFinal", fl, html => send(true, html), err => send(false, err));
-            }, e => send(false, e));
+            if (socket.request.session.passport) {
+                const user = socket.request.session.passport.user.id;
+                Files_1.Files.instance.getNonFinalFor(user, fl => {
+                    Render.files(app, "nonFinal", fl, html => send(true, html), err => send(false, err));
+                }, e => send(false, e));
+            }
         };
     }
     Sockets.getNonFinalFiles = getNonFinalFiles;
