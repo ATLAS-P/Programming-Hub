@@ -27,7 +27,7 @@ var Users;
     function getByGProfile(p, suc, err) {
         const id = getIDByGProfile(p);
         //TODO not sure if getByID (findOne) will return successfully if no were found, test
-        Users.instance.getByID(id, user => returnOrCreate(id, p, user, suc, err), err);
+        Users.instance.getByID(id, user => returnOrCreate(id, p, user, suc, err), err, false);
     }
     Users.getByGProfile = getByGProfile;
     function simplify(u) {

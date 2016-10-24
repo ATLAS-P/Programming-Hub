@@ -207,7 +207,7 @@ var Sockets;
         };
     }
     Sockets.connection = connection;
-    //two below share too much, generalize
+    //three below share too much, generalize
     function getGroupsOverview(app, socket) {
         const sendGroups = (success, data) => emitHtml(socket, SEND_GROUPS, success, data);
         return () => {

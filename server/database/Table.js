@@ -15,11 +15,11 @@ class Table {
                 success(res);
         });
     }
-    getOne(query, sort, success, fail) {
+    getOne(query, sort, success, fail, safe = true) {
         this.model.findOne(query).sort(sort).exec((err, res) => {
             if (err)
                 fail(err);
-            else if (!res)
+            else if (!res && safe)
                 fail("No entries found");
             else
                 success(res);
@@ -56,8 +56,8 @@ class Table {
                 success(res);
         });
     }
-    getByID(id, success, fail) {
-        this.getOne({ _id: id }, {}, success, fail);
+    getByID(id, success, fail, safe = true) {
+        this.getOne({ _id: id }, {}, success, fail, safe);
     }
     getByIDs(ids, success, fail) {
         this.get({ _id: { $in: ids } }, {}, success, fail);

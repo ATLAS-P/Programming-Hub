@@ -246,7 +246,7 @@ export namespace Sockets {
         }
     }
 
-    //two below share too much, generalize
+    //three below share too much, generalize
     export function getGroupsOverview(app: express.Express, socket: SocketIO.Socket): SimpleCall {
         const sendGroups = (success: boolean, data: string | Error) => emitHtml(socket, SEND_GROUPS, success, data)
 

@@ -17,10 +17,10 @@ export class Table<A extends mongoose.Document> {
         })
     }
 
-    getOne(query: {}, sort: {}, success: Table.SucOne<A>, fail: Table.Err) {
+    getOne(query: {}, sort: {}, success: Table.SucOne<A>, fail: Table.Err, safe:boolean = true) {
         this.model.findOne(query).sort(sort).exec((err, res: A) => {
             if (err) fail(err)
-            else if (!res) fail("No entries found")
+            else if (!res && safe) fail("No entries found")
             else success(res)
         })
     }
@@ -51,8 +51,8 @@ export class Table<A extends mongoose.Document> {
         })
     }
 
-    getByID(id: string, success: Table.SucOne<A>, fail: Table.Err) {
-        this.getOne({ _id: id }, {}, success, fail)
+    getByID(id: string, success: Table.SucOne<A>, fail: Table.Err, safe:boolean = true) {
+        this.getOne({ _id: id }, {}, success, fail, safe)
     }
 
     getByIDs(ids: string[], success: Table.Suc<A>, fail: Table.Err) {

@@ -46,7 +46,7 @@ export namespace Users {
         const id = getIDByGProfile(p)
 
         //TODO not sure if getByID (findOne) will return successfully if no were found, test
-        instance.getByID(id, user => returnOrCreate(id, p, user, suc, err), err)
+        instance.getByID(id, user => returnOrCreate(id, p, user, suc, err), err, false)
     }
 
     export function simplify(u: Tables.UserTemplate): SimpleUser {
