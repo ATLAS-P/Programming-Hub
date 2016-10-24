@@ -2,7 +2,6 @@ var Hub;
 (function (Hub) {
     let count = 2;
     function init() {
-        alert("BIE");
         socket.emit('getGroups');
         socket.emit('getNonFinalHandIns');
         socket.on('setGroups', setGroups);
@@ -11,7 +10,6 @@ var Hub;
     Hub.init = init;
     function setGroups(res) {
         count -= 1;
-        console.log(res);
         if (res.success) {
             $("#classes").html(res.html);
             $(".group").click(function () { href("group/" + $(this).attr("group")); });
