@@ -19,4 +19,4 @@ class Tuple3 extends Tuple {
     }
 }
 exports.Tuple3 = Tuple3;
-//# sourceMappingURL=tuple.js.map
+//# sourceMappingURL=Tuple.js.map

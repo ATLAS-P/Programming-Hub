@@ -1,5 +1,5 @@
 "use strict";
-const tuple_1 = require("./tuple");
+const Tuple_1 = require("./Tuple");
 class List {
     match(ifn, ifl) {
         return this instanceof Empty ? ifn(this) : ifl(this.h, this.t);
@@ -47,7 +47,7 @@ class List {
         return this.foldRight(List.apply([]), (a, la) => f(a) ? la.add(a) : la);
     }
     filter2(f) {
-        return this.foldRight(new tuple_1.Tuple(List.apply([]), List.apply([])), (a, tup) => f(a) ? tup.map_1(la => la.add(a)) : tup.map_2(la => la.add(a)));
+        return this.foldRight(new Tuple_1.Tuple(List.apply([]), List.apply([])), (a, tup) => f(a) ? tup.map_1(la => la.add(a)) : tup.map_2(la => la.add(a)));
     }
     flatMap(f) {
         return List.concat(this.map(f));
@@ -62,7 +62,7 @@ class List {
         return go(this, lb);
     }
     zip(lb) {
-        return this.zipWith(lb, (a, b) => new tuple_1.Tuple(a, b));
+        return this.zipWith(lb, (a, b) => new Tuple_1.Tuple(a, b));
     }
     toArray() {
         return this.foldRight([], (a, aa) => aa.concat(a)).reverse();
