@@ -47,7 +47,8 @@ export namespace Routes {
         app.post(FILE_UPLOAD, fileUpload(root))
 
         app.get(AUTH, passport.authenticate('google', {
-            scope: ['https://www.googleapis.com/auth/plus.profile.emails.read']
+            scope: ['https://www.googleapis.com/auth/plus.profile.emails.read',
+                'https://www.googleapis.com/auth/userinfo.profile']
         }))
 
         app.get(AUTH_CALLBACK, passport.authenticate('google', {
@@ -292,7 +293,7 @@ export namespace Sockets {
 
     export function emitHtml(socket: SocketIO.Socket, to: string, success: boolean, data: string | Error) {
         if (success) socket.emit(to, { success: true, html: data as string })
-        else socket.emit(to, { success: false, err: (data as Error).message })
+        else socket.emit(to, { success: false, err: (data instanceof Error ? data.message : data )})
     }
 }
 

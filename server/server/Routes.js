@@ -32,7 +32,8 @@ var Routes;
         app.post(SUBMIT_RESULTS, submitResults);
         app.post(FILE_UPLOAD, fileUpload(root));
         app.get(AUTH, passport.authenticate('google', {
-            scope: ['https://www.googleapis.com/auth/plus.profile.emails.read']
+            scope: ['https://www.googleapis.com/auth/plus.profile.emails.read',
+                'https://www.googleapis.com/auth/userinfo.profile']
         }));
         app.get(AUTH_CALLBACK, passport.authenticate('google', {
             successRedirect: '/',
@@ -252,7 +253,7 @@ var Sockets;
         if (success)
             socket.emit(to, { success: true, html: data });
         else
-            socket.emit(to, { success: false, err: data.message });
+            socket.emit(to, { success: false, err: (data instanceof Error ? data.message : data) });
     }
     Sockets.emitHtml = emitHtml;
 })(Sockets = exports.Sockets || (exports.Sockets = {}));

@@ -57,6 +57,7 @@ var Setup;
         };
         const handleLogin = (request, accessToken, refreshToken, profile, done) => {
             process.nextTick(() => {
+                console.log(profile);
                 if (profile._json.domain == "student.utwente.nl") {
                     Users_1.Users.getByGProfile(profile, u => done(null, Users_1.Users.simplify(u)), e => done(null, null));
                 }

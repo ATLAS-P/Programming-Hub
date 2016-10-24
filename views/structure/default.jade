@@ -10,7 +10,14 @@ block header
                 #profileImage
                     if user
                         a(href="/")
-                            #profileImageID(name=user.name family=user.surename)
+                            if user.id == "r.mulder"
+                                img(src="/img/Rik.png")
+                            else if user.id == "o.t.ford"
+                                img(src="/img/Ollie.png")
+                            else if user.id == "r.m.atmma"
+                                img(src="/img/Martijn.png")
+                            else
+                                #profileImageID(name=user.name family=user.surename)
                     else
                         a(href="/auth/google")
                             img(src="https://lh3.googleusercontent.com/-DRxN-2PbFjM/AAAAAAAAAAI/AAAAAAAAAAA/-8ZeTxDsXQg/photo.jpg")

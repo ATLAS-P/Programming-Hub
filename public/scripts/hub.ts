@@ -12,10 +12,11 @@
     function setGroups(res: HtmlResponse) {
         count -= 1
 
+        console.log(res)
+
         if (res.success) {
             $("#classes").html(res.html)
             $(".group").click(function () { href("group/" + $(this).attr("group")) })
-            
         } else $("#classes").html(res.err)
 
         if (count == 0) DateHelper.initDate()
