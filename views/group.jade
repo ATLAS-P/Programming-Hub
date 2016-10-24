@@ -16,8 +16,8 @@ block content
         #assignments
             h2= group.name
             +assList(a_open, 'Open Assignments', true, false, "There are no open assignments.", "Deadline")
-            +assList(a_done, 'Completed Assignments', false, true, "You did not yet complete any assignments.", "Handed in at")
-            +assList(a_close, 'Closed Assignments', false, false, "No assignments were closed yet.", "Closed at")
+            +assList(a_done, 'Completed Assignments', false, true, "You did not yet complete any assignments.", "Handed in on")
+            +assList(a_close, 'Closed Assignments', false, false, "No assignments were closed yet.", "Closed on")
         #upload
             .row
                 .col-md-3
