@@ -34,12 +34,14 @@ export namespace Routes {
     const FILE = INDEX + "results/*"
     const FILE_UPLOAD = GROUP + "/file-upload"
     const SUBMIT_RESULTS = GROUP + "/sendResults"
+    const PRIVACY = INDEX + "legal/privacy"
 
     export function addRoutes(app: express.Express, root: string) {
         app.get(GROUP_ANY, group)
         app.get(INDEX, index)
         app.get(LOGOUT, logout)
         app.get(FILE, showResult)
+        app.get(PRIVACY, showPrivacy)
 
         app.post(SUBMIT_RESULTS, submitResults)
         app.post(FILE_UPLOAD, fileUpload(root))
@@ -52,6 +54,10 @@ export namespace Routes {
             successRedirect: '/',
             failureRedirect: '/'
         }))
+    }
+
+    function showPrivacy(req: Req, res: Res) {
+        Render.withUser(req, res, "privacy")
     }
 
     function logout(req: Req, res: Res) {

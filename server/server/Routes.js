@@ -22,11 +22,13 @@ var Routes;
     const FILE = INDEX + "results/*";
     const FILE_UPLOAD = GROUP + "/file-upload";
     const SUBMIT_RESULTS = GROUP + "/sendResults";
+    const PRIVACY = INDEX + "legal/privacy";
     function addRoutes(app, root) {
         app.get(GROUP_ANY, group);
         app.get(INDEX, index);
         app.get(LOGOUT, logout);
         app.get(FILE, showResult);
+        app.get(PRIVACY, showPrivacy);
         app.post(SUBMIT_RESULTS, submitResults);
         app.post(FILE_UPLOAD, fileUpload(root));
         app.get(AUTH, passport.authenticate('google', {
@@ -38,6 +40,9 @@ var Routes;
         }));
     }
     Routes.addRoutes = addRoutes;
+    function showPrivacy(req, res) {
+        Render.withUser(req, res, "privacy");
+    }
     function logout(req, res) {
         req.logout();
         res.redirect('/');
