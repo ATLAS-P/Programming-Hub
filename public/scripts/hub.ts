@@ -12,8 +12,6 @@
     function setGroups(res: HtmlResponse) {
         count -= 1
 
-        console.log(res)
-
         if (res.success) {
             $("#classes").html(res.html)
             $(".group").click(function () { href("group/" + $(this).attr("group")) })
