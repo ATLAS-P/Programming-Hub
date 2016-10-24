@@ -7,8 +7,10 @@ import * as grader from '../autograder/AutoGrader'
 
 import {Groups} from '../database/tables/Groups'
 import {Users} from '../database/tables/Users'
+import {Files} from '../database/tables/Files'
 import {Tables, Table} from '../database/Table'
 import {Future} from '../functional/Future'
+import {List} from '../functional/List'
 import {Result, Fail} from '../autograder/Result'
 import {IOMap} from '../functional/IOMap'
 
@@ -23,26 +25,27 @@ export namespace Routes {
         bestResult: {}
     }
 
-    const INDEX             =           "/"
-    const LOGOUT            = INDEX +   "logout"
-    const AUTH              = INDEX +   "auth/google"
-    const AUTH_CALLBACK     = AUTH  +   "/callback"
-    const GROUP             = INDEX +   "group"
-    const GROUP_ANY         = GROUP +   "/*"
-    const FILE_UPLOAD       = GROUP +   "/file-upload"
-    const SUBMIT_RESULTS    = GROUP +   "/sendResults"
+    const INDEX = "/"
+    const LOGOUT = INDEX + "logout"
+    const AUTH = INDEX + "auth/google"
+    const AUTH_CALLBACK = AUTH + "/callback"
+    const GROUP = INDEX + "group"
+    const GROUP_ANY = GROUP + "/*"
+    const FILE = INDEX + "results/*"
+    const FILE_UPLOAD = GROUP + "/file-upload"
+    const SUBMIT_RESULTS = GROUP + "/sendResults"
 
     export function addRoutes(app: express.Express, root: string) {
         app.get(GROUP_ANY, group)
         app.get(INDEX, index)
         app.get(LOGOUT, logout)
+        app.get(FILE, showResult)
 
         app.post(SUBMIT_RESULTS, submitResults)
         app.post(FILE_UPLOAD, fileUpload(root))
 
-        //use differnet scopes for only baisc profile info: https://developers.google.com/identity/protocols/googlescopes
         app.get(AUTH, passport.authenticate('google', {
-            scope: ['https://www.googleapis.com/auth/plus.login', 'https://www.googleapis.com/auth/plus.profile.emails.read']
+            scope: ['https://www.googleapis.com/auth/plus.profile.emails.read']
         }))
 
         app.get(AUTH_CALLBACK, passport.authenticate('google', {
@@ -60,32 +63,71 @@ export namespace Routes {
         Render.withUser(req, res, "hub")
     }
 
+    function showResult(req: Req, res: Res) {
+        const assignment = req.url.split("/")[2]
+
+        if (!req.user) res.redirect("/")
+        else Files.instance.getDeepAssignment(req.user.id, assignment, f => Render.file(req, res, "file", f), e => res.send(e))
+    }
+
     function group(req: Req, res: Res) {
         (req.session as ResultSession).bestResult = null
-        const group = req.url.split("/")[2]
+        const group = req.url.split("/")[2] 
 
-        Groups.getGroupDetails(group, g => Render.groupDetails(req, res, "group", g), e => res.send(e))
+        if (!req.user) res.redirect("/")
+        else Groups.getGroupDetails(req.user.id, group, g => Render.groupDetails(req, res, "group", g), e => res.send(e))
     }
 
     function submitResults(req: Req, res: Res) {
         const data = req.body
-        const project = data.project
-        const group = data.group
-        const assignment = data.assignment
-        const result = (req.session as ResultSession).bestResult[project]
+        const date = new Date()
+        date.setHours(date.getHours() - 1)
 
-        res.end()
+        //show error on hand in page not res.send new page
+        Groups.instance.getAndPopulate({ _id: data.group }, true, true, g => {
+            let group = g[0]
+            let assignment = group.assignments.find(a => a._id == data.assignment)
 
-        Groups.instance.getAndPopulate({ _id: group }, true, true, g => console.log(g), Table.error)
+            if (assignment && assignment.project._id == data.project) {
+                if (assignment.due > date) {
+                    const result = (req.session as ResultSession).bestResult[data.project]
 
-        //check if assignment.project == project
-            //check if assignment is in group
-                //check if all students are in same group, and the group.id is equal to group
-                    //check if students did not hand in already (only if final)
-                        //hand in for main student, and hand in non final for others -- only if test passed
+                    if (result) {
+                        let students: List<Tables.UserTemplate> = List.apply([])
 
-        //if passed for main student then redirect to result of assignment page
-        //else show error on submit page
+                        group.students.forEach(s => {
+                            let ref = data[s._id]
+                            if (ref) students = students.add(s)
+                        })
+
+                        let studentIDs = students.map(s => s._id).toArray()
+
+                        const handedIn = (s: Tables.UserTemplate) => new Future<boolean>((res, rej) => {
+                            Files.instance.getAssignment(s._id, assignment._id, f => res(f.final), rej => res(false))
+                        })
+
+                        const traverse = IOMap.traverse(students, IOMap.apply)
+                        const someoneHandedIn = IOMap.ListHelper.foldLeft(traverse, (b, bi: boolean) => b || bi, false).run(handedIn)
+                        someoneHandedIn.then(nogo => {
+                            if (nogo) res.send("This assignment was alreaday handed in by you or your parnters!")
+                            else {
+                                const time = new Date()
+
+                                //change to this if finished
+                                //res.redirect("/result/" + assignment._id)
+                                //now is
+                                res.redirect('/')
+                                students.toArray().forEach(s => {
+                                    let file = Tables.mkFile(s._id, assignment._id, time, studentIDs, (result as Result), s._id == req.user.id, data[s._id])
+                                    //remove old if available
+                                    Files.instance.create(file, () => { }, Table.error)
+                                })
+                            }
+                        }, r => res.send("Unexpected error during validation of hand-in request!"))
+                    } else res.send("No result found for assignment: " + assignment.project.name)
+                } else res.send("The deadline has passed!")
+            } else res.send("Illigal assignment!")
+        }, Table.error)
     }
 
     function fileUpload(root: string): Route {
@@ -103,7 +145,6 @@ export namespace Routes {
             })
 
             busboy.on('file', function (fieldname, file, filename) {
-                console.log("fhew")
                 let filepath = root + '/uploads/' + filename
                 let fstream = fs.createWriteStream(filepath);
 
@@ -145,15 +186,17 @@ export namespace Routes {
                     })
 
                     project.then((project: string) => {
-                        //remove file in both cases
-
-
                         grader.gradeProject(project, simpleio, function (r) {
                             if (!sess.bestResult || typeof sess.bestResult == "undefined" || sess.bestResult == null) sess.bestResult = {}
 
                             sess.bestResult[project] = r.best(sess.bestResult[project])
                             res.json({ success: true, tests: r.totalTests(), passed: r.totalSuccess(), failed: (r instanceof Fail) ? r.getFailed().toArray() : [] })
-                        }, (err: string) => res.json({ success: false, err: err }))
+                            fs.unlink(filepath)
+                        }, (err: string) => {
+                                res.json({ success: false, err: err })
+                                fs.unlink(filepath)
+                            }
+                        )
                     }, () => console.log("the impossible happend"))
                 });
             });
@@ -166,15 +209,19 @@ export namespace Routes {
 export namespace Sockets {
     type Handler = (socket:SocketIO.Socket) => void
     type SimpleCall = () => void
-    type GroupCall = (group:string) => void
+    type GroupCall = (group: string) => void
+    type NonFinalCall = (accept: boolean, assignment:string) => void
 
     //on or get is for receiving, others can be used to emit
     const ON_CONNECTION = "connection"
     const GET_GROUPS = "getGroups"
     const GET_GROUP_USERS = "getUsersIn"
+    const GET_NON_FINAL = "getNonFinalHandIns"
+    const ON_HANDLE_NON_FINAL = "handleNonFinal"
 
     const SEND_GROUPS = "setGroups"
     const SEND_GROUP_USERS = "setUsersIn"
+    const SEND_NON_FINAL = "setNonFinalHandIns"
 
     export function bindHandlers(app: express.Express, io: SocketIO.Server) {
         console.log("setting op io")
@@ -188,6 +235,8 @@ export namespace Sockets {
 
             socket.on(GET_GROUPS, getGroupsOverview(app, socket))
             socket.on(GET_GROUP_USERS, getOtherUsersIn(app, socket))
+            socket.on(GET_NON_FINAL, getNonFinalFiles(app, socket))
+            socket.on(ON_HANDLE_NON_FINAL, handleNonFinal(app, socket))
         }
     }
 
@@ -196,15 +245,11 @@ export namespace Sockets {
         const sendGroups = (success: boolean, data: string | Error) => emitHtml(socket, SEND_GROUPS, success, data)
 
         return () => {
-            console.log("triggered")
-
             const user = socket.request.session.passport.user.id
 
-            console.log(user)
             Groups.getOverviewForUser(user, lg => {
-                console.log(lg)
                 Render.groupsOverview(app, "groups", lg, data => sendGroups(true, data), err => sendGroups(false, err))
-            }, e => socket.emit(SEND_GROUPS, { success: false, err: e }))
+            }, e => sendGroups(false, e))
         }
     }
 
@@ -213,13 +258,33 @@ export namespace Sockets {
 
         return g => {
             const user = socket.request.session.passport.user.id
-            Users.instance.inGroup(g, { _id: { $ne: user } }, true, lu => {
-                Render.users(app, "userList", lu, html => sendUsers(true, html), err => sendUsers(false, err))
-            }, e => socket.emit(SEND_GROUP_USERS, { success: false, err: e }))
+            Groups.instance.getStudents(g, lu => {
+                Render.users(app, "userList", lu.filter(v => v._id != user), html => sendUsers(true, html), err => sendUsers(false, err))
+            }, e => sendUsers(false, e))
         }
     }
 
-    export function emitHtml(socket: SocketIO.Socket, to:string, success: boolean, data: string|Error) {
+    export function getNonFinalFiles(app: express.Express, socket: SocketIO.Socket): SimpleCall {
+        const send = (success: boolean, data: string | Error) => emitHtml(socket, SEND_NON_FINAL, success, data)
+
+        return () => {
+            const user = socket.request.session.passport.user.id
+            Files.instance.getNonFinalFor(user, fl => {
+                Render.files(app, "nonFinal", fl, html => send(true, html), err => send(false, err))
+            }, e => send(false, e))
+        }
+    }
+
+    export function handleNonFinal(app: express.Express, socket: SocketIO.Socket): NonFinalCall {
+        return (accept, ass) => {
+            const user = socket.request.session.passport.user.id
+
+            if (accept) Files.instance.mkFinal(user, ass)
+            else Files.instance.removeNonFinal(user, ass)
+        }
+    }
+
+    export function emitHtml(socket: SocketIO.Socket, to: string, success: boolean, data: string | Error) {
         if (success) socket.emit(to, { success: true, html: data as string })
         else socket.emit(to, { success: false, err: (data as Error).message })
     }
@@ -240,10 +305,18 @@ export namespace Render {
             user: req.user,
             a_open: data.openAssignments,
             a_close: data.closedAssignments,
+            a_done: data.doneAssignments,
             group: {
                 id: data.id,
                 name: data.name
             }
+        })
+    }
+
+    export function file(req: Routes.Req, res: Routes.Res, loc: string, data: Tables.File) {
+        res.render(loc, {
+            user: req.user,
+            file: data
         })
     }
 
@@ -256,6 +329,12 @@ export namespace Render {
     export function users(app: express.Express, loc: string, data: Tables.User[], success: Suc, fail: Err) {
         render(app, loc, {
             users: data
+        }, success, fail)
+    }
+
+    export function files(app: express.Express, loc: string, data: Tables.File[], success: Suc, fail: Err) {
+        render(app, loc, {
+            files: data
         }, success, fail)
     }
 

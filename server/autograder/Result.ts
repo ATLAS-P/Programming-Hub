@@ -5,6 +5,7 @@ export abstract class Result {
     abstract totalFail(): number
     abstract addTries(n: number): Result
     abstract combine(r2: Result): Result
+    abstract toJSON(): Result.JSONResult
 
     totalSuccess(): number {
         return this.totalTests() - this.totalFail()
@@ -43,6 +44,10 @@ export class Success extends Result {
     combine(r2: Result): Result {
         return r2.addTries(this.tries)
     }
+
+    toJSON(): Result.JSONResult {
+        return Result.mkJSONResult(this.totalTests(), [])
+    }
 }
 
 export class Fail<A> extends Result {
@@ -79,9 +84,31 @@ export class Fail<A> extends Result {
             return new Fail(this.tries + r2.tries, this.failed.append(r2.failed))
         }
     }
+
+    toJSON(): Result.JSONResult {
+        return Result.mkJSONResult(this.totalTests(), this.getFailed().toArray())
+    }
 }
 
 export namespace Result {
+    export interface JSONResult {
+        type: string,
+        data: {
+            tests: number
+            fail: any[]
+        }
+    }
+
+    export function mkJSONResult(tests: number, failed: any[]): JSONResult {
+        return {
+            type: "autograder",
+            data: {
+                tests: tests,
+                fail: failed
+            }
+        }
+    }
+
     export function unit<A>(a: A, f: boolean): Result {
         return f ? new Success(1) : new Fail(1, List.unit(a))
     }

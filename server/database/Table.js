@@ -9,6 +9,8 @@ class Table {
         this.model.find(query).sort(sort).exec((err, res) => {
             if (err)
                 fail(err);
+            else if (res.length == 0)
+                fail("No entries found");
             else
                 success(res);
         });
@@ -17,29 +19,29 @@ class Table {
         this.model.findOne(query).sort(sort).exec((err, res) => {
             if (err)
                 fail(err);
+            else if (!res)
+                fail("No entries found");
             else
                 success(res);
         });
     }
     updateOne(id, update, success, fail) {
         this.getByID(id, a => {
-            if (a) {
-                update(a);
-                a.save((err, a, affect) => {
-                    if (err)
-                        fail(err);
-                    else
-                        success(a);
-                });
-            }
-            else
-                fail("Query returned null, could not update");
+            update(a);
+            a.save((err, a, affect) => {
+                if (err)
+                    fail(err);
+                else
+                    success(a);
+            });
         }, fail);
     }
     do(query, success, fail) {
         query.exec((err, res) => {
             if (err)
                 fail(err);
+            else if (res.length == 0)
+                fail("No entries found");
             else
                 success(res);
         });
@@ -48,6 +50,8 @@ class Table {
         query.exec((err, res) => {
             if (err)
                 fail(err);
+            else if (!res)
+                fail("No entries found");
             else
                 success(res);
         });
@@ -120,13 +124,13 @@ var Tables;
         };
     }
     Tables.mkGroup = mkGroup;
-    function mkFile(student, assignment, timestamp, partners, html, final, reflection, feedback = "") {
+    function mkFile(student, assignment, timestamp, partners, json, final, reflection, feedback = "") {
         return {
             student: student,
             assignment: assignment,
             timestamp: timestamp,
             partners: partners,
-            html: html,
+            html: json,
             final: final,
             reflection: reflection,
             feedback: feedback
@@ -164,7 +168,7 @@ var Tables;
         assignment: refrence("Assignment"),
         timestamp: Date,
         partners: [refrence("User")],
-        html: String,
+        html: Object,
         final: Boolean,
         reflection: String,
         feedback: String

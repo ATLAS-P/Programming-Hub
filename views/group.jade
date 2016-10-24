@@ -1,5 +1,7 @@
 ﻿extends structure/default.jade
 
+include includes/assignmentList.jade
+
 block append scripts
     script(src="/scripts/dropzone.min.js")
     script(src="/scripts/group.js")
@@ -13,58 +15,9 @@ block content
     .container
         #assignments
             h2= group.name
-            h3.special Open Assignments
-            if a_open.length > 0
-                table.table.table-striped
-                    thead
-                        tr
-                            th Assignment
-                            th Level 
-                            th.fixed240 Deadline 
-                            th More Information
-                            th.fixed180 Test or Submit
-                            th Details
-                    tbody
-                        each project in a_open
-                            tr
-                                td= project.project.name
-                                td= project.project.level
-                                td.fixed240
-                                    date(format="simple")= project.due
-                                td 
-                                    a(href=project.project.info) Link
-                                td.fixed180
-                                    a(href="javascript:Group.gradeProject('" + project.project._id + "', '" + project._id + "', '" + project.project.name + "', true)") Upload
-                                td
-                                    a(href="/results/" + group.id + "/" + project._id) View
-            else 
-                p There are no open assignments.
-            h3.special.top40 Closed Assignments
-            if a_close.length > 0
-                table.table.table-striped
-                    thead
-                        tr
-                            th Assignment
-                            th Level 
-                            th.fixed240 Due date 
-                            th More Information
-                            th.fixed180 Test
-                            th Result
-                    tbody
-                        each project in a_close
-                            tr
-                                td= project.project.name
-                                td= project.project.level
-                                td.fixed240
-                                    date(format="simple")= project.due
-                                td 
-                                    a(href=project.project.info) Link
-                                td.fixed180
-                                    a(href="javascript:Group.gradeProject('" + project.project._id + "', '" + project._id + "', '" + project.project.name + "', false)") Upload
-                                td
-                                    a(href="/results/" + group.id + "/" + project._id) View
-            else
-                p There are no closed assignments.
+            +assList(a_open, 'Open Assignments', true, false, "There are no open assignments.", "Deadline")
+            +assList(a_done, 'Completed Assignments', false, true, "You did not yet complete any assignments.", "Handed in at")
+            +assList(a_close, 'Closed Assignments', false, false, "No assignments were closed yet.", "Closed at")
         #upload
             .row
                 .col-md-3
@@ -84,16 +37,15 @@ block content
                     p#errMessage Please only use python files!
             #testResults
                 hr
-                h3.special Autograder results
-                table.table.table-striped
-                    thead
-                        tr
-                            th File name
-                            th Total tests
-                            th Succeeded Tests
-                            th Failed Input
-                    tbody#completedTests
+                +testResult("Autograder results", "completedTests")
         #studentInfo
+            +testResult("Handing in result:", "bestResult")
+                tr
+                    td#best_filename
+                    td#best_total
+                    td#best_succeeded
+                    td#best_failed
+            hr
             .row
                 .col-sm-3
                     h3 Partners
@@ -105,8 +57,8 @@ block content
                     form#finalizeResults(action="sendResults" method="post")
                         #reflections
                             .form-group.reflection(student=user.email)
-                                label(for=user.email) #{user.name} #{user.surename}
-                                textarea.form-control(maxlength="500" rows="5" name=user.id placeholder="Please write a short reflection, max 500 characters...")
+                                label.control-label(for=user.id) #{user.name} #{user.surename}
+                                textarea.form-control(maxlength="500" rows="5" id=user.id name=user.id placeholder="Please write a short reflection, max 500 characters...")
                         input#projectID.hide(type="text" name="project")
                         input#assignmentID.hide(type="text" name="assignment")
                         input#groupID.hide(type="text" name="group" value=group.id)

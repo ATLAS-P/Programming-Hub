@@ -2,6 +2,7 @@
 let project;
 let assignment;
 let bestResult;
+let bestScript;
 let hasStudents = false;
 let canSubmit = false;
 var Group;
@@ -21,7 +22,19 @@ var Group;
         $("#projectID").attr('value', project);
         $("#assignmentID").attr('value', assignment);
         $("#groupID").attr('value', (window.location.pathname + window.location.search).split("/")[2]);
-        $("#finalizeResults").submit();
+        let flag = true;
+        $('.reflection textarea').each(function () {
+            console.log("boe", $(this));
+            if ($(this).val().length == 0) {
+                flag = false;
+                $(this).parent().addClass('has-error');
+            }
+            else {
+                $(this).parent().removeClass('has-error');
+            }
+        });
+        if (flag)
+            $("#finalizeResults").submit();
     }
     function removeResults() {
         $('#completedTests').html("");
@@ -51,24 +64,22 @@ var Group;
         else
             return r2;
     }
+    function addDataOf(typ, data, to) {
+        const column = document.createElement(typ);
+        column.innerText = data;
+        to.appendChild(column);
+    }
     function addResult(name, response) {
         if (response.success) {
             bestResult = getBestResult(response, bestResult);
+            bestScript = bestResult == response ? name : bestScript;
             showResults(true);
             showErrorNoPython(false);
             const el = document.createElement("tr");
-            function addDataOf(typ, data, to) {
-                const column = document.createElement(typ);
-                column.innerText = data;
-                to.appendChild(column);
-            }
             addDataOf("td", name, el);
             addDataOf("td", response.tests.toString(), el);
             addDataOf("td", response.passed.toString(), el);
-            const sel = document.createElement("select");
-            sel.classList.add("form-control");
-            sel.id = "failedTests";
-            response.failed.forEach((val) => addDataOf("option", val, sel));
+            const sel = createFailedList(response);
             const td = document.createElement("td");
             td.appendChild(sel);
             el.appendChild(td);
@@ -80,6 +91,13 @@ var Group;
         }
     }
     Group.addResult = addResult;
+    function createFailedList(res) {
+        const sel = document.createElement("select");
+        sel.classList.add("form-control");
+        sel.id = "failedTests";
+        res.failed.forEach((val) => addDataOf("option", val, sel));
+        return sel;
+    }
     function gradeProject(id, ass, name, submit) {
         project = id;
         assignment = ass;
@@ -103,6 +121,11 @@ var Group;
                 if (!hasStudents)
                     socket.emit("getUsersIn", (window.location.pathname + window.location.search).split("/")[2]);
                 $("#studentInfo").fadeIn(100);
+                $("#best_filename").text(bestScript);
+                $("#best_total").text(bestResult.tests);
+                $("#best_succeeded").text(bestResult.passed);
+                const sel = createFailedList(bestResult);
+                $("#best_failed").html(sel);
             });
             $("#testResults").fadeOut(100);
         }
@@ -161,12 +184,14 @@ var Group;
         formGroup.setAttribute("student", id);
         let label = document.createElement("label");
         label.setAttribute("for", id);
+        label.classList.add("control-label");
         label.textContent = text;
         formGroup.appendChild(label);
         let area = document.createElement("textarea");
         area.classList.add("form-control");
         area.setAttribute("maxlength", "500");
         area.setAttribute("rows", "5");
+        area.setAttribute("id", id);
         area.setAttribute("name", id);
         area.setAttribute("placeholder", "Please write a short reflection, max 500 characters...");
         formGroup.appendChild(area);

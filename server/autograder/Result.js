@@ -32,6 +32,9 @@ class Success extends Result {
     combine(r2) {
         return r2.addTries(this.tries);
     }
+    toJSON() {
+        return Result.mkJSONResult(this.totalTests(), []);
+    }
 }
 exports.Success = Success;
 class Fail extends Result {
@@ -60,9 +63,22 @@ class Fail extends Result {
             return new Fail(this.tries + r2.tries, this.failed.append(r2.failed));
         }
     }
+    toJSON() {
+        return Result.mkJSONResult(this.totalTests(), this.getFailed().toArray());
+    }
 }
 exports.Fail = Fail;
 (function (Result) {
+    function mkJSONResult(tests, failed) {
+        return {
+            type: "autograder",
+            data: {
+                tests: tests,
+                fail: failed
+            }
+        };
+    }
+    Result.mkJSONResult = mkJSONResult;
     function unit(a, f) {
         return f ? new Success(1) : new Fail(1, List_1.List.unit(a));
     }

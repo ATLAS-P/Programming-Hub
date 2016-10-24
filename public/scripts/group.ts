@@ -12,6 +12,7 @@ let project: string
 let assignment: string
 
 let bestResult: Response
+let bestScript: string
 let hasStudents = false
 let canSubmit = false
 
@@ -36,7 +37,19 @@ namespace Group {
         $("#assignmentID").attr('value', assignment)
         $("#groupID").attr('value', (window.location.pathname + window.location.search).split("/")[2])
 
-        $("#finalizeResults").submit()
+        let flag = true
+
+        $('.reflection textarea').each(function () {
+            console.log("boe", $(this))
+            if ($(this).val().length == 0) {
+                flag = false
+                $(this).parent().addClass('has-error')
+            } else {
+                $(this).parent().removeClass('has-error')
+            }
+        })
+
+        if(flag) $("#finalizeResults").submit()
     }
 
     function removeResults() {
@@ -65,28 +78,26 @@ namespace Group {
         else return r2
     }
 
+    function addDataOf(typ: string, data: string, to: HTMLElement) {
+        const column = document.createElement(typ)
+        column.innerText = data
+        to.appendChild(column)
+    }
+
     export function addResult(name: string, response: Response) {
         if (response.success) {
             bestResult = getBestResult(response, bestResult)
-
+            bestScript = bestResult == response ? name : bestScript
+            
             showResults(true)
             showErrorNoPython(false)
             const el = document.createElement("tr")
-
-            function addDataOf(typ: string, data: string, to: HTMLElement) {
-                const column = document.createElement(typ)
-                column.innerText = data
-                to.appendChild(column)
-            }
 
             addDataOf("td", name, el)
             addDataOf("td", response.tests.toString(), el)
             addDataOf("td", response.passed.toString(), el)
 
-            const sel = document.createElement("select")
-            sel.classList.add("form-control")
-            sel.id = "failedTests"
-            response.failed.forEach((val: string) => addDataOf("option", val, sel))
+            const sel = createFailedList(response)
             const td = document.createElement("td")
             td.appendChild(sel)
             el.appendChild(td)
@@ -96,6 +107,14 @@ namespace Group {
             console.log(response.err)
             showErrorNoPython(true, response.err) //add to results
         }
+    }
+
+    function createFailedList(res: Response): HTMLSelectElement {
+        const sel = document.createElement("select")
+        sel.classList.add("form-control")
+        sel.id = "failedTests"
+        res.failed.forEach((val: string) => addDataOf("option", val, sel))
+        return sel
     }
 
     export function gradeProject(id: string, ass: string, name: string, submit: boolean) {
@@ -125,6 +144,13 @@ namespace Group {
             $("#upload").fadeOut(100, function () {
                 if (!hasStudents) socket.emit("getUsersIn", (window.location.pathname + window.location.search).split("/")[2])
                 $("#studentInfo").fadeIn(100)
+                $("#best_filename").text(bestScript)
+                $("#best_total").text(bestResult.tests)
+                $("#best_succeeded").text(bestResult.passed)
+
+                const sel = createFailedList(bestResult)
+
+                $("#best_failed").html(sel)
             })
             $("#testResults").fadeOut(100)
         }
@@ -191,6 +217,7 @@ namespace Group {
 
         let label = document.createElement("label")
         label.setAttribute("for", id)
+        label.classList.add("control-label")
         label.textContent = text
         formGroup.appendChild(label)
 
@@ -198,6 +225,7 @@ namespace Group {
         area.classList.add("form-control")
         area.setAttribute("maxlength", "500")
         area.setAttribute("rows", "5")
+        area.setAttribute("id", id)
         area.setAttribute("name", id)
         area.setAttribute("placeholder", "Please write a short reflection, max 500 characters...")
         formGroup.appendChild(area)

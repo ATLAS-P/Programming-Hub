@@ -46,6 +46,9 @@ class List {
     filter(f) {
         return this.foldRight(List.apply([]), (a, la) => f(a) ? la.add(a) : la);
     }
+    filter2(f) {
+        return this.foldRight(new tuple_1.Tuple(List.apply([]), List.apply([])), (a, tup) => f(a) ? tup.map_1(la => la.add(a)) : tup.map_2(la => la.add(a)));
+    }
     flatMap(f) {
         return List.concat(this.map(f));
     }

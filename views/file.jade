@@ -1,0 +1,46 @@
+﻿extends structure/default.jade
+
+block append scripts
+    script(src="/scripts/file.js")
+
+block content
+    .container
+        if !file.final
+            #nonFinalAlert
+                .alert.alert-info
+                    p
+                        strong This handin is pending!
+                    p This assignment was handed in for you by another user
+                    .nonFinalHandin(id=file.assignment._id)
+                        #uploadButtons(assignment=file.assignment._id)
+                            .btn.btn-success.acceptNonFinal() Accept
+                            .btn.btn-danger.declineNonFinal Decline
+                hr
+        h2= file.assignment.project.name
+        h3 Basic information
+        p Student: #{file.student.name} #{file.student.surename}
+        p Group:
+        ul
+            for student in file.partners
+                li #{student.name} #{student.surename}
+        p Handed in on: 
+            date= file.timestamp
+        p Assignment was due on: 
+            date= file.assignment.due
+        p Additional assignment info: 
+            a(href=file.assignment.project.info) link
+        hr
+        h3 Result
+        #result(data=file.html)
+        hr
+        h3 Reflection
+        p= file.reflection
+        hr
+        h3 Feedback
+        if file.final
+            if file.feedback.length > 0
+                p= file.feedback
+            else
+                p You did not receive any feedback yet
+        else
+            p You cannot receive feedback on pending handins!

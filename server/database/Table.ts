@@ -12,6 +12,7 @@ export class Table<A extends mongoose.Document> {
     get(query: {}, sort: {}, success: Table.Suc<A>, fail: Table.Err) {
         this.model.find(query).sort(sort).exec((err, res: A[]) => {
             if (err) fail(err)
+            else if (res.length == 0) fail("No entries found")
             else success(res)
         })
     }
@@ -19,25 +20,25 @@ export class Table<A extends mongoose.Document> {
     getOne(query: {}, sort: {}, success: Table.SucOne<A>, fail: Table.Err) {
         this.model.findOne(query).sort(sort).exec((err, res: A) => {
             if (err) fail(err)
+            else if (!res) fail("No entries found")
             else success(res)
         })
     }
 
     updateOne(id: string, update: (a: A) => void, success: Table.SucOne<A>, fail: Table.Err) {
         this.getByID(id, a => {
-            if (a) {
-                update(a)
-                a.save((err, a: A, affect: number): void => {
-                    if (err) fail(err)
-                    else success(a)
-                })
-            } else fail("Query returned null, could not update")
+            update(a)
+            a.save((err, a: A, affect: number): void => {
+                if (err) fail(err)
+                else success(a)
+            })
         }, fail)
     }
 
     do(query: mongoose.DocumentQuery<A[], A>, success: Table.Suc<A>, fail: Table.Err) {
         query.exec((err, res) => {
             if (err) fail(err)
+            else if (res.length == 0) fail("No entries found")
             else success(res)
         })
     }
@@ -45,6 +46,7 @@ export class Table<A extends mongoose.Document> {
     doOne(query: mongoose.DocumentQuery<A, A>, success: Table.SucOne<A>, fail: Table.Err) {
         query.exec((err, res) => {
             if (err) fail(err)
+            else if (!res) fail("No entries found")
             else success(res)
         })
     }
@@ -148,8 +150,8 @@ export namespace Tables {
     }
     export interface PopulatedGroup extends GenericGroup {
         assignments: PopulatedAssignment[]
-        students: UserTemplate,
-        admins: UserTemplate
+        students: UserTemplate[],
+        admins: UserTemplate[]
     }
     export interface Group extends mongoose.Document, GroupTemplate { }
     export function mkGroup(id: string, name: string, students: string[] = [], admins: string[] = []): GroupTemplate {
@@ -167,19 +169,19 @@ export namespace Tables {
         assignment: string,
         timestamp: Date,
         partners: string[],
-        html: string,
+        html: Object,
         final: boolean,
         reflection: string,
         feedback: string
     }
     export interface File extends mongoose.Document, FileTemplate { }
-    export function mkFile(student: string, assignment: string, timestamp: Date, partners:string[], html:string, final:boolean, reflection:string, feedback:string = ""): FileTemplate {
+    export function mkFile(student: string, assignment: string, timestamp: Date, partners: string[], json: Object, final:boolean, reflection:string, feedback:string = ""): FileTemplate {
         return {
             student: student,
             assignment: assignment,
             timestamp: timestamp,
             partners: partners,
-            html: html,
+            html: json,
             final: final,
             reflection: reflection,
             feedback: feedback
@@ -221,7 +223,7 @@ export namespace Tables {
         assignment: refrence("Assignment"),
         timestamp: Date,
         partners: [refrence("User")],
-        html: String,
+        html: Object,
         final: Boolean,
         reflection: String,
         feedback: String

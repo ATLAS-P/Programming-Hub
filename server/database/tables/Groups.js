@@ -2,6 +2,7 @@
 const Table_1 = require('../Table');
 const Users_1 = require('./Users');
 const Assignments_1 = require('./Assignments');
+const Files_1 = require('./Files');
 const List_1 = require('../../functional/List');
 const Tuple_1 = require('../../functional/Tuple');
 class Group extends Table_1.Table {
@@ -46,17 +47,42 @@ class Group extends Table_1.Table {
             success(g);
         }, fail);
     }
+    getStudents(g, success, fail) {
+        this.do(this.model.find({ _id: g }).populate("students"), g => {
+            success(g[0].students);
+        }, fail);
+    }
 }
 var Groups;
 (function (Groups) {
     Groups.instance = new Group(Table_1.Tables.Group);
+    //expensive... perhaps better to not show upcomming deadlines per group this way... although with this it is easy to extract upcomming deadlines and those can also be given then
     function getOverviewForUser(user, success, fail) {
-        Users_1.Users.instance.getGroups(user, false, (gs) => success(groupsToOverview(gs)), fail);
+        Users_1.Users.instance.getGroups(user, false, (gs) => {
+            const lg = List_1.List.apply(gs);
+            const assignments = List_1.List.concat(lg.map(g => List_1.List.apply(g.assignments.map(a => a._id)))).toArray();
+            Files_1.Files.instance.getAssignmentsFinal(user, assignments, files => {
+                success(groupsToOverview(lg.map(g => {
+                    const open = g.assignments.filter(a => files.find(f => f.assignment == a._id) ? false : true);
+                    g.assignments = open;
+                    return g;
+                }).toArray()));
+            }, fail);
+        }, fail);
     }
     Groups.getOverviewForUser = getOverviewForUser;
-    function getGroupDetails(g, success, fail) {
+    function getGroupDetails(s, g, success, fail) {
         Groups.instance.getAndPopulate({ _id: g }, true, false, g => {
-            success(groupToDetails(g[0]));
+            let assignments = List_1.List.apply(g[0].assignments);
+            Files_1.Files.instance.getAssignmentsFinal(s, assignments.map(a => a._id).toArray(), files => {
+                let split = assignments.filter2(a => files.find(f => f.assignment == a._id) ? true : false);
+                let doneAss = split._1.map(a => {
+                    a.due = files.find(f => f.assignment == a._id).timestamp;
+                    return a;
+                });
+                const openClosed = List_1.List.apply(split._2.toArray()).foldLeft(new Tuple_1.Tuple(List_1.List.apply([]), List_1.List.apply([])), foldAssignmentDetails);
+                success(mkGroupDetails(g[0]._id, g[0].name, openClosed._1.toArray(), openClosed._2.toArray(), doneAss.toArray()));
+            }, fail);
         }, fail);
     }
     Groups.getGroupDetails = getGroupDetails;
@@ -66,10 +92,6 @@ var Groups;
     function groupToOverview(g) {
         const data = List_1.List.apply(g.assignments).foldLeft(new Tuple_1.Tuple3(0, "", new Date()), foldAssignmentOverview);
         return mkGroupOverview(g._id, g.name, data._1, data._2, data._3);
-    }
-    function groupToDetails(g) {
-        const data = List_1.List.apply(g.assignments).foldLeft(new Tuple_1.Tuple(List_1.List.apply([]), List_1.List.apply([])), foldAssignmentDetails);
-        return mkGroupDetails(g._id, g.name, data._1.toArray(), data._2.toArray());
     }
     function foldAssignmentOverview(data, a) {
         if (a.due > new Date()) {
@@ -96,12 +118,13 @@ var Groups;
             nextDeadline: nextDeadline
         };
     }
-    function mkGroupDetails(id, name, open, closed) {
+    function mkGroupDetails(id, name, open, closed, done) {
         return {
             id: id,
             name: name,
             openAssignments: open,
-            closedAssignments: closed
+            closedAssignments: closed,
+            doneAssignments: done
         };
     }
 })(Groups = exports.Groups || (exports.Groups = {}));

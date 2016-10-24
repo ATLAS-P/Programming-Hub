@@ -6,6 +6,14 @@
         this._1 = a
         this._2 = b
     }
+
+    map_1(a: (a: A) => A): Tuple<A, B> {
+        return new Tuple(a(this._1), this._2)
+    }
+
+    map_2(b: (b: B) => B): Tuple<A, B> {
+        return new Tuple(this._1, b(this._2))
+    }
 }
 
 export class Tuple3<A, B, C> extends Tuple<A, B> {

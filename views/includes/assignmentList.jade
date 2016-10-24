@@ -1,0 +1,45 @@
+﻿mixin assList(list, name, open, details, nomess, deadline)
+    h3.special= name
+    if list.length > 0
+        table.table.table-striped
+            thead
+                tr
+                    th Assignment
+                    th Level 
+                    th.fixed240= deadline
+                    th More Information
+                    th.fixed180
+                        if open
+                            |Test or Submit
+                        else
+                            |Test
+                    if details
+                        th Details
+            tbody
+                each project in list
+                    tr
+                        td= project.project.name
+                        td= project.project.level
+                        td.fixed240
+                            date(format="simple")= project.due
+                        td 
+                            a(href=project.project.info) Link
+                        td.fixed180
+                            a(href="javascript:Group.gradeProject('" + project.project._id + "', '" + project._id + "', '" + project.project.name + "', " + open + ")") Upload
+                        if details
+                            td
+                                a(href="/results/" + project._id) View
+    else 
+        p= nomess
+
+ mixin testResult(title, id)
+    h3.special=title
+    table.table.table-striped
+        thead
+            tr
+                th File name
+                th Total tests
+                th Succeeded Tests
+                th Failed Input
+        tbody(id=id)
+            block
