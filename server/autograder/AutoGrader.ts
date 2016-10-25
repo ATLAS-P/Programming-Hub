@@ -34,23 +34,24 @@ const inIsOut = a => ioTest(a, (i, o) => i == o)
 const expected = (a, data) => dataTest(a, data, (a, b) => a == b)
 const greenBottles = a => ioTest(a, validateGreenBottles)
 
-function validateGreenBottles(n: string, out: List<string>): boolean {
-    const build = (n: number, acc: List<string> = List.apply([])):List<string> => {
+function validateGreenBottles(n: string, out: string): boolean {
+    const input = parseInt(n)
+    const build = (n: number, acc: string = ""): string => {
         const bottleName = (a:number) => a > 1 ? "bottles" : "bottle"
 
-        const mss = n + " green " + bottleName(n) + " hanging on the wall"
-        const acc2 = acc.add(mss).add(mss).add("And if one green bottle should accidentally fall")
+        const mss = n + " green " + bottleName(n) + " hanging on the wall\r\n"
+        const acc2 = acc + mss + mss + "And if one green bottle should accidentally fall\r\n"
 
-        if (n - 1 == 0) return acc2.add("There'll be no green bottle hanging on the wall")
-        else return build(n - 1, acc2.add("There'll be " + (n - 1) + " green " + bottleName(n - 1) + " hanging on the wall\n").add(""))
+        if (n - 1 == 0) return acc2 + "There'll be no green bottle hanging on the wall\r\n"
+        else return build(n - 1, acc2 + "There'll be " + (n - 1) + " green " + bottleName(n - 1) + " hanging on the wall\r\n\r\n")
     }
 
-    return build(parseInt(n)).map2(out, (a, b) => a == b).foldLeft(true, (a, b) => a && b)
+    return build(input) == out
 }
 
 //test input definitions
 const randomStrings = List.apply(["this", "is", "a", "simple", "input", "output", "echo", "test", "for", "testing", "the", "autograder"])
-const lowInts = List.apply([1, 10, 100]).map(i => i.toString())
+const lowInts = List.apply([1, 2, 5]).map(i => i.toString())
 
 const rndStringTest = IOMap.traverse(randomStrings, s => init(s))
 const lowIntsTest = IOMap.traverse(lowInts, s => init(s))
@@ -63,7 +64,7 @@ function grade<In, Out, A, B>(r: IOMap.IO<In, Out>, algebra: (a: IOMap<In, Out, 
 export function gradeProject(project: string, filename:string, success: (r: Result) => void, error: (err: string) => void) {
     switch (project) {
         case "io": grade(Runners.simpleIO(filename), inIsOut, rndStringTest, success, error)
-        case "n_green_bottles": grade(Runners.oneIMultiO(filename), greenBottles, lowIntsTest, success, error)
+        case "n_green_bottles": grade(Runners.simpleIO(filename), greenBottles, lowIntsTest, success, error)
     }
 }
 
@@ -103,15 +104,16 @@ export namespace Runners {
         })
     }
 
-    export function oneIMultiO(filename: string): IOMap.IO<string, List<string>> {
-        return (s: string) => new Future<List<string>>((resolve, reject) => {
+    //one to collect /n/r in list, much easier to work with
+    export function simpleIO(filename: string): IOMap.IO<string, string> {
+        return (s: string) => new Future<string>((resolve, reject) => {
             let running = true
             let py = process.spawn("python3", ['uploads/' + filename])
-            let output: List<string> = List.apply([])
+            let output: string
 
             py.stdout.on('data', function (data) {
                 var buff = new Buffer(data as Buffer)
-                output = output.add(buff.toString("utf8"))
+                output = buff.toString("utf8")
             });
 
             py.stderr.on('data', function (err) {
@@ -121,8 +123,8 @@ export namespace Runners {
 
             py.on('close', function () {
                 running = false
-                if (output.length() == 0) reject("No output received!")
-                else resolve(output.map(s => s.replace(/\r?\n|\r/, "")))
+                if (!output) resolve("")
+                else resolve(output)
             });
 
             py.stdin.write(s)
@@ -137,7 +139,7 @@ export namespace Runners {
         })
     }
 
-    export function simpleIO(filename: string): IOMap.IO<string, string> {
+    export function simpleIOFixline(filename: string): IOMap.IO<string, string> {
         return (s: string) => new Future<string>((resolve, reject) => {
             let running = true
             let py = process.spawn("python3", ['uploads/' + filename])

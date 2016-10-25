@@ -32,20 +32,21 @@ const inIsOut = a => ioTest(a, (i, o) => i == o);
 const expected = (a, data) => dataTest(a, data, (a, b) => a == b);
 const greenBottles = a => ioTest(a, validateGreenBottles);
 function validateGreenBottles(n, out) {
-    const build = (n, acc = List_1.List.apply([])) => {
+    const input = parseInt(n);
+    const build = (n, acc = "") => {
         const bottleName = (a) => a > 1 ? "bottles" : "bottle";
-        const mss = n + " green " + bottleName(n) + " hanging on the wall";
-        const acc2 = acc.add(mss).add(mss).add("And if one green bottle should accidentally fall");
+        const mss = n + " green " + bottleName(n) + " hanging on the wall\r\n";
+        const acc2 = acc + mss + mss + "And if one green bottle should accidentally fall\r\n";
         if (n - 1 == 0)
-            return acc2.add("There'll be no green bottle hanging on the wall");
+            return acc2 + "There'll be no green bottle hanging on the wall\r\n";
         else
-            return build(n - 1, acc2.add("There'll be " + (n - 1) + " green " + bottleName(n - 1) + " hanging on the wall\n").add(""));
+            return build(n - 1, acc2 + "There'll be " + (n - 1) + " green " + bottleName(n - 1) + " hanging on the wall\r\n\r\n");
     };
-    return build(parseInt(n)).map2(out, (a, b) => a == b).foldLeft(true, (a, b) => a && b);
+    return build(input) == out;
 }
 //test input definitions
 const randomStrings = List_1.List.apply(["this", "is", "a", "simple", "input", "output", "echo", "test", "for", "testing", "the", "autograder"]);
-const lowInts = List_1.List.apply([1, 10, 100]).map(i => i.toString());
+const lowInts = List_1.List.apply([1, 2, 5]).map(i => i.toString());
 const rndStringTest = IOMap_1.IOMap.traverse(randomStrings, s => init(s));
 const lowIntsTest = IOMap_1.IOMap.traverse(lowInts, s => init(s));
 //generic grading function
@@ -55,7 +56,7 @@ function grade(r, algebra, test, success, error) {
 function gradeProject(project, filename, success, error) {
     switch (project) {
         case "io": grade(Runners.simpleIO(filename), inIsOut, rndStringTest, success, error);
-        case "n_green_bottles": grade(Runners.oneIMultiO(filename), greenBottles, lowIntsTest, success, error);
+        case "n_green_bottles": grade(Runners.simpleIO(filename), greenBottles, lowIntsTest, success, error);
     }
 }
 exports.gradeProject = gradeProject;
@@ -93,14 +94,15 @@ var Runners;
         });
     }
     Runners.multiIO = multiIO;
-    function oneIMultiO(filename) {
+    //one to collect /n/r in list, much easier to work with
+    function simpleIO(filename) {
         return (s) => new Future_1.Future((resolve, reject) => {
             let running = true;
             let py = process.spawn("python3", ['uploads/' + filename]);
-            let output = List_1.List.apply([]);
+            let output;
             py.stdout.on('data', function (data) {
                 var buff = new Buffer(data);
-                output = output.add(buff.toString("utf8"));
+                output = buff.toString("utf8");
             });
             py.stderr.on('data', function (err) {
                 var buff = new Buffer(err);
@@ -108,10 +110,10 @@ var Runners;
             });
             py.on('close', function () {
                 running = false;
-                if (output.length() == 0)
-                    reject("No output received!");
+                if (!output)
+                    resolve("");
                 else
-                    resolve(output.map(s => s.replace(/\r?\n|\r/, "")));
+                    resolve(output);
             });
             py.stdin.write(s);
             py.stdin.end();
@@ -123,8 +125,8 @@ var Runners;
             }, 10000);
         });
     }
-    Runners.oneIMultiO = oneIMultiO;
-    function simpleIO(filename) {
+    Runners.simpleIO = simpleIO;
+    function simpleIOFixline(filename) {
         return (s) => new Future_1.Future((resolve, reject) => {
             let running = true;
             let py = process.spawn("python3", ['uploads/' + filename]);
@@ -154,6 +156,6 @@ var Runners;
             }, 10000);
         });
     }
-    Runners.simpleIO = simpleIO;
+    Runners.simpleIOFixline = simpleIOFixline;
 })(Runners = exports.Runners || (exports.Runners = {}));
 //# sourceMappingURL=AutoGrader.js.map
