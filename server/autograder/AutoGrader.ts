@@ -45,7 +45,7 @@ function validateGreenBottles(n: string, out: string): boolean {
         const mss = n + " green " + bottleName(n) + " hanging on the wall" + BREAK
         const acc2 = acc + mss + mss + "And if one green bottle should accidentally fall" + BREAK
 
-        if (n - 1 == 0) return acc2 + "There'll be no green bottle hanging on the wall" + BREAK
+        if (n - 1 == 0) return acc2 + "There'll be no green bottles hanging on the wall" + BREAK
         else return build(n - 1, acc2 + "There'll be " + (n - 1) + " green " + bottleName(n - 1) + " hanging on the wall" + BREAK + BREAK)
     }
 
