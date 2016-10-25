@@ -42,6 +42,10 @@ export namespace Users {
 
     export const instance = new User(Tables.User)
 
+    instance.addToGroup("r.mulder", "intro_2016_b", false, true, Table.done, Table.error)
+    instance.addToGroup("r.mulder", "intro_2016_a", false, true, Table.done, Table.error)
+    instance.addToGroup("r.mulder", "debug", false, true, Table.done, Table.error)
+
     export function getByGProfile(p: GoogleProfile, suc: (u: Tables.UserTemplate) => void, err: Table.Err) {
         const id = getIDByGProfile(p)
 
