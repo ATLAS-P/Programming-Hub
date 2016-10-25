@@ -6,6 +6,9 @@ import {IOMap} from "../functional/IOMap"
 
 import * as process from 'child_process'
 
+//put in config
+const BREAK = '\n'
+
 //in principe just handy functions for working with IOMap<in, Out, A> when A instanceof Result
 namespace AutoChecker {
     export function foldLeft<In, Out, A>(a: IOMap<In, Out, List<Tuple<In, A>>>, f: (a: In, b: A) => Result): IOMap<In, Out, Result> {
@@ -39,11 +42,11 @@ function validateGreenBottles(n: string, out: string): boolean {
     const build = (n: number, acc: string = ""): string => {
         const bottleName = (a:number) => a > 1 ? "bottles" : "bottle"
 
-        const mss = n + " green " + bottleName(n) + " hanging on the wall\r\n"
-        const acc2 = acc + mss + mss + "And if one green bottle should accidentally fall\r\n"
+        const mss = n + " green " + bottleName(n) + " hanging on the wall" + BREAK
+        const acc2 = acc + mss + mss + "And if one green bottle should accidentally fall" + BREAK
 
-        if (n - 1 == 0) return acc2 + "There'll be no green bottle hanging on the wall\r\n"
-        else return build(n - 1, acc2 + "There'll be " + (n - 1) + " green " + bottleName(n - 1) + " hanging on the wall\r\n\r\n")
+        if (n - 1 == 0) return acc2 + "There'll be no green bottle hanging on the wall" + BREAK
+        else return build(n - 1, acc2 + "There'll be " + (n - 1) + " green " + bottleName(n - 1) + " hanging on the wall" + BREAK + BREAK)
     }
 
     return build(input) == out

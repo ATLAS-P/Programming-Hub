@@ -4,6 +4,8 @@ const Result_1 = require("./Result");
 const List_1 = require("../functional/List");
 const IOMap_1 = require("../functional/IOMap");
 const process = require('child_process');
+//put in config
+const BREAK = '\n';
 //in principe just handy functions for working with IOMap<in, Out, A> when A instanceof Result
 var AutoChecker;
 (function (AutoChecker) {
@@ -35,12 +37,12 @@ function validateGreenBottles(n, out) {
     const input = parseInt(n);
     const build = (n, acc = "") => {
         const bottleName = (a) => a > 1 ? "bottles" : "bottle";
-        const mss = n + " green " + bottleName(n) + " hanging on the wall\r\n";
-        const acc2 = acc + mss + mss + "And if one green bottle should accidentally fall\r\n";
+        const mss = n + " green " + bottleName(n) + " hanging on the wall" + BREAK;
+        const acc2 = acc + mss + mss + "And if one green bottle should accidentally fall" + BREAK;
         if (n - 1 == 0)
-            return acc2 + "There'll be no green bottle hanging on the wall\r\n";
+            return acc2 + "There'll be no green bottle hanging on the wall" + BREAK;
         else
-            return build(n - 1, acc2 + "There'll be " + (n - 1) + " green " + bottleName(n - 1) + " hanging on the wall\r\n\r\n");
+            return build(n - 1, acc2 + "There'll be " + (n - 1) + " green " + bottleName(n - 1) + " hanging on the wall" + BREAK + BREAK);
     };
     return build(input) == out;
 }
