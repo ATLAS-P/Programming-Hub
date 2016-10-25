@@ -1,7 +1,9 @@
 "use strict";
+const Future_1 = require("../functional/Future");
 const Result_1 = require("./Result");
 const List_1 = require("../functional/List");
 const IOMap_1 = require("../functional/IOMap");
+const process = require('child_process');
 //in principe just handy functions for working with IOMap<in, Out, A> when A instanceof Result
 var AutoChecker;
 (function (AutoChecker) {
@@ -28,20 +30,130 @@ var init = IOMap_1.IOMap.applyWithInput;
 //test map evaluation definitions
 const inIsOut = a => ioTest(a, (i, o) => i == o);
 const expected = (a, data) => dataTest(a, data, (a, b) => a == b);
+const greenBottles = a => ioTest(a, validateGreenBottles);
+function validateGreenBottles(n, out) {
+    const build = (n, acc = List_1.List.apply([])) => {
+        const bottleName = (a) => a > 1 ? "bottles" : "bottle";
+        const mss = n + " green " + bottleName(n) + " hanging on the wall";
+        const acc2 = acc.add(mss).add(mss).add("And if one green bottle should accidentally fall");
+        if (n - 1 == 0)
+            return acc2.add("There'll be no green bottle hanging on the wall");
+        else
+            return build(n - 1, acc2.add("There'll be " + (n - 1) + " green " + bottleName(n - 1) + " hanging on the wall\n").add(""));
+    };
+    return build(parseInt(n)).map2(out, (a, b) => a == b).foldLeft(true, (a, b) => a && b);
+}
 //test input definitions
 const randomStrings = List_1.List.apply(["this", "is", "a", "simple", "input", "output", "echo", "test", "for", "testing", "the", "autograder"]);
+const lowInts = List_1.List.apply([1, 10, 100]).map(i => i.toString());
 const rndStringTest = IOMap_1.IOMap.traverse(randomStrings, s => init(s));
+const lowIntsTest = IOMap_1.IOMap.traverse(lowInts, s => init(s));
 //generic grading function
 function grade(r, algebra, test, success, error) {
     algebra(test).run(r).then(success, error);
 }
-function gradeIOEcho(r, success, error) {
-    grade(r, inIsOut, rndStringTest, success, error);
-}
-function gradeProject(project, r, success, error) {
+function gradeProject(project, filename, success, error) {
     switch (project) {
-        case "io": gradeIOEcho(r, success, error);
+        case "io": grade(Runners.simpleIO(filename), inIsOut, rndStringTest, success, error);
+        case "n_green_bottles": grade(Runners.oneIMultiO(filename), greenBottles, lowIntsTest, success, error);
     }
 }
 exports.gradeProject = gradeProject;
+//reduce overlap in code, easy
+var Runners;
+(function (Runners) {
+    function multiIO(filename) {
+        return (s) => new Future_1.Future((resolve, reject) => {
+            let running = true;
+            let py = process.spawn("python3", ['uploads/' + filename]);
+            let output = List_1.List.apply([]);
+            py.stdout.on('data', function (data) {
+                var buff = new Buffer(data);
+                output = output.add(buff.toString("utf8"));
+            });
+            py.stderr.on('data', function (err) {
+                var buff = new Buffer(err);
+                reject(buff.toString("utf8"));
+            });
+            py.on('close', function () {
+                running = false;
+                if (output.length() == 0)
+                    reject("No output received!");
+                else
+                    resolve(output.map(s => s.replace(/\r?\n|\r/, "")));
+            });
+            List_1.List.forall(s, s => py.stdin.write(s));
+            py.stdin.end();
+            setTimeout(function () {
+                if (running) {
+                    py.kill();
+                    reject("Max runtime of 10s exeeded!");
+                }
+            }, 10000);
+        });
+    }
+    Runners.multiIO = multiIO;
+    function oneIMultiO(filename) {
+        return (s) => new Future_1.Future((resolve, reject) => {
+            let running = true;
+            let py = process.spawn("python3", ['uploads/' + filename]);
+            let output = List_1.List.apply([]);
+            py.stdout.on('data', function (data) {
+                var buff = new Buffer(data);
+                output = output.add(buff.toString("utf8"));
+            });
+            py.stderr.on('data', function (err) {
+                var buff = new Buffer(err);
+                reject(buff.toString("utf8"));
+            });
+            py.on('close', function () {
+                running = false;
+                if (output.length() == 0)
+                    reject("No output received!");
+                else
+                    resolve(output.map(s => s.replace(/\r?\n|\r/, "")));
+            });
+            py.stdin.write(s);
+            py.stdin.end();
+            setTimeout(function () {
+                if (running) {
+                    py.kill();
+                    reject("Max runtime of 10s exeeded!");
+                }
+            }, 10000);
+        });
+    }
+    Runners.oneIMultiO = oneIMultiO;
+    function simpleIO(filename) {
+        return (s) => new Future_1.Future((resolve, reject) => {
+            let running = true;
+            let py = process.spawn("python3", ['uploads/' + filename]);
+            let output;
+            py.stdout.on('data', function (data) {
+                var buff = new Buffer(data);
+                output = buff.toString("utf8");
+            });
+            py.stderr.on('data', function (err) {
+                var buff = new Buffer(err);
+                reject(buff.toString("utf8"));
+            });
+            py.on('close', function () {
+                running = false;
+                if (!output)
+                    reject("No output received!");
+                else
+                    resolve(output.replace(/\r?\n|\r/, ""));
+            });
+            py.stdin.write(s);
+            py.stdin.end();
+            setTimeout(function () {
+                if (running) {
+                    py.kill();
+                    reject("Max runtime of 10s exeeded!");
+                }
+            }, 10000);
+        });
+    }
+    Runners.simpleIO = simpleIO;
+})(Runners = exports.Runners || (exports.Runners = {}));
 //# sourceMappingURL=AutoGrader.js.map

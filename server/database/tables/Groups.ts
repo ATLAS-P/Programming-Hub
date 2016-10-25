@@ -2,6 +2,7 @@
 import { Table, Tables } from '../Table'
 import { Users } from './Users'
 import { Assignments } from './Assignments'
+import { Projects } from './Projects'
 import { Files } from './Files'
 import { List } from '../../functional/List'
 import { Tuple, Tuple3 } from '../../functional/Tuple'

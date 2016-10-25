@@ -126,4 +126,8 @@ export namespace List {
     export function concat<A>(lla: List<List<A>>): List<A> {
         return lla.foldRight(apply([]), (la, acc_la) => acc_la.append(la))
     }
+
+    export function forall<A>(la: List<A>, f: (a: A) => void): void {
+        la.map(f)
+    }
 }

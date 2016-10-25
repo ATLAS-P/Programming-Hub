@@ -58,7 +58,6 @@ var DateHelper;
     function dateFormat(def, jq) {
         let date = new Date(jq.attr("full"));
         let format = jq.attr('format');
-        console.log("hello");
         if (def) {
             jq.text(format == "in" ? DateHelper.dateTillNow(date) : DateHelper.simpleDate(date));
         }
@@ -67,7 +66,6 @@ var DateHelper;
         }
     }
     function dateTillNow(date) {
-        console.log(date);
         let now = new Date();
         let time = Math.abs(date - now);
         time = time / 1000;

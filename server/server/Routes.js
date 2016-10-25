@@ -1,7 +1,6 @@
 "use strict";
 const passport = require('passport');
 const fs = require('fs');
-const process = require('child_process');
 const grader = require('../autograder/AutoGrader');
 const Groups_1 = require('../database/tables/Groups');
 const Files_1 = require('../database/tables/Files');
@@ -95,13 +94,10 @@ var Routes;
                                 res.send("This assignment was alreaday handed in by you or your parnters!");
                             else {
                                 const time = new Date();
-                                //change to this if finished
-                                //res.redirect("/result/" + assignment._id)
-                                //now is
-                                res.redirect('/');
+                                res.redirect("/result/" + assignment._id);
                                 students.toArray().forEach(s => {
+                                    //if non final exisits override it
                                     let file = Table_1.Tables.mkFile(s._id, assignment._id, time, studentIDs, result, s._id == req.user.id, data[s._id]);
-                                    //remove old if available
                                     Files_1.Files.instance.create(file, () => { }, Table_1.Table.error);
                                 });
                             }
@@ -134,38 +130,8 @@ var Routes;
                 let fstream = fs.createWriteStream(filepath);
                 file.pipe(fstream);
                 fstream.on('close', function () {
-                    //simpleio (mk one for n io and only use that one)
-                    let simpleio = (s) => new Future_1.Future((resolve, reject) => {
-                        let running = true;
-                        let py = process.spawn("python3", ['uploads/' + filename]);
-                        let output = [];
-                        py.stdout.on('data', function (data) {
-                            var buff = new Buffer(data);
-                            output.push(buff.toString("utf8"));
-                        });
-                        py.stderr.on('data', function (err) {
-                            var buff = new Buffer(err);
-                            reject(buff.toString("utf8"));
-                        });
-                        py.on('close', function () {
-                            running = false;
-                            if (output.length == 0)
-                                reject("No output received!");
-                            else {
-                                resolve(output[0].replace(/\r?\n|\r/, ""));
-                            }
-                        });
-                        py.stdin.write(s);
-                        py.stdin.end();
-                        setTimeout(function () {
-                            if (running) {
-                                py.kill();
-                                reject("Max runtime of 10s exeeded!");
-                            }
-                        }, 10000);
-                    });
                     project.then((project) => {
-                        grader.gradeProject(project, simpleio, function (r) {
+                        grader.gradeProject(project, filename, function (r) {
                             if (!sess.bestResult || typeof sess.bestResult == "undefined" || sess.bestResult == null)
                                 sess.bestResult = {};
                             sess.bestResult[project] = r.best(sess.bestResult[project]);

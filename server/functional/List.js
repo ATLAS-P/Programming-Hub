@@ -107,5 +107,9 @@ exports.Cons = Cons;
         return lla.foldRight(apply([]), (la, acc_la) => acc_la.append(la));
     }
     List.concat = concat;
+    function forall(la, f) {
+        la.map(f);
+    }
+    List.forall = forall;
 })(List = exports.List || (exports.List = {}));
 //# sourceMappingURL=List.js.map

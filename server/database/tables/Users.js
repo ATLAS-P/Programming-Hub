@@ -24,9 +24,6 @@ class User extends Table_1.Table {
 var Users;
 (function (Users) {
     Users.instance = new User(Table_1.Tables.User);
-    Users.instance.addToGroup("r.mulder", "intro_2016_b", false, true, Table_1.Table.done, Table_1.Table.error);
-    Users.instance.addToGroup("r.mulder", "intro_2016_a", false, true, Table_1.Table.done, Table_1.Table.error);
-    Users.instance.addToGroup("r.mulder", "debug", false, true, Table_1.Table.done, Table_1.Table.error);
     function getByGProfile(p, suc, err) {
         const id = getIDByGProfile(p);
         //TODO not sure if getByID (findOne) will return successfully if no were found, test

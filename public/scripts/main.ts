@@ -77,7 +77,7 @@ namespace DateHelper {
     function dateFormat(def: boolean, jq) {
         let date = new Date(jq.attr("full"))
         let format = jq.attr('format')
-        console.log("hello")
+
         if (def) {
             jq.text(format == "in" ? DateHelper.dateTillNow(date) : DateHelper.simpleDate(date))
         } else {
@@ -86,7 +86,6 @@ namespace DateHelper {
     }
 
     export function dateTillNow(date: Date): string {
-        console.log(date)
         let now = new Date()
 
         let time: number = Math.abs((date as any) - (now as any))
