@@ -39,21 +39,37 @@ class Group extends Table<Tables.Group> {
         Groups.instance.updateOne(g, a => a.assignments.push(ass), success, fail)
     }
 
-    getAndPopulate(query: {}, deep: boolean, users: boolean, success: Table.Suc<Tables.PopulatedGroup>, fail: Table.Err) {
+    getAndPopulate(query: {}, deep: boolean, users: boolean, success: Table.Suc<Tables.PopulatedGroup>, fail: Table.Err, sort: {} = {}) {
         const pop = deep ? {
             path: users ? "assignments students admins" : "assignments",
-            populate: {
-                path: "project"
+            options: {
+                populate: {
+                    path: "project"
+                },
+                sort: { due: 1 }
             }
-        } : { path: "assignments" }
+        } : {
+            path: "assignments", options: {
+                sort: { due: 1 }
+            }
+        }
 
-        this.do(this.model.find(query).populate(pop), g => {
+        this.do(this.model.find(query).populate(pop).sort(sort), g => {
             success((g as {}[]) as Tables.PopulatedGroup[])
         }, fail)
     }
 
     getStudents(g: string, success: Table.Suc<Tables.User>, fail: Table.Err) {
-        this.do(this.model.find({ _id: g }).populate("students"), g => {
+        this.do(this.model.find({ _id: g }).populate({
+            path: "students",
+            options: {
+                sort: {
+                    name: 1,
+                    surename: 1,
+                    _id: 1
+                }
+            }
+        }), g => {
             success((g[0].students as any) as Tables.User[])
         }, fail)
     }

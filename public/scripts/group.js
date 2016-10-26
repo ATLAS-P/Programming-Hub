@@ -66,7 +66,11 @@ var Group;
     }
     function addDataOf(typ, data, to) {
         const column = document.createElement(typ);
-        column.innerText = data;
+        if (data.toString() == "[object Object]" || data instanceof Object) {
+            column.innerText = "no info available";
+        }
+        else
+            column.innerText = data;
         to.appendChild(column);
     }
     function addResult(name, response) {

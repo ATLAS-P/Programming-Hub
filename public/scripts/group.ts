@@ -80,7 +80,9 @@ namespace Group {
 
     function addDataOf(typ: string, data: string, to: HTMLElement) {
         const column = document.createElement(typ)
-        column.innerText = data
+        if (data.toString() == "[object Object]" || data as any instanceof Object) {
+            column.innerText = "no info available"
+        } else column.innerText = data
         to.appendChild(column)
     }
 

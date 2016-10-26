@@ -36,19 +36,35 @@ class Group extends Table_1.Table {
     addAssignment(g, ass, success, fail) {
         Groups.instance.updateOne(g, a => a.assignments.push(ass), success, fail);
     }
-    getAndPopulate(query, deep, users, success, fail) {
+    getAndPopulate(query, deep, users, success, fail, sort = {}) {
         const pop = deep ? {
             path: users ? "assignments students admins" : "assignments",
-            populate: {
-                path: "project"
+            options: {
+                populate: {
+                    path: "project"
+                },
+                sort: { due: 1 }
             }
-        } : { path: "assignments" };
-        this.do(this.model.find(query).populate(pop), g => {
+        } : {
+            path: "assignments", options: {
+                sort: { due: 1 }
+            }
+        };
+        this.do(this.model.find(query).populate(pop).sort(sort), g => {
             success(g);
         }, fail);
     }
     getStudents(g, success, fail) {
-        this.do(this.model.find({ _id: g }).populate("students"), g => {
+        this.do(this.model.find({ _id: g }).populate({
+            path: "students",
+            options: {
+                sort: {
+                    name: 1,
+                    surename: 1,
+                    _id: 1
+                }
+            }
+        }), g => {
             success(g[0].students);
         }, fail);
     }

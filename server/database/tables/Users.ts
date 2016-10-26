@@ -14,7 +14,7 @@ class User extends Table<Tables.User> {
 
     inGroup(g: string, query: {}, sort: boolean, suc: Table.Suc<Tables.User>, err: Table.Err) {
         query['groups'] = { $eq: g }
-        this.get(query, sort ? { name: 1 } : {}, suc, err)
+        this.get(query, sort ? { name: 1, surename: 1 } : {}, suc, err)
     }
 
     getGroups(s: string, deep:boolean, suc: Table.Suc<Tables.PopulatedGroup>, err: Table.Err) {

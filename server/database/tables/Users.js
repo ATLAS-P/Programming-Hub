@@ -15,7 +15,7 @@ class User extends Table_1.Table {
     }
     inGroup(g, query, sort, suc, err) {
         query['groups'] = { $eq: g };
-        this.get(query, sort ? { name: 1 } : {}, suc, err);
+        this.get(query, sort ? { name: 1, surename: 1 } : {}, suc, err);
     }
     getGroups(s, deep, suc, err) {
         this.getByID(s, u => Groups_1.Groups.instance.getAndPopulate({ _id: { $in: u.groups } }, false, deep, suc, err), err);
