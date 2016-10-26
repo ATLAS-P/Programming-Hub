@@ -33,14 +33,14 @@ var init = IOMap_1.IOMap.applyWithInput;
 //test map evaluation definitions
 const inIsOut = a => ioTest(a, (i, o) => i == o);
 const laps = a => ioTest(a, (i, o) => {
-    const time = i.foldLeft([-35, false], (time, next) => {
+    const time = i.foldLeft([-45, false], (time, next) => {
         if (!time[1])
             return [time[0] + next._2, next._1 == "p"];
         else
             return [time[0], next._1 != "p"];
     })[0];
     const lapNrEx = i.foldLeft(0, (laps, next) => laps += next._1 == "l" ? 1 : 0);
-    const lapEx = i.foldLeft([-35, false, 0], (time, next) => {
+    const lapEx = i.foldLeft([-45, false, 0], (time, next) => {
         let t = time[0];
         let lap = time[2];
         if (!time[1])
@@ -54,11 +54,12 @@ const laps = a => ioTest(a, (i, o) => {
         else
             return [t, next._1 != "p", lap];
     })[2];
-    const margin = Math.ceil(time / 50 + o.length());
+    const margin = Math.ceil(time / 100 + o.length());
     let test = Math.abs(time - (o.head("0") * 1000)) < margin;
     const forelast = o.tail().head("");
     const lapNr = forelast.split(": ");
     console.log(lapNrEx, lapEx, lapNr);
+    console.log(time, o.head("0"));
     if (lapNr.length < 2)
         test = false;
     else
