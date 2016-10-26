@@ -6,7 +6,7 @@ const Tuple_1 = require("../functional/Tuple");
 const IOMap_1 = require("../functional/IOMap");
 const process = require('child_process');
 //put in config
-const BREAK = '\r\n';
+const BREAK = '\n';
 //in principe just handy functions for working with IOMap<in, Out, A> when A instanceof Result
 var AutoChecker;
 (function (AutoChecker) {

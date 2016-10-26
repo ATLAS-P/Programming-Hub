@@ -7,7 +7,7 @@ import {IOMap} from "../functional/IOMap"
 import * as process from 'child_process'
 
 //put in config
-const BREAK = '\r\n'
+const BREAK = '\n'
 
 //in principe just handy functions for working with IOMap<in, Out, A> when A instanceof Result
 namespace AutoChecker {
