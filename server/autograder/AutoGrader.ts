@@ -54,7 +54,7 @@ const laps = a => ioTest(a, (i: List<Tuple<string, number>>, o: List<string>) =>
         if (!time[1]) return [t, next._1 == "p", lap]
         else return [t, next._1 != "p", lap]
     })[2] as number
-    const margin = Math.ceil(time / 100 + o.length() / 2)
+    const margin = Math.ceil(time / 50 + o.length())
 
     let test = Math.abs(time - ((o.head("0") as any as number) * 1000)) < margin
 
@@ -64,7 +64,7 @@ const laps = a => ioTest(a, (i: List<Tuple<string, number>>, o: List<string>) =>
     console.log(lapNrEx, lapEx, lapNr)
 
     if (lapNr.length < 2) test = false
-    else test = test && lapNr[0] == "Lap " + lapNrEx && Math.abs(lapEx - ((lapNr[1] as any as number) * 1000)) < lapEx / 25
+    else test = test && lapNr[0] == "Lap " + lapNrEx && Math.abs(lapEx - ((lapNr[1] as any as number) * 1000)) < margin
    
     return test
 })

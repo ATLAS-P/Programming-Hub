@@ -54,7 +54,7 @@ const laps = a => ioTest(a, (i, o) => {
         else
             return [t, next._1 != "p", lap];
     })[2];
-    const margin = Math.ceil(time / 100 + o.length() / 2);
+    const margin = Math.ceil(time / 50 + o.length());
     let test = Math.abs(time - (o.head("0") * 1000)) < margin;
     const forelast = o.tail().head("");
     const lapNr = forelast.split(": ");
@@ -62,7 +62,7 @@ const laps = a => ioTest(a, (i, o) => {
     if (lapNr.length < 2)
         test = false;
     else
-        test = test && lapNr[0] == "Lap " + lapNrEx && Math.abs(lapEx - (lapNr[1] * 1000)) < lapEx / 25;
+        test = test && lapNr[0] == "Lap " + lapNrEx && Math.abs(lapEx - (lapNr[1] * 1000)) < margin;
     return test;
 });
 const expected = (a, data) => dataTest(a, data, (a, b) => a == b);
