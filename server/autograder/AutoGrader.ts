@@ -35,12 +35,12 @@ import init = IOMap.applyWithInput
 //test map evaluation definitions
 const inIsOut = a => ioTest(a, (i, o) => i == o)
 const laps = a => ioTest(a, (i: List<Tuple<string, number>>, o: List<string>) => {
-    const time = i.foldLeft([-45, false], (time, next) => {
+    const time = i.foldLeft([-35, false], (time, next) => {
         if (!time[1]) return [time[0] as number + next._2, next._1 == "p"]
         else return [time[0] as number, next._1 != "p"]
     })[0] as number
     const lapNrEx = i.foldLeft(0, (laps, next) => laps += next._1 == "l" ? 1 : 0)
-    const lapEx = i.foldLeft([-45, false, 0], (time, next) => {
+    const lapEx = i.foldLeft([-35, false, 0], (time, next) => {
         let t = time[0] as number
         let lap = time[2] as number
 
@@ -54,7 +54,7 @@ const laps = a => ioTest(a, (i: List<Tuple<string, number>>, o: List<string>) =>
         if (!time[1]) return [t, next._1 == "p", lap]
         else return [t, next._1 != "p", lap]
     })[2] as number
-    const margin = Math.ceil(time / 100 + o.length())
+    const margin = Math.ceil(time / 50 + o.length() * 2 + 5)
 
     let test = Math.abs(time - ((o.head("0") as any as number) * 1000)) < margin
 
@@ -115,6 +115,10 @@ const stopwatchData: List<List<Tuple<string, number>>> =
             ["l", 200],
             ["s", 200]]).map(d => new Tuple(d[0] as string, d[1] as number)),
         List.apply([
+            ["t", 200],
+            ["p", 100],
+            ["p", 100],
+            ["l", 100],
             ["t", 200],
             ["p", 100],
             ["p", 100],
