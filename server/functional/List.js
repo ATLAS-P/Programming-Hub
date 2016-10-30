@@ -2,7 +2,8 @@
 const Tuple_1 = require("./Tuple");
 class List {
     match(ifn, ifl) {
-        return this instanceof Empty ? ifn(this) : ifl(this.h, this.t);
+        const ref = this;
+        return this instanceof Empty ? ifn(ref) : ifl(ref.h, ref.t);
     }
     tail() {
         return this.match(e => e, (x, xs) => xs);

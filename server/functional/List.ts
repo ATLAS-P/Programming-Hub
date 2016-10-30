@@ -5,7 +5,8 @@ export abstract class List<A> {
     protected t: List<A>
 
     protected match<B>(ifn: (e: Empty) => B, ifl: (x: A, xs: List<A>) => B): B {
-        return this instanceof Empty ? ifn(this) : ifl(this.h, this.t)
+        const ref = this
+        return this instanceof Empty ? ifn(ref) : ifl(ref.h, ref.t)
     }
 
     tail(): List<A> {
