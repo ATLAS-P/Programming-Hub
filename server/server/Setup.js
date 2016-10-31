@@ -1,5 +1,6 @@
 "use strict";
 const Users_1 = require('../database/tables/Users');
+const Config_1 = require('./Config');
 const express = require("express");
 const path = require('path');
 const stylus = require('stylus');
@@ -52,8 +53,7 @@ var Setup;
         const googleLogin = {
             clientID: googleID,
             clientSecret: googleSecret,
-            //put in config
-            callbackURL: "http://localhost:3000/auth/google/callback",
+            callbackURL: "http://" + Config_1.Config.auth.callback + "/auth/google/callback",
             passReqToCallback: true
         };
         const handleLogin = (request, accessToken, refreshToken, profile, done) => {

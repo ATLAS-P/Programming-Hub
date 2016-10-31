@@ -4,8 +4,9 @@ const Result_1 = require("./Result");
 const List_1 = require("../functional/List");
 const Tuple_1 = require("../functional/Tuple");
 const IOMap_1 = require("../functional/IOMap");
+const Config_1 = require('../server/Config');
 const process = require('child_process');
-const BREAK = "\r\n";
+const BREAK = Config_1.Config.grader.break;
 //in principe just handy functions for working with IOMap<in, Out, A> when A instanceof Result
 var AutoChecker;
 (function (AutoChecker) {
