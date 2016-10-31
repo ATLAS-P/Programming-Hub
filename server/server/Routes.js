@@ -44,8 +44,11 @@ var Routes;
         Render.withUser(req, res, "privacy");
     }
     function logout(req, res) {
-        req.logout();
-        res.redirect('/');
+        req.session.destroy(function (err) {
+            if (err)
+                console.log(err);
+            res.redirect('/');
+        });
     }
     function index(req, res) {
         Render.withUser(req, res, "hub");

@@ -8,9 +8,14 @@ const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
 const session = require('express-session');
 const passport = require('passport');
-//no typings available for this one :(
+const redis = require("redis");
+const redisConnect = require("connect-redis");
+//no typings available for these :(
 const authGoogle = require('passport-google-oauth2');
 const busboy = require('connect-busboy');
+const useRedis = Config_1.Config.session.redis;
+const redisStore = useRedis ? redisConnect(session) : null;
+const redisClient = useRedis ? redis.createClient() : null;
 var Setup;
 (function (Setup) {
     function startServer(server) {
@@ -32,9 +37,11 @@ var Setup;
     function setupSession(app, io) {
         const sessionMiddle = session({
             resave: false,
-            saveUninitialized: true,
-            secret: 'Pssssst, keep it a secret!'
+            saveUninitialized: false,
+            secret: Config_1.Config.session.secret
         });
+        if (useRedis)
+            sessionMiddle['store'] = new redisStore({ host: 'localhost', port: 6379, client: redisClient, ttl: 260 });
         io.use((socket, next) => sessionMiddle(socket.request, socket.request.res, next));
         app.use(sessionMiddle);
     }

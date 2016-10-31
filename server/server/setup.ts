@@ -10,10 +10,16 @@ import * as socket from 'socket.io'
 import * as bodyParser from 'body-parser'
 import * as session from 'express-session'
 import * as passport from 'passport'
+import * as redis from "redis"
+import * as redisConnect from "connect-redis"
 
-//no typings available for this one :(
+//no typings available for these :(
 const authGoogle = require('passport-google-oauth2')
 const busboy = require('connect-busboy')
+
+const useRedis = Config.session.redis
+const redisStore = useRedis ? redisConnect(session):null
+const redisClient = useRedis ? redis.createClient():null
 
 export namespace Setup {
     export function startServer(server: http.Server) {
@@ -36,9 +42,11 @@ export namespace Setup {
     export function setupSession(app: express.Express, io: SocketIO.Server) {
         const sessionMiddle = session({
             resave: false,
-            saveUninitialized: true,
-            secret: 'Pssssst, keep it a secret!'
+            saveUninitialized: false,
+            secret: Config.session.secret
         })
+
+        if (useRedis) sessionMiddle['store'] = new redisStore({ host: 'localhost', port: 6379, client: redisClient, ttl: 260 })
 
         io.use((socket, next) => sessionMiddle(socket.request, socket.request.res, next))
         app.use(sessionMiddle)

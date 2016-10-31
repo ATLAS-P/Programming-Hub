@@ -61,8 +61,10 @@ export namespace Routes {
     }
 
     function logout(req: Req, res: Res) {
-        req.logout()
-        res.redirect('/')
+        req.session.destroy(function (err) {
+            if (err) console.log(err);
+            res.redirect('/');
+        });
     }
 
     function index(req: Req, res: Res) {
