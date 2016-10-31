@@ -35,13 +35,20 @@ var Setup;
     }
     Setup.setupExpress = setupExpress;
     function setupSession(app, io) {
-        const sessionMiddle = session({
+        const sessionData = {
             resave: false,
             saveUninitialized: false,
             secret: Config_1.Config.session.secret
-        });
-        if (useRedis)
-            sessionMiddle['store'] = new redisStore({ host: 'localhost', port: 6379, client: redisClient, ttl: 260 });
+        };
+        if (useRedis) {
+            sessionData['store'] = new redisStore({
+                host: 'localhost',
+                port: 6379,
+                client: redisClient,
+                ttl: 260
+            });
+        }
+        const sessionMiddle = session(sessionData);
         io.use((socket, next) => sessionMiddle(socket.request, socket.request.res, next));
         app.use(sessionMiddle);
     }
