@@ -1,4 +1,5 @@
 ﻿import {Users} from '../database/tables/Users'
+import {Config} from './Config'
 
 import * as http from "http"
 import * as express from "express"
@@ -58,8 +59,7 @@ export namespace Setup {
         const googleLogin = {
             clientID: googleID,
             clientSecret: googleSecret,
-            //put in config
-            callbackURL: "http://atlas.ninja/auth/google/callback",
+            callbackURL: "http://" + Config.auth.callback + "/auth/google/callback",
             passReqToCallback: true
         }
 

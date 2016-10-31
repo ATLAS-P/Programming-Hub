@@ -73,9 +73,10 @@ var Routes;
         Groups_1.Groups.instance.getAndPopulate({ _id: data.group }, true, true, g => {
             let group = g[0];
             let assignment = group.assignments.find(a => a._id == data.assignment);
-            if (assignment && assignment.project._id == data.project) {
+            const sess = req.session;
+            if (sess.bestResult && assignment && assignment.project._id == data.project) {
                 if (assignment.due > date) {
-                    const result = req.session.bestResult[data.project];
+                    const result = bestResult[data.project];
                     if (result) {
                         let students = List_1.List.apply([]);
                         group.students.forEach(s => {

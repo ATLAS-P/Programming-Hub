@@ -53,7 +53,7 @@ var Setup;
             clientID: googleID,
             clientSecret: googleSecret,
             //put in config
-            callbackURL: "http://atlas.ninja/auth/google/callback",
+            callbackURL: "http://localhost:3000/auth/google/callback",
             passReqToCallback: true
         };
         const handleLogin = (request, accessToken, refreshToken, profile, done) => {

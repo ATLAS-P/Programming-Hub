@@ -93,10 +93,11 @@ export namespace Routes {
         Groups.instance.getAndPopulate({ _id: data.group }, true, true, g => {
             let group = g[0]
             let assignment = group.assignments.find(a => a._id == data.assignment)
+            const sess = req.session as ResultSession
 
-            if (assignment && assignment.project._id == data.project) {
+            if (sess.bestResult && assignment && assignment.project._id == data.project) {
                 if (assignment.due > date) {
-                    const result = (req.session as ResultSession).bestResult[data.project]
+                    const result = bestResult[data.project]
 
                     if (result) {
                         let students: List<Tables.UserTemplate> = List.apply([])

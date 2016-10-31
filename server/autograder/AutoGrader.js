@@ -110,7 +110,7 @@ var Runners;
     function pythonSpawner(z, onData, putInput, finalizeOutput = ((a) => a)) {
         return (filename) => (s) => new Future_1.Future((resolve, reject) => {
             let running = true;
-            let py = process.spawn("python", ['uploads/' + filename]);
+            let py = process.spawn("python3", ['uploads/' + filename]);
             let output = z;
             py.stdout.on('data', function (data) {
                 var buff = new Buffer(data);
@@ -136,9 +136,9 @@ var Runners;
             setTimeout(function () {
                 if (running) {
                     py.kill();
-                    reject("Max runtime of 10s exeeded!");
+                    reject("Max runtime of 5s exeeded!");
                 }
-            }, 10000);
+            }, 5000);
         });
     }
     function simpleIn(stdin, inn, running) {

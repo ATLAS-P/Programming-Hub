@@ -3,11 +3,12 @@ import {Result, Success, Fail} from "./Result"
 import {List} from "../functional/List"
 import {Tuple} from "../functional/Tuple"
 import {IOMap} from "../functional/IOMap"
+import {Config} from '../server/Config'
 
 import * as stream from "stream";
 import * as process from 'child_process'
 
-const BREAK = "\r\n"
+const BREAK = Config.grader.break
 
 //in principe just handy functions for working with IOMap<in, Out, A> when A instanceof Result
 namespace AutoChecker {
@@ -123,7 +124,7 @@ export namespace Runners {
     function pythonSpawner<In, A, Out>(z: A, onData: (out: A, data: string, stdin: stream.Writable) => A, putInput: (stdin: stream.Writable, inn: In, running: () => boolean) => void | A, finalizeOutput: (a: A) => Out = ((a:A) => a as any as Out)): Spawn<In, Out> {
         return (filename: string) => (s: In) => new Future<Out>((resolve, reject) => {
             let running = true
-            let py = process.spawn("python", ['uploads/' + filename])
+            let py = process.spawn("python3", ['uploads/' + filename])
             let output = z
 
             py.stdout.on('data', function (data) {
@@ -147,14 +148,14 @@ export namespace Runners {
             }
 
             const inDone = putInput(py.stdin, s, isRunning)
-            if (inDone) output = inDone 
+            if (inDone) output = inDone as A
 
             setTimeout(function () {
                 if (running) {
                     py.kill()
-                    reject("Max runtime of 10s exeeded!")
+                    reject("Max runtime of 5s exeeded!")
                 }
-            }, 10000)
+            }, 5000)
         })
     }
 
