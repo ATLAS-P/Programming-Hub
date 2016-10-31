@@ -36,7 +36,7 @@ const optimalGuess = a => ioTest(a, (i, o) => o <= Math.floor(Math.log2(i[0])) +
 const expected = data => a => dataTest(a, data, (a, b) => a == b);
 const expectedF = (data, f) => a => dataTest(a, data, (a, b) => f(a, b));
 const greenBottles = a => ioTest(a, validateGreenBottles);
-const stopwatch = expectedF(List_1.List.apply([[600, 760, 310, 410, 2], [2800, 3200, 150, 250, 4], [850, 950, 350, 450, 2]]), (out, data) => {
+const stopwatch = expectedF(List_1.List.apply([[550, 800, 250, 450, 2], [2700, 3300, 125, 275, 4], [800, 1000, 300, 500, 2]]), (out, data) => {
     const lapRaw = out.tail().head("").split(":");
     if (lapRaw.length != 2)
         return false;
