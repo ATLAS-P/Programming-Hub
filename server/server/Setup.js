@@ -45,7 +45,7 @@ var Setup;
                 host: 'localhost',
                 port: 6379,
                 client: redisClient,
-                ttl: 260
+                ttl: 86400
             });
         }
         const sessionMiddle = session(sessionData);

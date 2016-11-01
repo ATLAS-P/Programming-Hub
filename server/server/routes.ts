@@ -10,7 +10,7 @@ import {Files} from '../database/tables/Files'
 import {Tables, Table} from '../database/Table'
 import {Future} from '../functional/Future'
 import {List} from '../functional/List'
-import {Result, Fail} from '../autograder/Result'
+import {Result, TestJSON} from '../autograder/Result'
 import {IOMap} from '../functional/IOMap'
 
 //split up in more files
@@ -21,7 +21,7 @@ export namespace Routes {
     type Route = (req: Req, res: Res) => void
 
     interface ResultSession extends Express.Session {
-        bestResult: {}
+        result: {}
     }
 
     const INDEX = "/"
@@ -43,7 +43,7 @@ export namespace Routes {
         app.get(PRIVACY, showPrivacy)
 
         app.post(SUBMIT_RESULTS, submitResults)
-        app.post(FILE_UPLOAD, fileUpload(root))
+        app.post(FILE_UPLOAD, fileUpload(app, root))
 
         app.get(AUTH, passport.authenticate('google', {
             scope: ['https://www.googleapis.com/auth/plus.profile.emails.read',
@@ -79,7 +79,7 @@ export namespace Routes {
     }
 
     function group(req: Req, res: Res) {
-        (req.session as ResultSession).bestResult = null
+        (req.session as ResultSession).result = null
         const group = req.url.split("/")[2] 
 
         if (!req.user) res.redirect("/")
@@ -97,9 +97,9 @@ export namespace Routes {
             let assignment = group.assignments.find(a => a._id == data.assignment)
             const sess = req.session as ResultSession
 
-            if (sess.bestResult && assignment && assignment.project._id == data.project) {
+            if (sess.result && assignment && assignment.project._id == data.project) {
                 if (assignment.due > date) {
-                    const result = bestResult[data.project]
+                    const result = sess.result[data.project]
 
                     if (result) {
                         let students: List<Tables.UserTemplate> = List.apply([])
@@ -125,7 +125,7 @@ export namespace Routes {
                                 res.redirect("/result/" + assignment._id)
                                 students.toArray().forEach(s => {
                                     //if non final exisits override it
-                                    let file = Tables.mkFile(s._id, assignment._id, time, studentIDs, (result as Result), s._id == req.user.id, data[s._id])
+                                    let file = Tables.mkFile(s._id, assignment._id, time, studentIDs, result, s._id == req.user.id, data[s._id])
                                     Files.instance.create(file, () => { }, Table.error)
                                 })
                             }
@@ -136,7 +136,7 @@ export namespace Routes {
         }, Table.error)
     }
 
-    function fileUpload(root: string): Route {
+    function fileUpload(app: express.Express, root: string): Route {
         //cleanups required below
         return (req, res) => {
             const sess = req.session as ResultSession
@@ -151,18 +151,25 @@ export namespace Routes {
             })
 
             busboy.on('file', function (fieldname, file, filename) {
-                let filepath = root + '/uploads/' + filename
+                const newName = filename + (new Date()).getTime()
+
+                let filepath = root + '/uploads/' + newName
                 let fstream = fs.createWriteStream(filepath);
 
                 file.pipe(fstream);
                 fstream.on('close', function () {
 
                     project.then((project: string) => {
-                        grader.gradeProject(project, filename, function (r) {
-                            if (!sess.bestResult || typeof sess.bestResult == "undefined" || sess.bestResult == null) sess.bestResult = {}
+                        grader.gradeProject(project, newName, function (r) {
+                            if (!sess.result || typeof sess.result == "undefined" || sess.result == null) sess.result = {}
 
-                            sess.bestResult[project] = r.best(sess.bestResult[project])
-                            res.json({ success: true, tests: r.totalTests(), passed: r.totalSuccess(), failed: (r instanceof Fail) ? r.getFailed().toArray() : [] })
+                            sess.result[project] = r
+                            Render.results(app, "result", r.toJSONList().toArray(), html => {
+                                res.json({ success: true, html:html })
+                            }, fail => {
+                                res.json({ success: false, err: fail.message })
+                                })
+
                             fs.unlink(filepath)
                         }, (err: string) => {
                                 res.json({ success: false, err: err })
@@ -231,10 +238,12 @@ export namespace Sockets {
         const sendUsers = (success: boolean, data: string | Error) => emitHtml(socket, SEND_GROUP_USERS, success, data)
 
         return g => {
-            const user = socket.request.session.passport.user.id
-            Groups.instance.getStudents(g, lu => {
-                Render.users(app, "userList", lu.filter(v => v._id != user), html => sendUsers(true, html), err => sendUsers(false, err))
-            }, e => sendUsers(false, e))
+            if (socket.request.session.passport) {
+                const user = socket.request.session.passport.user.id
+                Groups.instance.getStudents(g, lu => {
+                    Render.users(app, "userList", lu.filter(v => v._id != user), html => sendUsers(true, html), err => sendUsers(false, err))
+                }, e => sendUsers(false, e))
+            }
         }
     }
 
@@ -253,10 +262,12 @@ export namespace Sockets {
 
     export function handleNonFinal(app: express.Express, socket: SocketIO.Socket): NonFinalCall {
         return (accept, ass) => {
-            const user = socket.request.session.passport.user.id
+            if (socket.request.session.passport) {
+                const user = socket.request.session.passport.user.id
 
-            if (accept) Files.instance.mkFinal(user, ass)
-            else Files.instance.removeNonFinal(user, ass)
+                if (accept) Files.instance.mkFinal(user, ass)
+                else Files.instance.removeNonFinal(user, ass)
+            }
         }
     }
 
@@ -319,5 +330,11 @@ export namespace Render {
             if (err) fail(err)
             else success(suc)
         })
+    }
+
+    export function results(app: express.Express, loc: string, data: TestJSON<any>[], success: Suc, fail: Err) {
+        render(app, loc, {
+            tests: data
+        }, success, fail)
     }
 }

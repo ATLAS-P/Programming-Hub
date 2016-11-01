@@ -4,6 +4,9 @@ class Tuple {
         this._1 = a;
         this._2 = b;
     }
+    map(f) {
+        return f(this._1, this._2);
+    }
     map_1(a) {
         return new Tuple(a(this._1), this._2);
     }

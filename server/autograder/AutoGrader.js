@@ -11,19 +11,19 @@ const BREAK = Config_1.Config.grader.break;
 var AutoChecker;
 (function (AutoChecker) {
     function foldLeft(a, f) {
-        return IOMap_1.IOMap.ListHelper.foldLeft(a, (r, ltia) => r.combine(f(ltia._1, ltia._2)), new Result_1.Success(0));
+        return IOMap_1.IOMap.ListHelper.foldLeft(a, (r, ltia) => r.addAll(f(ltia._1, ltia._2)), Result_1.Result.unit());
     }
     AutoChecker.foldLeft = foldLeft;
     function evaluate(a, f) {
-        return foldLeft(a, (a, b) => Result_1.Result.unit(a, f(a, b)));
+        return foldLeft(a, (a, b) => f(a, b).map((result, message) => Result_1.Result.unit(Result_1.Test.unit(result, a, message))));
     }
     AutoChecker.evaluate = evaluate;
     function foldZip(a, data, f) {
-        return IOMap_1.IOMap.ListHelper.foldZip(a, data, (r, ttiaa) => r.combine(f(ttiaa._1, ttiaa._2)), new Result_1.Success(0));
+        return IOMap_1.IOMap.ListHelper.foldZip(a, data, (r, ttiaa) => r.addAll(f(ttiaa._1, ttiaa._2)), Result_1.Result.unit());
     }
     AutoChecker.foldZip = foldZip;
     function evaluateWith(a, data, f) {
-        return foldZip(a, data, (a, b) => Result_1.Result.unit(a._1, f(a._2, b)));
+        return foldZip(a, data, (a, b) => f(a._2, b).map((res, mess) => Result_1.Result.unit(Result_1.Test.unit(res, a._1, mess))));
     }
     AutoChecker.evaluateWith = evaluateWith;
 })(AutoChecker || (AutoChecker = {}));
@@ -31,19 +31,31 @@ var ioTest = AutoChecker.evaluate;
 var dataTest = AutoChecker.evaluateWith;
 var init = IOMap_1.IOMap.applyWithInput;
 //test map evaluation definitions
-const inIsOut = a => ioTest(a, (i, o) => i == o);
-const optimalGuess = a => ioTest(a, (i, o) => o <= Math.floor(Math.log2(i[0])) + 1);
-const expected = data => a => dataTest(a, data, (a, b) => a == b);
+const inIsOut = a => ioTest(a, (i, o) => new Tuple_1.Tuple(i == o, "Unexpected output, received: '" + o + "', expected: '" + i + "'."));
+const optimalGuess = a => ioTest(a, (i, o) => {
+    const bound = Math.floor(Math.log2(i[0])) + 1;
+    return new Tuple_1.Tuple(o <= bound, "Your result was not optimal. Your AI needed " + o + " tries. Optimal result was less than: " + bound + " tries.");
+});
+const expected = data => a => dataTest(a, data, (a, b) => new Tuple_1.Tuple(a == b, "Unexpected output, received: '" + a + "', expected: '" + b + "'."));
 const expectedF = (data, f) => a => dataTest(a, data, (a, b) => f(a, b));
 const greenBottles = a => ioTest(a, validateGreenBottles);
 const stopwatch = expectedF(List_1.List.apply([[600, 760, 310, 410, 2], [2800, 3200, 150, 250, 4], [850, 950, 350, 450, 2]]), (out, data) => {
     const lapRaw = out.tail().head("").split(":");
     if (lapRaw.length != 2)
-        return false;
+        return new Tuple_1.Tuple(false, "There seems to be something wrong with your lap logic or print format.");
     const total = getFirstNumber(out.head(""), 0);
     const lap = getFirstNumber(lapRaw[0], 0);
     const lapTime = getFirstNumber(lapRaw[1], 0);
-    return numInRange(total * 1000, data[0], data[1]) && numInRange(lapTime * 1000, data[2], data[3]) && lap == data[4];
+    if (!numInRange(total * 1000, data[0], data[1])) {
+        return new Tuple_1.Tuple(false, "Your final time does not seem to be correct, expected a time between: " + data[0] + " and " + data[1] + " miliseconds. Found: " + total * 1000 + " miliseconds");
+    }
+    else if (!numInRange(lapTime * 1000, data[2], data[3])) {
+        return new Tuple_1.Tuple(false, "Your final lap time does not seem to be correct, expected a time between: " + data[2] + " and " + data[3] + " miliseconds. Found: " + lapTime * 1000 + " miliseconds");
+    }
+    else if (lap != data[4]) {
+        return new Tuple_1.Tuple(false, "Your lap count seems to be wrong, found: " + lap + ", expected: " + data[4]);
+    }
+    return new Tuple_1.Tuple(true, "");
 });
 function numInRange(x, low, high) {
     return low <= x && x <= high;
@@ -67,7 +79,35 @@ function validateGreenBottles(n, out) {
         else
             return build(n - 1, acc2 + "there'll be " + (n - 1) + " green " + bottleName(n - 1) + " hanging on the wall");
     };
-    return build(input) == out.toLowerCase();
+    const builded = build(input);
+    const comp = strDiff(builded, out.toLowerCase());
+    if (comp == -1)
+        return new Tuple_1.Tuple(true, "");
+    else {
+        return new Tuple_1.Tuple(false, "Unexpected output, found '" + found(out, comp) + "', expected: '" + found(builded, comp) + "'. This is case insensitive.");
+    }
+}
+function found(str, at) {
+    if (at < 10)
+        return str.substring(0, at) + str.charAt(at);
+    else
+        return str.substring(at - 9, at) + str.charAt(at);
+}
+//-1 if eq, else first uneq char
+function strDiff(str1, str2) {
+    function checkAt(n = 0) {
+        if (n == str1.length && n == str2.length)
+            return -1;
+        else if (n == str1.length || n == str2.length)
+            return n;
+        else {
+            if (str1.charAt(n) != str2.charAt(n))
+                return n;
+            else
+                return checkAt(n + 1);
+        }
+    }
+    return checkAt();
 }
 //test input definitions
 const randomStrings = List_1.List.apply(["this", "is", "a", "simple", "input", "output", "echo", "test", "for", "testing", "the", "autograder"]);
@@ -101,6 +141,9 @@ function gradeProject(project, filename, success, error) {
         case "guess_the_number_inversed":
             //use expectedF to specify upper bound manually, use, some less some more strict some optimal, can put in input
             grade(Runners.PythonRunners.guessRunner(filename), optimalGuess, guessTest, success, error);
+            break;
+        default:
+            error("There does not exist a test for project with ID: " + project + "!");
             break;
     }
 }
