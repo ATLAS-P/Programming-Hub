@@ -7,7 +7,6 @@ const Files_1 = require('../database/tables/Files');
 const Table_1 = require('../database/Table');
 const Future_1 = require('../functional/Future');
 const List_1 = require('../functional/List');
-const Result_1 = require('../autograder/Result');
 const IOMap_1 = require('../functional/IOMap');
 //split up in more files
 var Routes;
@@ -29,7 +28,7 @@ var Routes;
         app.get(FILE, showResult);
         app.get(PRIVACY, showPrivacy);
         app.post(SUBMIT_RESULTS, submitResults);
-        app.post(FILE_UPLOAD, fileUpload(root));
+        app.post(FILE_UPLOAD, fileUpload(app, root));
         app.get(AUTH, passport.authenticate('google', {
             scope: ['https://www.googleapis.com/auth/plus.profile.emails.read',
                 'https://www.googleapis.com/auth/userinfo.profile']
@@ -61,7 +60,7 @@ var Routes;
             Files_1.Files.instance.getDeepAssignment(req.user.id, assignment, f => Render.file(req, res, "file", f), e => res.send(e));
     }
     function group(req, res) {
-        req.session.bestResult = null;
+        req.session.result = null;
         const group = req.url.split("/")[2];
         if (!req.user)
             res.redirect("/");
@@ -77,9 +76,9 @@ var Routes;
             let group = g[0];
             let assignment = group.assignments.find(a => a._id == data.assignment);
             const sess = req.session;
-            if (sess.bestResult && assignment && assignment.project._id == data.project) {
+            if (sess.result && assignment && assignment.project._id == data.project) {
                 if (assignment.due > date) {
-                    const result = bestResult[data.project];
+                    const result = sess.result[data.project];
                     if (result) {
                         let students = List_1.List.apply([]);
                         group.students.forEach(s => {
@@ -117,7 +116,7 @@ var Routes;
                 res.send("Illigal assignment!");
         }, Table_1.Table.error);
     }
-    function fileUpload(root) {
+    function fileUpload(app, root) {
         //cleanups required below
         return (req, res) => {
             const sess = req.session;
@@ -130,16 +129,21 @@ var Routes;
                 });
             });
             busboy.on('file', function (fieldname, file, filename) {
-                let filepath = root + '/uploads/' + filename;
+                const newName = filename + (new Date()).getTime();
+                let filepath = root + '/uploads/' + newName;
                 let fstream = fs.createWriteStream(filepath);
                 file.pipe(fstream);
                 fstream.on('close', function () {
                     project.then((project) => {
-                        grader.gradeProject(project, filename, function (r) {
-                            if (!sess.bestResult || typeof sess.bestResult == "undefined" || sess.bestResult == null)
-                                sess.bestResult = {};
-                            sess.bestResult[project] = r.best(sess.bestResult[project]);
-                            res.json({ success: true, tests: r.totalTests(), passed: r.totalSuccess(), failed: (r instanceof Result_1.Fail) ? r.getFailed().toArray() : [] });
+                        grader.gradeProject(project, newName, function (r) {
+                            if (!sess.result || typeof sess.result == "undefined" || sess.result == null)
+                                sess.result = {};
+                            sess.result[project] = r;
+                            Render.results(app, "result", r.toJSONList().toArray(), html => {
+                                res.json({ success: true, html: html });
+                            }, fail => {
+                                res.json({ success: false, err: fail.message });
+                            });
                             fs.unlink(filepath);
                         }, (err) => {
                             res.json({ success: false, err: err });
@@ -194,10 +198,12 @@ var Sockets;
     function getOtherUsersIn(app, socket) {
         const sendUsers = (success, data) => emitHtml(socket, SEND_GROUP_USERS, success, data);
         return g => {
-            const user = socket.request.session.passport.user.id;
-            Groups_1.Groups.instance.getStudents(g, lu => {
-                Render.users(app, "userList", lu.filter(v => v._id != user), html => sendUsers(true, html), err => sendUsers(false, err));
-            }, e => sendUsers(false, e));
+            if (socket.request.session.passport) {
+                const user = socket.request.session.passport.user.id;
+                Groups_1.Groups.instance.getStudents(g, lu => {
+                    Render.users(app, "userList", lu.filter(v => v._id != user), html => sendUsers(true, html), err => sendUsers(false, err));
+                }, e => sendUsers(false, e));
+            }
         };
     }
     Sockets.getOtherUsersIn = getOtherUsersIn;
@@ -215,11 +221,13 @@ var Sockets;
     Sockets.getNonFinalFiles = getNonFinalFiles;
     function handleNonFinal(app, socket) {
         return (accept, ass) => {
-            const user = socket.request.session.passport.user.id;
-            if (accept)
-                Files_1.Files.instance.mkFinal(user, ass);
-            else
-                Files_1.Files.instance.removeNonFinal(user, ass);
+            if (socket.request.session.passport) {
+                const user = socket.request.session.passport.user.id;
+                if (accept)
+                    Files_1.Files.instance.mkFinal(user, ass);
+                else
+                    Files_1.Files.instance.removeNonFinal(user, ass);
+            }
         };
     }
     Sockets.handleNonFinal = handleNonFinal;
@@ -286,5 +294,11 @@ var Render;
         });
     }
     Render.render = render;
+    function results(app, loc, data, success, fail) {
+        render(app, loc, {
+            tests: data
+        }, success, fail);
+    }
+    Render.results = results;
 })(Render = exports.Render || (exports.Render = {}));
 //# sourceMappingURL=Routes.js.map

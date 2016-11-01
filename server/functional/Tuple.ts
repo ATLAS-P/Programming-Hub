@@ -7,6 +7,10 @@
         this._2 = b
     }
 
+    map<C>(f: (a: A, b: B) => C): C {
+        return f(this._1, this._2)
+    }
+
     map_1(a: (a: A) => A): Tuple<A, B> {
         return new Tuple(a(this._1), this._2)
     }

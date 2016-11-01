@@ -146,3 +146,31 @@ date {
 .disabled {
   display: none;
 }
+.panel-heading {
+  height: 36px;
+  border-radius: 0px !important;
+  border-bottom: 1px solid #888 !important;
+  border-left: 1px solid #888 !important;
+  border-right: 1px solid #888 !important;
+}
+#panelResults .panel-heading:first-child {
+  border-radius: 3px 3px 0px 0px !important;
+  border-top: 1px solid #888 !important;
+}
+#panelResults .panel-collapse:last-child {
+  border-radius: 0px 0px 3px 3px !important;
+}
+.panel {
+  border: 0px;
+}
+.failed {
+  background-color: #f2dede !important;
+}
+.passed {
+  background-color: #dff0d8 !important;
+}
+.panel-collapse {
+  border-left: 1px solid #888 !important;
+  border-right: 1px solid #888 !important;
+  border-bottom: 1px solid #888 !important;
+}

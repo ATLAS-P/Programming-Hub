@@ -3,15 +3,13 @@
 interface Response {
     success: boolean
     err?: string
-    passed?: number
-    tests?: number
-    failed?: string[]
+    html: string
 }
 
 let project: string
 let assignment: string
 
-let bestResult: Response
+let result: Response
 let bestScript: string
 let hasStudents = false
 let canSubmit = false
@@ -55,7 +53,7 @@ namespace Group {
     function removeResults() {
         $('#completedTests').html("")
         showResults(false)
-        bestResult = null
+        result = null
     }
 
     function showResults(show: boolean) {
@@ -72,12 +70,6 @@ namespace Group {
         else $(sel).hide()
     }
 
-    function getBestResult(r1: Response, r2: Response): Response {
-        if (r2 && r1.tests != r2.tests) return null
-        else if (!r2 || r1.passed > r2.passed) return r1
-        else return r2
-    }
-
     function addDataOf(typ: string, data: string, to: HTMLElement) {
         const column = document.createElement(typ)
         if (data.toString() == "[object Object]" || data as any instanceof Object) {
@@ -88,26 +80,16 @@ namespace Group {
 
     export function addResult(name: string, response: Response) {
         if (response.success) {
-            bestResult = getBestResult(response, bestResult)
-            bestScript = bestResult == response ? name : bestScript
+            result = response
+            bestScript = name
             
             showResults(true)
             showErrorNoPython(false)
-            const el = document.createElement("tr")
 
-            addDataOf("td", name, el)
-            addDataOf("td", response.tests.toString(), el)
-            addDataOf("td", response.passed.toString(), el)
-
-            const sel = createFailedList(response)
-            const td = document.createElement("td")
-            td.appendChild(sel)
-            el.appendChild(td)
-
-            $('#completedTests').append(el)
+            $('#completedTests').html(response.html)
         } else {
             console.log(response.err)
-            showErrorNoPython(true, response.err) //add to results
+            showErrorNoPython(true, response.err) 
         }
     }
 
@@ -115,7 +97,7 @@ namespace Group {
         const sel = document.createElement("select")
         sel.classList.add("form-control")
         sel.id = "failedTests"
-        res.failed.forEach((val: string) => addDataOf("option", val, sel))
+        //res.failed.forEach((val: string) => addDataOf("option", val, sel))
         return sel
     }
 
@@ -142,17 +124,10 @@ namespace Group {
     }
 
     function submitResult() {
-        if (bestResult && canSubmit) {
+        if (result && canSubmit) {
             $("#upload").fadeOut(100, function () {
-                if (!hasStudents) socket.emit("getUsersIn", (window.location.pathname + window.location.search).split("/")[2])
                 $("#studentInfo").fadeIn(100)
-                $("#best_filename").text(bestScript)
-                $("#best_total").text(bestResult.tests)
-                $("#best_succeeded").text(bestResult.passed)
-
-                const sel = createFailedList(bestResult)
-
-                $("#best_failed").html(sel)
+                if (!hasStudents) socket.emit("getUsersIn", (window.location.pathname + window.location.search).split("/")[2])
             })
             $("#testResults").fadeOut(100)
         }

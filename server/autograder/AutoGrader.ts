@@ -1,5 +1,5 @@
 ﻿import {Future} from "../functional/Future"
-import {Result, Success, Fail} from "./Result"
+import {Result, Test} from "./Result"
 import {List} from "../functional/List"
 import {Tuple} from "../functional/Tuple"
 import {IOMap} from "../functional/IOMap"
@@ -12,20 +12,20 @@ const BREAK = Config.grader.break
 
 //in principe just handy functions for working with IOMap<in, Out, A> when A instanceof Result
 namespace AutoChecker {
-    export function foldLeft<In, Out, A>(a: IOMap<In, Out, List<Tuple<In, A>>>, f: (a: In, b: A) => Result): IOMap<In, Out, Result> {
-        return IOMap.ListHelper.foldLeft(a, (r, ltia) => r.combine(f(ltia._1, ltia._2)), new Success(0) as Result)
+    export function foldLeft<In, Out, A>(a: IOMap<In, Out, List<Tuple<In, A>>>, f: (a: In, b: A) => Result<In>): IOMap<In, Out, Result<In>> {
+        return IOMap.ListHelper.foldLeft(a, (r, ltia) => r.addAll(f(ltia._1, ltia._2)), Result.unit())
     }
 
-    export function evaluate<In, Out, A>(a: IOMap<In, Out, List<Tuple<In, A>>>, f: (a: In, b: A) => boolean): IOMap<In, Out, Result> {
-        return foldLeft(a, (a, b) => Result.unit(a, f(a, b)))
+    export function evaluate<In, Out, A>(a: IOMap<In, Out, List<Tuple<In, A>>>, f: (a: In, b: A) => Tuple<boolean, string>): IOMap<In, Out, Result<In>> {
+        return foldLeft(a, (a, b) => f(a, b).map((result, message) => Result.unit(Test.unit(result, a, message))))
     }
 
-    export function foldZip<In, Out, A>(a: IOMap<In, Out, List<Tuple<In, A>>>, data: List<A>, f: (a: Tuple<In, A>, b: A) => Result): IOMap<In, Out, Result> {
-        return IOMap.ListHelper.foldZip(a, data, (r, ttiaa) => r.combine(f(ttiaa._1, ttiaa._2)), new Success(0) as Result)
+    export function foldZip<In, Out, A>(a: IOMap<In, Out, List<Tuple<In, A>>>, data: List<A>, f: (a: Tuple<In, A>, b: A) => Result<In>): IOMap<In, Out, Result<In>> {
+        return IOMap.ListHelper.foldZip(a, data, (r, ttiaa) => r.addAll(f(ttiaa._1, ttiaa._2)), Result.unit())
     }
 
-    export function evaluateWith<In, Out, A>(a: IOMap<In, Out, List<Tuple<In, A>>>, data: List<A>, f: (a: A, b: A) => boolean): IOMap<In, Out, Result> {
-        return foldZip(a, data, (a, b) => Result.unit(a._1, f(a._2, b)))
+    export function evaluateWith<In, Out, A>(a: IOMap<In, Out, List<Tuple<In, A>>>, data: List<A>, f: (a: A, b: A) => Tuple<boolean, string>): IOMap<In, Out, Result<In>> {
+        return foldZip(a, data, (a, b) => f(a._2, b).map((res, mess) => Result.unit(Test.unit(res, a._1, mess))))
     }
 }
 
@@ -34,20 +34,32 @@ import dataTest = AutoChecker.evaluateWith
 import init = IOMap.applyWithInput
 
 //test map evaluation definitions
-const inIsOut = a => ioTest(a, (i, o) => i == o)
-const optimalGuess = a => ioTest(a, (i, o) => o <= Math.floor(Math.log2(i[0])) + 1)
-const expected = data => a => dataTest(a, data, (a, b) => a == b)
+const inIsOut = a => ioTest(a, (i, o) => new Tuple(i == o, "Unexpected output, received: '" + o + "', expected: '" + i + "'."))
+const optimalGuess = a => ioTest(a, (i, o) => {
+    const bound = Math.floor(Math.log2(i[0])) + 1
+    return new Tuple(o <= bound, "Your result was not optimal. Your AI needed " + o + " tries. Optimal result was less than: " + bound + " tries.")
+})
+const expected = data => a => dataTest(a, data, (a, b) => new Tuple(a == b, "Unexpected output, received: '" + a + "', expected: '" + b + "'."))
 const expectedF = (data, f) => a => dataTest(a, data, (a, b) => f(a, b))
 const greenBottles = a => ioTest(a, validateGreenBottles)
+
 const stopwatch = expectedF(List.apply([[600, 760, 310, 410, 2], [2800, 3200, 150, 250, 4], [850, 950, 350, 450, 2]]), (out: List<string>, data) => {
     const lapRaw = out.tail().head("").split(":")
-    if (lapRaw.length != 2) return false
+    if (lapRaw.length != 2) return new Tuple(false, "There seems to be something wrong with your lap logic or print format.")
 
     const total = getFirstNumber(out.head(""), 0)
     const lap = getFirstNumber(lapRaw[0], 0)
     const lapTime = getFirstNumber(lapRaw[1], 0)
 
-    return numInRange(total * 1000, data[0], data[1]) && numInRange(lapTime * 1000, data[2], data[3]) && lap == data[4]
+    if (!numInRange(total * 1000, data[0], data[1])) {
+        return new Tuple(false, "Your final time does not seem to be correct, expected a time between: " + data[0] + " and " + data[1] + " miliseconds. Found: " + total * 1000 + " miliseconds")
+    } else if (!numInRange(lapTime * 1000, data[2], data[3])) {
+        return new Tuple(false, "Your final lap time does not seem to be correct, expected a time between: " + data[2] + " and " + data[3] + " miliseconds. Found: " + lapTime * 1000 + " miliseconds")
+    } else if (lap != data[4] ) {
+        return new Tuple(false, "Your lap count seems to be wrong, found: " + lap + ", expected: " + data[4])
+    }
+
+    return new Tuple(true, "")
 })
 
 function numInRange(x: number, low: number, high: number): boolean {
@@ -61,7 +73,7 @@ function getFirstNumber(s: string, z:number): number {
     else return Number(match[1])
 }
 
-function validateGreenBottles(n: string, out: string): boolean {
+function validateGreenBottles(n: string, out: string): Tuple<boolean, string> {
     const input = parseInt(n)
     const build = (n: number, acc: string = ""): string => {
         const bottleName = (a:number) => a > 1 ? "bottles" : "bottle"
@@ -73,7 +85,32 @@ function validateGreenBottles(n: string, out: string): boolean {
         else return build(n - 1, acc2 + "there'll be " + (n - 1) + " green " + bottleName(n - 1) + " hanging on the wall")
     }
 
-    return build(input) == out.toLowerCase()
+    const builded = build(input)
+    const comp = strDiff(builded, out.toLowerCase())
+
+    if (comp == -1) return new Tuple(true, "")
+    else {
+        return new Tuple(false, "Unexpected output, found '" + found(out, comp) + "', expected: '" + found(builded, comp) + "'. This is case insensitive.")
+    }
+}
+
+function found(str: string, at: number): string {
+    if (at < 10) return str.substring(0, at) + str.charAt(at)
+    else return str.substring(at - 9, at) + str.charAt(at)
+}
+
+//-1 if eq, else first uneq char
+function strDiff(str1: string, str2: string): number {
+    function checkAt(n: number = 0): number {
+        if (n == str1.length && n == str2.length) return -1
+        else if (n == str1.length || n == str2.length) return n
+        else {
+            if (str1.charAt(n) != str2.charAt(n)) return n
+            else return checkAt(n + 1)
+        }
+    }
+
+    return checkAt()
 }
 
 //test input definitions
@@ -99,7 +136,7 @@ function grade<In, Out, A, B>(r: IOMap.IO<In, Out>, algebra: (a: IOMap<In, Out, 
     algebra(test).run(r).then(success, error).catch((reason) => console.log(reason))
 }
 
-export function gradeProject(project: string, filename:string, success: (r: Result) => void, error: (err: string) => void) {
+export function gradeProject(project: string, filename:string, success: (r: Result<any>) => void, error: (err: string) => void) {
     switch (project) {
         case "io":
             grade(Runners.PythonRunners.simpleIO(filename), inIsOut, rndStringTest, success, error)
@@ -113,6 +150,9 @@ export function gradeProject(project: string, filename:string, success: (r: Resu
         case "guess_the_number_inversed":
             //use expectedF to specify upper bound manually, use, some less some more strict some optimal, can put in input
             grade(Runners.PythonRunners.guessRunner(filename), optimalGuess, guessTest, success, error)
+            break
+        default:
+            error("There does not exist a test for project with ID: " + project + "!")
             break
     }
 }

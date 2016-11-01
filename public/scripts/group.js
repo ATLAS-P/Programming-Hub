@@ -1,7 +1,7 @@
 //needs major cleanups splitting up etc..
 let project;
 let assignment;
-let bestResult;
+let result;
 let bestScript;
 let hasStudents = false;
 let canSubmit = false;
@@ -39,7 +39,7 @@ var Group;
     function removeResults() {
         $('#completedTests').html("");
         showResults(false);
-        bestResult = null;
+        result = null;
     }
     function showResults(show) {
         showOrHide("#testResults", show);
@@ -56,14 +56,6 @@ var Group;
         else
             $(sel).hide();
     }
-    function getBestResult(r1, r2) {
-        if (r2 && r1.tests != r2.tests)
-            return null;
-        else if (!r2 || r1.passed > r2.passed)
-            return r1;
-        else
-            return r2;
-    }
     function addDataOf(typ, data, to) {
         const column = document.createElement(typ);
         if (data.toString() == "[object Object]" || data instanceof Object) {
@@ -75,23 +67,15 @@ var Group;
     }
     function addResult(name, response) {
         if (response.success) {
-            bestResult = getBestResult(response, bestResult);
-            bestScript = bestResult == response ? name : bestScript;
+            result = response;
+            bestScript = name;
             showResults(true);
             showErrorNoPython(false);
-            const el = document.createElement("tr");
-            addDataOf("td", name, el);
-            addDataOf("td", response.tests.toString(), el);
-            addDataOf("td", response.passed.toString(), el);
-            const sel = createFailedList(response);
-            const td = document.createElement("td");
-            td.appendChild(sel);
-            el.appendChild(td);
-            $('#completedTests').append(el);
+            $('#completedTests').html(response.html);
         }
         else {
             console.log(response.err);
-            showErrorNoPython(true, response.err); //add to results
+            showErrorNoPython(true, response.err);
         }
     }
     Group.addResult = addResult;
@@ -99,7 +83,7 @@ var Group;
         const sel = document.createElement("select");
         sel.classList.add("form-control");
         sel.id = "failedTests";
-        res.failed.forEach((val) => addDataOf("option", val, sel));
+        //res.failed.forEach((val: string) => addDataOf("option", val, sel))
         return sel;
     }
     function gradeProject(id, ass, name, submit) {
@@ -120,16 +104,11 @@ var Group;
         $("#upload").fadeOut(100, () => $("#assignments").fadeIn(100, () => removeResults()));
     }
     function submitResult() {
-        if (bestResult && canSubmit) {
+        if (result && canSubmit) {
             $("#upload").fadeOut(100, function () {
+                $("#studentInfo").fadeIn(100);
                 if (!hasStudents)
                     socket.emit("getUsersIn", (window.location.pathname + window.location.search).split("/")[2]);
-                $("#studentInfo").fadeIn(100);
-                $("#best_filename").text(bestScript);
-                $("#best_total").text(bestResult.tests);
-                $("#best_succeeded").text(bestResult.passed);
-                const sel = createFailedList(bestResult);
-                $("#best_failed").html(sel);
             });
             $("#testResults").fadeOut(100);
         }

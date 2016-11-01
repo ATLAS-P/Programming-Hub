@@ -2,7 +2,7 @@ let zone;
 const noPyhon = 'Please only use python files!';
 Dropzone.options.zonemini = {
     createImageThumbnails: false,
-    parallelUploads: 5,
+    parallelUploads: 1,
     maxFilesize: 0.05,
     accept: (file, accept) => canAcceptFile(file, accept),
     init: dropzoneInit,

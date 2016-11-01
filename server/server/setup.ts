@@ -50,7 +50,7 @@ export namespace Setup {
                 host: 'localhost',
                 port: 6379,
                 client: redisClient,
-                ttl: 260
+                ttl: 86400
             })
         }
 

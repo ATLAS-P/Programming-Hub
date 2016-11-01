@@ -1,115 +1,93 @@
 ﻿import {List} from "../functional/List"
 
-export abstract class Result {
-    abstract totalTests(): number
-    abstract totalFail(): number
-    abstract addTries(n: number): Result
-    abstract combine(r2: Result): Result
-    abstract toJSON(): Result.JSONResult
+export interface TestJSON<A> {
+    input: A,
+    success: boolean,
+    message?: string
+}
 
-    totalSuccess(): number {
-        return this.totalTests() - this.totalFail()
+export class Result<A> {
+    tests: List<Test<A>>
+
+    constructor(tests: List<Test<A>>) {
+        this.tests = tests
     }
 
-    best(r: Result): Result {
-        const isr = r instanceof Result
+    add(test: Test<A>): Result<A> {
+        return new Result(this.tests.add(test))
+    }
 
-        if (isr && this.totalTests() != r.totalTests()) return null
-        else if (isr && this.totalSuccess() < r.totalSuccess()) return r
-        else return this
+    addAll(test: Result<A>): Result<A> {
+        return new Result(this.tests.append(test.tests))
+    }
+
+    length(): number {
+        return this.tests.length()
+    }
+
+    passed(): number {
+        return this.tests.foldLeft(0, (pass, t) => pass + (t.success? 1:0))
+    }
+
+    failed(): number {
+        return this.length() - this.passed()
+    }
+
+    toJSONList(): List<TestJSON<A>> {
+        return this.tests.foldLeft(List.apply([]), (lt, t) => lt.add(t.toJSON()))
     }
 }
 
-export class Success extends Result {
-    tries: number
+export abstract class Test<A> {
+    success: boolean
+    input: A
 
-    constructor(tries: number) {
-        super()
-
-        this.tries = tries
+    constructor(input: A) {
+        this.input = input
     }
 
-    totalTests(): number {
-        return this.tries
-    }
-
-    totalFail(): number {
-        return 0
-    }
-
-    addTries(n: number): Result {
-        return new Success(this.tries + n)
-    }
-
-    combine(r2: Result): Result {
-        return r2.addTries(this.tries)
-    }
-
-    toJSON(): Result.JSONResult {
-        return Result.mkJSONResult(this.totalTests(), [])
-    }
+    abstract toJSON(): TestJSON<A>
 }
 
-export class Fail<A> extends Result {
-    tries: number
-    failed: List<A>
+class Success<A> extends Test<A> {
+    success = true
 
-    constructor(tries: number, failed: List<A>) {
-        super()
-
-        this.tries = tries
-        this.failed = failed
-    }
-
-    getFailed(): List<A> {
-        return this.failed
-    }
-
-    totalTests(): number {
-        return this.tries
-    }
-
-    totalFail(): number {
-        return this.failed.length()
-    }
-
-    addTries(n: number): Result {
-        return new Fail(this.tries + n, this.failed)
-    }
-
-    combine(r2: Result): Result {
-        if (r2 instanceof Success) {
-            return new Fail(this.tries + r2.tries, this.failed)
-        } else if (r2 instanceof Fail) {
-            return new Fail(this.tries + r2.tries, this.failed.append(r2.failed))
+    toJSON(): TestJSON<A> {
+        return {
+            input: this.input,
+            success: true
         }
     }
+}
 
-    toJSON(): Result.JSONResult {
-        return Result.mkJSONResult(this.totalTests(), this.getFailed().toArray())
+class Fail<A> extends Test<A> {
+    success = false
+    error: string
+
+    constructor(input: A, message:string) {
+        super(input)
+
+        this.error = message
+    }
+
+    toJSON(): TestJSON<A> {
+        return {
+            input: this.input,
+            success: false,
+            message: this.error
+        }
     }
 }
 
 export namespace Result {
-    export interface JSONResult {
-        type: string,
-        data: {
-            tests: number
-            fail: any[]
-        }
+    export function unit<A>(test?: Test<A>): Result<A> {
+        return new Result<A>(List.apply(test ? [test] : []))
     }
+}
 
-    export function mkJSONResult(tests: number, failed: any[]): JSONResult {
-        return {
-            type: "autograder",
-            data: {
-                tests: tests,
-                fail: failed
-            }
-        }
-    }
-
-    export function unit<A>(a: A, f: boolean): Result {
-        return f ? new Success(1) : new Fail(1, List.unit(a))
+export namespace Test {
+    export function unit<A>(success: boolean, input: A, message: string): Test<A> {
+        if (success) return new Success(input)
+        else return new Fail(input, message)
     }
 }
