@@ -97,4 +97,4 @@ var Setup;
     }
     Setup.addAsMiddleware = addAsMiddleware;
 })(Setup = exports.Setup || (exports.Setup = {}));
-//# sourceMappingURL=Setup.js.map
+//# sourceMappingURL=setup.js.map

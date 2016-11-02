@@ -36,6 +36,7 @@ import init = IOMap.applyWithInput
 //test map evaluation definitions
 const inIsOut = a => ioTest(a, (i, o) => new Tuple(i == o, "Unexpected output, received: '" + o + "', expected: '" + i + "'."))
 const optimalGuess = a => ioTest(a, (i, o) => {
+    if(o == -1) return new Tuple(false, "Your AI was not able to guess the result within 500 guesses.")
     const bound = Math.floor(Math.log2(i[0])) + 1
     return new Tuple(o <= bound, "Your result was not optimal. Your AI needed " + o + " tries. Optimal result was less than: " + bound + " tries.")
 })
@@ -148,7 +149,6 @@ export function gradeProject(project: string, filename:string, success: (r: Resu
             grade(Runners.PythonRunners.sleepIO(filename), stopwatch, stopWatchTest, success, error)
             break
         case "guess_the_number_inversed":
-            //use expectedF to specify upper bound manually, use, some less some more strict some optimal, can put in input
             grade(Runners.PythonRunners.guessRunner(filename), optimalGuess, guessTest, success, error)
             break
         default:
@@ -164,7 +164,7 @@ export namespace Runners {
     function pythonSpawner<In, A, Out>(z: A, onData: (out: A, data: string, stdin: stream.Writable) => A, putInput: (stdin: stream.Writable, inn: In, running: () => boolean) => void | A, finalizeOutput: (a: A) => Out = ((a:A) => a as any as Out)): Spawn<In, Out> {
         return (filename: string) => (s: In) => new Future<Out>((resolve, reject) => {
             let running = true
-            let py = process.spawn("python3", ['uploads/' + filename])
+            let py = process.spawn("python", ['uploads/' + filename])
             let output = z
 
             py.stdout.on('data', function (data) {
@@ -225,9 +225,9 @@ export namespace Runners {
 
         export const guessRunner = pythonSpawner<number[], Tuple<number, number>, number>(new Tuple(0, 0), (out, data, stdin) => {
             const guess = getFirstNumber(data, -1)
-            console.log(guess)
-            if (guess > out._1) stdin.write("h" + BREAK)
-            else if (guess < out._1) stdin.write("l" + BREAK)
+            if (out._2 > 500) return out.map_2(a => -1)
+            if (guess > out._1) stdin.write("l" + BREAK)
+            else if (guess < out._1) stdin.write("h" + BREAK)
             else {
                 stdin.write("c" + BREAK)
                 stdin.end()
