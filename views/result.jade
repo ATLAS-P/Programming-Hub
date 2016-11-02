@@ -1,29 +1,31 @@
-﻿.panel.panel-default#panelResults
+﻿.panel-group(id="accordion" role="tablist" aria-multiselectable="true")
     - for (var i = 0; i<tests.length; i++) {
         - var test = tests[i]
-        if test.success
-            .panel-heading.passed(role="tab" id=i + "_heading")
-                .left
-                    h3.panel-title
-                        a(role="button" data-toggle="collapse" data-parent="#panelResults" href="#" + i + "_coll" aria-expanded="false" aria-controls=i + "_coll")= "#" + (i + 1) + " test"
-                .right
-                    p.passed Passed
-            .panel-collapse.collapse(id=i + "_coll" role="tabpanel" aria-laballedby=i + "_heading")
-                .panel-body
-                    h4 Used input
-                    p.test_input(id=i + "_input")= test.input
-        else
-            .panel-heading.failed(role="tab" id=i)
-                .left
-                    h3.panel-title
-                        a(role="button" data-toggle="collapse" data-parent="#panelResults" href="#" + i + "_coll" aria-expanded="false" aria-controls=i + "_coll")= "#" + i + " test"
-                .right
-                    p.failed Failed
-            .panel-collapse.collapse(id=i + "_coll" role="tabpanel" aria-laballedby=i + "_heading")
-                .panel-body
-                    h4 Used input
-                    p.test_input(id=i + "_input")= test.input
-                    hr
-                    h4 Error message
-                    p.test_message= test.message
+        - var classList = "panel-collapse collapse" + (i == 0? " in":"")
+        .panel.panel-default
+            if test.success
+                .panel-heading.passed(role="tab" id=i + "_heading")
+                    .left
+                        h3.panel-title
+                            a(role="button" data-toggle="collapse" data-parent="#accordion" href="#" + i + "_coll" aria-expanded="false" aria-controls=i + "_coll")= "#" + (i + 1) + " test"
+                    .right
+                        p.passed Passed
+                div(class=classList  id=i + "_coll" role="tabpanel" aria-laballedby=i + "_heading")
+                    .panel-body
+                        h4 Used input
+                        p.test_input(id=i + "_input")= test.input
+            else
+                .panel-heading.failed(role="tab" id=i)
+                    .left
+                        h3.panel-title
+                            a(role="button" data-toggle="collapse" data-parent="#accordion" href="#" + i + "_coll" aria-expanded="false" aria-controls=i + "_coll")= "#" + i + " test"
+                    .right
+                        p.failed Failed
+                div(class=classList id=i + "_coll" role="tabpanel" aria-laballedby=i + "_heading")
+                    .panel-body
+                        h4 Used input
+                        p.test_input(id=i + "_input")= test.input
+                        hr
+                        h4 Error message
+                        p.test_message= test.message    
     - }
