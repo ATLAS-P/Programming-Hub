@@ -4,10 +4,10 @@ const Result_1 = require("./Result");
 const List_1 = require("../functional/List");
 const Tuple_1 = require("../functional/Tuple");
 const IOMap_1 = require("../functional/IOMap");
+const Either_1 = require("../functional/Either");
 const Config_1 = require('../server/Config');
 const process = require('child_process');
 const BREAK = Config_1.Config.grader.break;
-//in principe just handy functions for working with IOMap<in, Out, A> when A instanceof Result
 var AutoChecker;
 (function (AutoChecker) {
     function foldLeft(a, f) {
@@ -18,6 +18,15 @@ var AutoChecker;
         return foldLeft(a, (a, b) => f(a, b).map((result, message) => Result_1.Result.unit(Result_1.Test.unit(result, a, message))));
     }
     AutoChecker.evaluate = evaluate;
+    function evaluateEither(a, f) {
+        return foldLeft(a, (a, b) => {
+            if (b.isLeft)
+                return f(a, b.val).map((result, message) => Result_1.Result.unit(Result_1.Test.unit(result, a, message)));
+            else
+                return Result_1.Result.unit(Result_1.Test.unit(false, a, b.val));
+        });
+    }
+    AutoChecker.evaluateEither = evaluateEither;
     function foldZip(a, data, f) {
         return IOMap_1.IOMap.ListHelper.foldZip(a, data, (r, ttiaa) => r.addAll(f(ttiaa._1, ttiaa._2)), Result_1.Result.unit());
     }
@@ -26,9 +35,18 @@ var AutoChecker;
         return foldZip(a, data, (a, b) => f(a._2, b).map((res, mess) => Result_1.Result.unit(Result_1.Test.unit(res, a._1, mess))));
     }
     AutoChecker.evaluateWith = evaluateWith;
+    function evaluateEitherWith(a, data, f) {
+        return foldZip(a, data, (a, b) => {
+            if (a._2.isLeft())
+                return f(a._2.val, b).map((res, mess) => Result_1.Result.unit(Result_1.Test.unit(res, a._1, mess)));
+            else
+                return Result_1.Result.unit(Result_1.Test.unit(false, a._1, a._2.val));
+        });
+    }
+    AutoChecker.evaluateEitherWith = evaluateEitherWith;
 })(AutoChecker || (AutoChecker = {}));
-var ioTest = AutoChecker.evaluate;
-var dataTest = AutoChecker.evaluateWith;
+var ioTest = AutoChecker.evaluateEither;
+var dataTest = AutoChecker.evaluateEitherWith;
 var init = IOMap_1.IOMap.applyWithInput;
 //test map evaluation definitions
 const inIsOut = a => ioTest(a, (i, o) => new Tuple_1.Tuple(i == o, "Unexpected output, received: '" + o + "', expected: '" + i + "'."));
@@ -162,15 +180,16 @@ var Runners;
                 output = onData(output, buff.toString("utf8"), py.stdin);
             });
             py.stderr.on('data', function (err) {
+                running = false;
                 var buff = new Buffer(err);
-                reject(buff.toString("utf8"));
+                resolve(new Either_1.Right(buff.toString("utf8")));
             });
             py.on('close', function () {
                 running = false;
                 if (!output)
-                    reject("No output received!");
+                    resolve(new Either_1.Right("No output received!"));
                 else
-                    resolve(finalizeOutput(output));
+                    resolve(new Either_1.Left(finalizeOutput(output)));
             });
             function isRunning() {
                 return running;
@@ -180,8 +199,9 @@ var Runners;
                 output = inDone;
             setTimeout(function () {
                 if (running) {
+                    running = false;
                     py.kill();
-                    reject("Max runtime of 5s exeeded!");
+                    resolve(new Either_1.Right("Max runtime of 5s exeeded!"));
                 }
             }, 5000);
         });
@@ -223,7 +243,6 @@ var Runners;
             }
             return out.map_2(a => a + 1);
         }, (stdin, inn, running) => {
-            console.log("start!");
             stdin.write(inn[0] + BREAK);
             return new Tuple_1.Tuple(inn[1], 0);
         }, a => a._2);
@@ -236,7 +255,7 @@ var Runners;
                 else {
                     const tup = s.head(new Tuple_1.Tuple("", 0));
                     setTimeout(() => {
-                        if (running()) {
+                        if (running() && stdin.writable) {
                             stdin.write(tup._1 + BREAK);
                             slowAll(s.tail());
                         }

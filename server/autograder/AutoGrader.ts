@@ -3,6 +3,7 @@ import {Result, Test} from "./Result"
 import {List} from "../functional/List"
 import {Tuple} from "../functional/Tuple"
 import {IOMap} from "../functional/IOMap"
+import {Either, Left, Right} from "../functional/Either"
 import {Config} from '../server/Config'
 
 import * as stream from "stream";
@@ -10,27 +11,42 @@ import * as process from 'child_process'
 
 const BREAK = Config.grader.break
 
-//in principe just handy functions for working with IOMap<in, Out, A> when A instanceof Result
 namespace AutoChecker {
-    export function foldLeft<In, Out, A>(a: IOMap<In, Out, List<Tuple<In, A>>>, f: (a: In, b: A) => Result<In>): IOMap<In, Out, Result<In>> {
+    type ResOut<In, Out> = IOMap<In, Out, Result<In>>
+
+    export function foldLeft<In, Out, A>(a: IOMap<In, Out, List<Tuple<In, A>>>, f: (a: In, b: A) => Result<In>): ResOut<In, Out> {
         return IOMap.ListHelper.foldLeft(a, (r, ltia) => r.addAll(f(ltia._1, ltia._2)), Result.unit())
     }
 
-    export function evaluate<In, Out, A>(a: IOMap<In, Out, List<Tuple<In, A>>>, f: (a: In, b: A) => Tuple<boolean, string>): IOMap<In, Out, Result<In>> {
+    export function evaluate<In, Out, A>(a: IOMap<In, Out, List<Tuple<In, A>>>, f: (a: In, b: A) => Tuple<boolean, string>): ResOut<In, Out> {
         return foldLeft(a, (a, b) => f(a, b).map((result, message) => Result.unit(Test.unit(result, a, message))))
     }
 
-    export function foldZip<In, Out, A>(a: IOMap<In, Out, List<Tuple<In, A>>>, data: List<A>, f: (a: Tuple<In, A>, b: A) => Result<In>): IOMap<In, Out, Result<In>> {
+    export function evaluateEither<In, Out, A>(a: IOMap<In, Out, List<Tuple<In, Either<A, string>>>>, f: (a: In, b: A) => Tuple<boolean, string>): ResOut<In, Out> {
+        return foldLeft(a, (a, b) => {
+            if (b.isLeft) return f(a, b.val as A).map((result, message) => Result.unit(Test.unit(result, a, message)))
+            else return Result.unit(Test.unit(false, a, b.val as string))
+        })
+    }
+
+    export function foldZip<In, Out, A, B>(a: IOMap<In, Out, List<Tuple<In, A>>>, data: List<B>, f: (a: Tuple<In, A>, b: B) => Result<In>): ResOut<In, Out> {
         return IOMap.ListHelper.foldZip(a, data, (r, ttiaa) => r.addAll(f(ttiaa._1, ttiaa._2)), Result.unit())
     }
 
-    export function evaluateWith<In, Out, A>(a: IOMap<In, Out, List<Tuple<In, A>>>, data: List<A>, f: (a: A, b: A) => Tuple<boolean, string>): IOMap<In, Out, Result<In>> {
+    export function evaluateWith<In, Out, A, B>(a: IOMap<In, Out, List<Tuple<In, A>>>, data: List<B>, f: (a: A, b: B) => Tuple<boolean, string>): ResOut<In, Out> {
         return foldZip(a, data, (a, b) => f(a._2, b).map((res, mess) => Result.unit(Test.unit(res, a._1, mess))))
+    }
+
+    export function evaluateEitherWith<In, Out, A>(a: IOMap<In, Out, List<Tuple<In, Either<A, string>>>>, data: List<A>, f: (a: A, b: A) => Tuple<boolean, string>): ResOut<In, Out> {
+        return foldZip<In, Out, Either<A, string>, A>(a, data, (a, b) => {
+            if (a._2.isLeft()) return f(a._2.val as A, b).map((res, mess) => Result.unit(Test.unit(res, a._1, mess)))
+            else return Result.unit(Test.unit(false, a._1, a._2.val as string))
+        })
     }
 }
 
-import ioTest = AutoChecker.evaluate
-import dataTest = AutoChecker.evaluateWith
+import ioTest = AutoChecker.evaluateEither
+import dataTest = AutoChecker.evaluateEitherWith
 import init = IOMap.applyWithInput
 
 //test map evaluation definitions
@@ -159,10 +175,10 @@ export function gradeProject(project: string, filename:string, success: (r: Resu
 
 //reduce overlap in code, easy
 export namespace Runners {
-    type Spawn<In, Out> = (filename: string) => IOMap.IO<In, Out> 
+    type Spawn<In, Out> = (filename: string) => IOMap.IO<In, Either<Out, string>> 
 
     function pythonSpawner<In, A, Out>(z: A, onData: (out: A, data: string, stdin: stream.Writable) => A, putInput: (stdin: stream.Writable, inn: In, running: () => boolean) => void | A, finalizeOutput: (a: A) => Out = ((a:A) => a as any as Out)): Spawn<In, Out> {
-        return (filename: string) => (s: In) => new Future<Out>((resolve, reject) => {
+        return (filename: string) => (s: In) => new Future<Either<Out, string>>((resolve, reject) => {
             let running = true
             let py = process.spawn("python3", ['uploads/' + filename])
             let output = z
@@ -173,14 +189,15 @@ export namespace Runners {
             });
 
             py.stderr.on('data', function (err) {
+                running = false
                 var buff = new Buffer(err as Buffer)
-                reject(buff.toString("utf8"))
+                resolve(new Right(buff.toString("utf8")))
             });
 
             py.on('close', function () {
                 running = false
-                if (!output) reject("No output received!")
-                else resolve(finalizeOutput(output))
+                if (!output) resolve(new Right("No output received!"))
+                else resolve(new Left(finalizeOutput(output)))
             });
 
             function isRunning(): boolean {
@@ -192,8 +209,9 @@ export namespace Runners {
 
             setTimeout(function () {
                 if (running) {
+                    running = false
                     py.kill()
-                    reject("Max runtime of 5s exeeded!")
+                    resolve(new Right("Max runtime of 5s exeeded!"))
                 }
             }, 5000)
         })
@@ -238,20 +256,19 @@ export namespace Runners {
             }
             return out.map_2(a => a + 1)
         }, (stdin, inn, running) => {
-            console.log("start!")
             stdin.write(inn[0] + BREAK) 
             return new Tuple(inn[1], 0)
         }, a => a._2)
 
         export const sleepIO = pythonSpawner(List.apply([]), (out, data, stdin) => {
             return out.add(data.replace(/\r?\n|\r/, ""))
-        }, (stdin, inn: List<Tuple<string, number>>, running) => {
+        }, (stdin: stream.Writable, inn: List<Tuple<string, number>>, running) => {
             function slowAll(s: List<Tuple<string, number>>) {
                 if (s.length() == 0) stdin.end()
                 else {
                     const tup = s.head(new Tuple("", 0))
                     setTimeout(() => {
-                        if (running()) {
+                        if (running() && stdin.writable) {
                             stdin.write(tup._1 + BREAK)
                             slowAll(s.tail())
                         }
