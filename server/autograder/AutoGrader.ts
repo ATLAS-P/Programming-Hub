@@ -133,7 +133,7 @@ function strDiff(str1: string, str2: string): number {
 //test input definitions
 const randomStrings = List.apply(["this", "is", "a", "simple", "input", "output", "echo", "test", "for", "testing", "the", "autograder"])
 const lowInts = List.apply([1, 2, 5]).map(i => i.toString())
-const guessData = List.apply([[100, 45], [1, 1], [1, 0], [100, 100], [101, 100], [100, 1], [100, 0], [101, 1], [599, 12], [234453, 3459], [123, 22], [100, 50], [12, 6], [13, 7], [9223372036854775807, 284693856289352]])
+const guessData = List.apply([[100, 45], [1, 1], [100, 100], [101, 100], [100, 1], [100, 0], [101, 1], [599, 12], [234453, 3459], [123, 22], [100, 50], [12, 6], [13, 7], [9223372036854775807, 284693856289352]])
 
 //why y no monoid
 const stopwatchData: List<List<Tuple<string, number>>> =
