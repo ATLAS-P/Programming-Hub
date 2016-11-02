@@ -20,7 +20,7 @@ var AutoChecker;
     AutoChecker.evaluate = evaluate;
     function evaluateEither(a, f) {
         return foldLeft(a, (a, b) => {
-            if (b.isLeft)
+            if (b.isLeft())
                 return f(a, b.val).map((result, message) => Result_1.Result.unit(Result_1.Test.unit(result, a, message)));
             else
                 return Result_1.Result.unit(Result_1.Test.unit(false, a, b.val));

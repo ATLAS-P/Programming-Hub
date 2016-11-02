@@ -24,7 +24,7 @@ namespace AutoChecker {
 
     export function evaluateEither<In, Out, A>(a: IOMap<In, Out, List<Tuple<In, Either<A, string>>>>, f: (a: In, b: A) => Tuple<boolean, string>): ResOut<In, Out> {
         return foldLeft(a, (a, b) => {
-            if (b.isLeft) return f(a, b.val as A).map((result, message) => Result.unit(Test.unit(result, a, message)))
+            if (b.isLeft()) return f(a, b.val as A).map((result, message) => Result.unit(Test.unit(result, a, message)))
             else return Result.unit(Test.unit(false, a, b.val as string))
         })
     }
