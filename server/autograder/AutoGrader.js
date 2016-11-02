@@ -51,8 +51,10 @@ var init = IOMap_1.IOMap.applyWithInput;
 //test map evaluation definitions
 const inIsOut = a => ioTest(a, (i, o) => new Tuple_1.Tuple(i == o, "Unexpected output, received: '" + o + "', expected: '" + i + "'."));
 const optimalGuess = a => ioTest(a, (i, o) => {
-    const bound = Math.floor(Math.log2(i[0])) + 1;
-    return new Tuple_1.Tuple(o <= bound, "Your result was not optimal. Your AI needed " + o + " tries. Optimal result was less than: " + bound + " tries.");
+    if (o == -1)
+        return new Tuple_1.Tuple(false, "Your AI was not able to guess the result within 500 guesses.");
+    const bound = Math.ceil(Math.log2(i[0])) + 1;
+    return new Tuple_1.Tuple(o <= bound, "Your result was not optimal. Your AI needed " + o + " tries. Optimal result should be less or equal to: " + bound + " tries.");
 });
 const expected = data => a => dataTest(a, data, (a, b) => new Tuple_1.Tuple(a == b, "Unexpected output, received: '" + a + "', expected: '" + b + "'."));
 const expectedF = (data, f) => a => dataTest(a, data, (a, b) => f(a, b));
@@ -157,7 +159,6 @@ function gradeProject(project, filename, success, error) {
             grade(Runners.PythonRunners.sleepIO(filename), stopwatch, stopWatchTest, success, error);
             break;
         case "guess_the_number_inversed":
-            //use expectedF to specify upper bound manually, use, some less some more strict some optimal, can put in input
             grade(Runners.PythonRunners.guessRunner(filename), optimalGuess, guessTest, success, error);
             break;
         default:
@@ -227,10 +228,15 @@ var Runners;
         }, simpleIn);
         PythonRunners.guessRunner = pythonSpawner(new Tuple_1.Tuple(0, 0), (out, data, stdin) => {
             const guess = getFirstNumber(data, -1);
+            if (out._2 > 500) {
+                stdin.write("c" + BREAK);
+                stdin.end();
+                return out.map_2(a => -1);
+            }
             if (guess > out._1)
-                stdin.write("h" + BREAK);
-            else if (guess < out._1)
                 stdin.write("l" + BREAK);
+            else if (guess < out._1)
+                stdin.write("h" + BREAK);
             else {
                 stdin.write("c" + BREAK);
                 stdin.end();
