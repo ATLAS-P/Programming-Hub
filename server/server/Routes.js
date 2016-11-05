@@ -8,7 +8,7 @@ const Table_1 = require('../database/Table');
 const Future_1 = require('../functional/Future');
 const List_1 = require('../functional/List');
 const IOMap_1 = require('../functional/IOMap');
-//split up in more files
+//split up all namespaces in own files
 var Routes;
 (function (Routes) {
     const INDEX = "/";
