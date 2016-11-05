@@ -11,8 +11,48 @@ import * as process from 'child_process'
 
 const BREAK = Config.grader.break
 
+namespace Input {
+    export function simpleIn<In>(stdin: stream.Writable, inn: In, running: () => boolean) {
+        stdin.write(inn)
+        stdin.end()
+    }
+
+    export function listIn<In>(stdin: stream.Writable, inn: List<In>, running: () => boolean) {
+        List.forall(inn, s => stdin.write(s))
+        stdin.end()
+    }
+
+    export function withDelay<In>(stdin: stream.Writable, inn: List<Tuple<In, number>>, running: () => boolean) {
+        if (inn.length() == 0) stdin.end()
+        else {
+            const tup = inn.head(null)
+            setTimeout(() => {
+                if (running() && stdin.writable && tup) {
+                    stdin.write(tup._1 + BREAK)
+                    withDelay(stdin, inn.tail(), running)
+                }
+            }, tup ? tup._2 : 0)
+        }
+    }
+}
+
+namespace Output {
+    export function simpleOut(out: string, data: string, stdin: stream.Writable): string {
+        return out + data.replace(/\r?\n|\r/g, "")
+    }
+
+    export function listOut(out: List<string>, data: string, stdin: stream.Writable): List<string> {
+        return out.add(data.replace(/\r?\n|\r/g, ""))
+    }
+
+    //NOTE output might need to be reversed, so List.apply ..... append out, also create a multiIOasList    
+    export function breakToList(out: List<string>, data: string, stdin: stream.Writable): List<string> {
+        return out.append(List.apply(data.split(/\r?\n|\r/)))
+    }
+}
+
 export namespace Runners {
-    type Spawn<In, Out> = (filename: string) => IOMap.IO<In, Either<Out, string>>
+    export type Spawn<In, Out> = (filename: string) => IOMap.IO<In, Either<Out, string>>
 
     function pythonSpawner<In, A, Out>(z: A, onData: (out: A, data: string, stdin: stream.Writable) => A, putInput: (stdin: stream.Writable, inn: In, running: () => boolean) => void | A, finalizeOutput: (a: A) => Out = ((a: A) => a as any as Out)): Spawn<In, Out> {
         return (filename: string) => (s: In) => new Future<Either<Out, string>>((resolve, reject) => {
@@ -55,30 +95,13 @@ export namespace Runners {
         })
     }
 
-    function simpleIn<In>(stdin: stream.Writable, inn: In, running: () => boolean) {
-        stdin.write(inn)
-        stdin.end()
-    }
-
-    function listIn<In>(stdin: stream.Writable, inn: List<In>, running: () => boolean) {
-        List.forall(inn, s => stdin.write(s))
-        stdin.end()
-    }
-
     export namespace PythonRunners {
-        export const multiIO = pythonSpawner(List.apply([]), (out, data, stdin) => {
-            return out.add(data.replace(/\r?\n|\r/g, ""))
-        }, listIn)
+        export const multiIO = pythonSpawner(List.apply([]), Output.listOut, Input.listIn)
+        export const simpleIO = pythonSpawner("", Output.simpleOut, Input.simpleIn)
+        export const simpleIOasList = pythonSpawner(List.apply([]), Output.breakToList, Input.simpleIn)
+        export const sleepIO = pythonSpawner(List.apply([]), Output.listOut, Input.withDelay)
 
-        export const simpleIO = pythonSpawner("", (out, data, stdin) => {
-            return out + data.replace(/\r?\n|\r/g, "")
-        }, simpleIn)
-
-        //NOTE output might need to be reversed, so List.apply ..... append out, also create a multiIOasList
-        export const simpleIOasList = pythonSpawner(List.apply([]), (out, data, stdin) => {
-            return out.append(List.apply(data.split(/\r?\n|\r/)))
-        }, simpleIn)
-
+        //put in mp
         export const guessRunner = pythonSpawner<number[], Tuple<number, number>, number>(new Tuple(0, 0), (out, data, stdin) => {
             const guess = getFirstNumber(data, -1)
             if (out._2 > 500) {
@@ -97,28 +120,9 @@ export namespace Runners {
             stdin.write(inn[0] + BREAK)
             return new Tuple(inn[1], 0)
         }, a => a._2)
-
-        export const sleepIO = pythonSpawner(List.apply([]), (out, data, stdin) => {
-            return out.add(data.replace(/\r?\n|\r/, ""))
-        }, (stdin: stream.Writable, inn: List<Tuple<string, number>>, running) => {
-            function slowAll(s: List<Tuple<string, number>>) {
-                if (s.length() == 0) stdin.end()
-                else {
-                    const tup = s.head(new Tuple("", 0))
-                    setTimeout(() => {
-                        if (running() && stdin.writable) {
-                            stdin.write(tup._1 + BREAK)
-                            slowAll(s.tail())
-                        }
-                    }, tup._2)
-                }
-            }
-            slowAll(inn)
-        })
-
     }
 
-    //also in autograder, so put in some math module, or str module etc..
+    //also in miniprojects, so put in some math module, or str module etc..
     function getFirstNumber(s: string, z: number): number {
         const reg = /^\D*(\d+(?:\.\d+)?)/g
         const match = reg.exec(s)

@@ -3,7 +3,8 @@ import * as http from 'http'
 import * as socket from 'socket.io'
 
 import {Setup} from "./server/server/Setup"
-import {Routes, Sockets} from "./server/server/Routes"
+import {Routes} from "./server/server/routes/Routes"
+import {Sockets} from "./server/server/routes/Sockets"
 import {Config} from "./server/server/Config"
 
 const app = express()

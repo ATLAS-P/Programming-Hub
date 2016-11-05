@@ -14,6 +14,9 @@ class List {
     add(a) {
         return new Cons(a, this);
     }
+    addAll(...a) {
+        return List.apply(a).append(this);
+    }
     foldLeft(z, f) {
         const go = (rest, acc) => {
             return rest.match(e => acc, (x, xs) => go(xs, f(acc, x)));

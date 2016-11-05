@@ -6,6 +6,49 @@ const Either_1 = require("../functional/Either");
 const Config_1 = require('../server/Config');
 const process = require('child_process');
 const BREAK = Config_1.Config.grader.break;
+var Input;
+(function (Input) {
+    function simpleIn(stdin, inn, running) {
+        stdin.write(inn);
+        stdin.end();
+    }
+    Input.simpleIn = simpleIn;
+    function listIn(stdin, inn, running) {
+        List_1.List.forall(inn, s => stdin.write(s));
+        stdin.end();
+    }
+    Input.listIn = listIn;
+    function withDelay(stdin, inn, running) {
+        if (inn.length() == 0)
+            stdin.end();
+        else {
+            const tup = inn.head(null);
+            setTimeout(() => {
+                if (running() && stdin.writable && tup) {
+                    stdin.write(tup._1 + BREAK);
+                    withDelay(stdin, inn.tail(), running);
+                }
+            }, tup ? tup._2 : 0);
+        }
+    }
+    Input.withDelay = withDelay;
+})(Input || (Input = {}));
+var Output;
+(function (Output) {
+    function simpleOut(out, data, stdin) {
+        return out + data.replace(/\r?\n|\r/g, "");
+    }
+    Output.simpleOut = simpleOut;
+    function listOut(out, data, stdin) {
+        return out.add(data.replace(/\r?\n|\r/g, ""));
+    }
+    Output.listOut = listOut;
+    //NOTE output might need to be reversed, so List.apply ..... append out, also create a multiIOasList    
+    function breakToList(out, data, stdin) {
+        return out.append(List_1.List.apply(data.split(/\r?\n|\r/)));
+    }
+    Output.breakToList = breakToList;
+})(Output || (Output = {}));
 var Runners;
 (function (Runners) {
     function pythonSpawner(z, onData, putInput, finalizeOutput = ((a) => a)) {
@@ -45,26 +88,13 @@ var Runners;
             }, 5000);
         });
     }
-    function simpleIn(stdin, inn, running) {
-        stdin.write(inn);
-        stdin.end();
-    }
-    function listIn(stdin, inn, running) {
-        List_1.List.forall(inn, s => stdin.write(s));
-        stdin.end();
-    }
     var PythonRunners;
     (function (PythonRunners) {
-        PythonRunners.multiIO = pythonSpawner(List_1.List.apply([]), (out, data, stdin) => {
-            return out.add(data.replace(/\r?\n|\r/g, ""));
-        }, listIn);
-        PythonRunners.simpleIO = pythonSpawner("", (out, data, stdin) => {
-            return out + data.replace(/\r?\n|\r/g, "");
-        }, simpleIn);
-        //NOTE output might need to be reversed, so List.apply ..... append out, also create a multiIOasList
-        PythonRunners.simpleIOasList = pythonSpawner(List_1.List.apply([]), (out, data, stdin) => {
-            return out.append(List_1.List.apply(data.split(/\r?\n|\r/)));
-        }, simpleIn);
+        PythonRunners.multiIO = pythonSpawner(List_1.List.apply([]), Output.listOut, Input.listIn);
+        PythonRunners.simpleIO = pythonSpawner("", Output.simpleOut, Input.simpleIn);
+        PythonRunners.simpleIOasList = pythonSpawner(List_1.List.apply([]), Output.breakToList, Input.simpleIn);
+        PythonRunners.sleepIO = pythonSpawner(List_1.List.apply([]), Output.listOut, Input.withDelay);
+        //put in mp
         PythonRunners.guessRunner = pythonSpawner(new Tuple_1.Tuple(0, 0), (out, data, stdin) => {
             const guess = getFirstNumber(data, -1);
             if (out._2 > 500) {
@@ -85,26 +115,8 @@ var Runners;
             stdin.write(inn[0] + BREAK);
             return new Tuple_1.Tuple(inn[1], 0);
         }, a => a._2);
-        PythonRunners.sleepIO = pythonSpawner(List_1.List.apply([]), (out, data, stdin) => {
-            return out.add(data.replace(/\r?\n|\r/, ""));
-        }, (stdin, inn, running) => {
-            function slowAll(s) {
-                if (s.length() == 0)
-                    stdin.end();
-                else {
-                    const tup = s.head(new Tuple_1.Tuple("", 0));
-                    setTimeout(() => {
-                        if (running() && stdin.writable) {
-                            stdin.write(tup._1 + BREAK);
-                            slowAll(s.tail());
-                        }
-                    }, tup._2);
-                }
-            }
-            slowAll(inn);
-        });
     })(PythonRunners = Runners.PythonRunners || (Runners.PythonRunners = {}));
-    //also in autograder, so put in some math module, or str module etc..
+    //also in miniprojects, so put in some math module, or str module etc..
     function getFirstNumber(s, z) {
         const reg = /^\D*(\d+(?:\.\d+)?)/g;
         const match = reg.exec(s);

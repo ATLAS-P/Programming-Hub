@@ -21,6 +21,10 @@ export abstract class List<A> {
         return new Cons(a, this)
     }
 
+    addAll(...a: A[]): List<A> {
+        return List.apply(a).append(this)
+    }
+
     foldLeft<B>(z: B, f: (acc: B, next: A) => B): B {
         const go = (rest: List<A>, acc: B): B => {
             return rest.match(e => acc, (x, xs) => go(xs, f(acc, x)))

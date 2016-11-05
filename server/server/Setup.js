@@ -10,7 +10,6 @@ const session = require('express-session');
 const passport = require('passport');
 const redis = require("redis");
 const redisConnect = require("connect-redis");
-//no typings available for these :(
 const authGoogle = require('passport-google-oauth2');
 const busboy = require('connect-busboy');
 const useRedis = Config_1.Config.session.redis;

@@ -13,7 +13,6 @@ import * as passport from 'passport'
 import * as redis from "redis"
 import * as redisConnect from "connect-redis"
 
-//no typings available for these :(
 const authGoogle = require('passport-google-oauth2')
 const busboy = require('connect-busboy')
 

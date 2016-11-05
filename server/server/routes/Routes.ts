@@ -2,18 +2,20 @@
 import * as socket from 'socket.io'
 import * as passport from 'passport'
 import * as fs from 'fs'
-import * as grader from '../autograder/AutoGrader'
 
-import {Groups} from '../database/tables/Groups'
-import {Users} from '../database/tables/Users'
-import {Files} from '../database/tables/Files'
-import {Tables, Table} from '../database/Table'
-import {Future} from '../functional/Future'
-import {List} from '../functional/List'
-import {Result, TestJSON} from '../autograder/Result'
-import {IOMap} from '../functional/IOMap'
+import {Miniprojects} from '../../autograder/Miniprojects'
+import {Groups} from '../../database/tables/Groups'
+import {Users} from '../../database/tables/Users'
+import {Files} from '../../database/tables/Files'
+import {Tables, Table} from '../../database/Table'
+import {Future} from '../../functional/Future'
+import {IOMap} from '../../functional/IOMap'
+import {List} from '../../functional/List'
+import {Result, TestJSON} from '../../autograder/Result'
+import {Render} from './Render'
+import {Sockets} from './Sockets'
 
-//split up all namespaces in own files
+//cleanups needed below
 export namespace Routes {
     export type Req = express.Request
     export type Res = express.Response
@@ -160,7 +162,7 @@ export namespace Routes {
                 fstream.on('close', function () {
 
                     project.then((project: string) => {
-                        grader.gradeProject(project, newName, function (r) {
+                        Miniprojects.gradeProject(project, newName, function (r) {
                             if (!sess.result || typeof sess.result == "undefined" || sess.result == null) sess.result = {}
 
                             sess.result[project] = r
@@ -182,159 +184,5 @@ export namespace Routes {
 
             req.pipe(busboy);
         }
-    }
-}
-
-export namespace Sockets {
-    type Handler = (socket:SocketIO.Socket) => void
-    type SimpleCall = () => void
-    type GroupCall = (group: string) => void
-    type NonFinalCall = (accept: boolean, assignment:string) => void
-
-    //on or get is for receiving, others can be used to emit
-    const ON_CONNECTION = "connection"
-    const GET_GROUPS = "getGroups"
-    const GET_GROUP_USERS = "getUsersIn"
-    const GET_NON_FINAL = "getNonFinalHandIns"
-    const ON_HANDLE_NON_FINAL = "handleNonFinal"
-
-    const SEND_GROUPS = "setGroups"
-    const SEND_GROUP_USERS = "setUsersIn"
-    const SEND_NON_FINAL = "setNonFinalHandIns"
-
-    export function bindHandlers(app: express.Express, io: SocketIO.Server) {
-        console.log("setting op io")
-
-        io.on(ON_CONNECTION, connection(app))
-    }
-
-    export function connection(app: express.Express): Handler {
-        return socket => {
-            console.log("socket connected")
-
-            socket.on(GET_GROUPS, getGroupsOverview(app, socket))
-            socket.on(GET_GROUP_USERS, getOtherUsersIn(app, socket))
-            socket.on(GET_NON_FINAL, getNonFinalFiles(app, socket))
-            socket.on(ON_HANDLE_NON_FINAL, handleNonFinal(app, socket))
-        }
-    }
-
-    //three below share too much, generalize
-    export function getGroupsOverview(app: express.Express, socket: SocketIO.Socket): SimpleCall {
-        const sendGroups = (success: boolean, data: string | Error) => emitHtml(socket, SEND_GROUPS, success, data)
-
-        return () => {
-            if (socket.request.session.passport) {
-                const user = socket.request.session.passport.user.id
-
-                Groups.getOverviewForUser(user, lg => {
-                    Render.groupsOverview(app, "groups", lg, data => sendGroups(true, data), err => sendGroups(false, err))
-                }, e => sendGroups(false, e))
-            }
-        }
-    }
-
-    export function getOtherUsersIn(app: express.Express, socket: SocketIO.Socket): GroupCall {
-        const sendUsers = (success: boolean, data: string | Error) => emitHtml(socket, SEND_GROUP_USERS, success, data)
-
-        return g => {
-            if (socket.request.session.passport) {
-                const user = socket.request.session.passport.user.id
-                Groups.instance.getStudents(g, lu => {
-                    Render.users(app, "userList", lu.filter(v => v._id != user), html => sendUsers(true, html), err => sendUsers(false, err))
-                }, e => sendUsers(false, e))
-            }
-        }
-    }
-
-    export function getNonFinalFiles(app: express.Express, socket: SocketIO.Socket): SimpleCall {
-        const send = (success: boolean, data: string | Error) => emitHtml(socket, SEND_NON_FINAL, success, data)
-
-        return () => {
-            if (socket.request.session.passport) {
-                const user = socket.request.session.passport.user.id
-                Files.instance.getNonFinalFor(user, fl => {
-                    Render.files(app, "nonFinal", fl, html => send(true, html), err => send(false, err))
-                }, e => send(false, e))
-            }
-        }
-    }
-
-    export function handleNonFinal(app: express.Express, socket: SocketIO.Socket): NonFinalCall {
-        return (accept, ass) => {
-            if (socket.request.session.passport) {
-                const user = socket.request.session.passport.user.id
-
-                if (accept) Files.instance.mkFinal(user, ass)
-                else Files.instance.removeNonFinal(user, ass)
-            }
-        }
-    }
-
-    export function emitHtml(socket: SocketIO.Socket, to: string, success: boolean, data: string | Error) {
-        if (success) socket.emit(to, { success: true, html: data as string })
-        else socket.emit(to, { success: false, err: (data instanceof Error ? data.message : data )})
-    }
-}
-
-export namespace Render {
-    export type Suc = (html: string) => void
-    export type Err = (err: Error) => void
-
-    export function withUser(req: Routes.Req, res: Routes.Res, loc: string) {
-        res.render(loc, {
-            user: req.user
-        })
-    }
-
-    export function groupDetails(req: Routes.Req, res: Routes.Res, loc: string, data: Groups.GroupDetails) {
-        res.render(loc, {
-            user: req.user,
-            a_open: data.openAssignments,
-            a_close: data.closedAssignments,
-            a_done: data.doneAssignments,
-            group: {
-                id: data.id,
-                name: data.name
-            }
-        })
-    }
-
-    export function file(req: Routes.Req, res: Routes.Res, loc: string, data: Tables.File) {
-        res.render(loc, {
-            user: req.user,
-            file: data
-        })
-    }
-
-    export function groupsOverview(app: express.Express, loc: string, data: Groups.GroupOverview[], success: Suc, fail: Err) {
-        render(app, loc, {
-            groups: data
-        }, success, fail)
-    }
-
-    export function users(app: express.Express, loc: string, data: Tables.User[], success: Suc, fail: Err) {
-        render(app, loc, {
-            users: data
-        }, success, fail)
-    }
-
-    export function files(app: express.Express, loc: string, data: Tables.File[], success: Suc, fail: Err) {
-        render(app, loc, {
-            files: data
-        }, success, fail)
-    }
-
-    export function render(app: express.Express, loc: string, data: {}, success: Suc, fail: Err) {
-        app.render(loc, data, (err, suc) => {
-            if (err) fail(err)
-            else success(suc)
-        })
-    }
-
-    export function results(app: express.Express, loc: string, data: TestJSON<any>[], success: Suc, fail: Err) {
-        render(app, loc, {
-            tests: data
-        }, success, fail)
     }
 }

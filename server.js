@@ -3,7 +3,8 @@ const express = require('express');
 const http = require('http');
 const socket = require('socket.io');
 const Setup_1 = require("./server/server/Setup");
-const Routes_1 = require("./server/server/Routes");
+const Routes_1 = require("./server/server/routes/Routes");
+const Sockets_1 = require("./server/server/routes/Sockets");
 const Config_1 = require("./server/server/Config");
 const app = express();
 const server = http.createServer(app);
@@ -17,6 +18,6 @@ Setup_1.Setup.setupSession(app, io);
 Setup_1.Setup.addAuthMiddleware(app);
 Setup_1.Setup.addAsMiddleware(app, "db", db);
 Routes_1.Routes.addRoutes(app, __dirname);
-Routes_1.Sockets.bindHandlers(app, io);
+Sockets_1.Sockets.bindHandlers(app, io);
 Setup_1.Setup.startServer(server);
 //# sourceMappingURL=server.js.map
