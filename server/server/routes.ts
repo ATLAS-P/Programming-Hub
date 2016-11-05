@@ -13,7 +13,7 @@ import {List} from '../functional/List'
 import {Result, TestJSON} from '../autograder/Result'
 import {IOMap} from '../functional/IOMap'
 
-//split up in more files
+//split up all namespaces in own files
 export namespace Routes {
     export type Req = express.Request
     export type Res = express.Response

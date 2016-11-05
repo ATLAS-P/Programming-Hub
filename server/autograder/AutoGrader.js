@@ -1,13 +1,9 @@
 "use strict";
-const Future_1 = require("../functional/Future");
 const Result_1 = require("./Result");
 const List_1 = require("../functional/List");
 const Tuple_1 = require("../functional/Tuple");
 const IOMap_1 = require("../functional/IOMap");
-const Either_1 = require("../functional/Either");
-const Config_1 = require('../server/Config');
-const process = require('child_process');
-const BREAK = Config_1.Config.grader.break;
+const Runners_1 = require("./Runners");
 var AutoChecker;
 (function (AutoChecker) {
     function foldLeft(a, f) {
@@ -45,6 +41,7 @@ var AutoChecker;
     }
     AutoChecker.evaluateEitherWith = evaluateEitherWith;
 })(AutoChecker || (AutoChecker = {}));
+//split miniprojects in own files
 var ioTest = AutoChecker.evaluateEither;
 var dataTest = AutoChecker.evaluateEitherWith;
 var init = IOMap_1.IOMap.applyWithInput;
@@ -132,7 +129,7 @@ function strDiff(str1, str2) {
 //test input definitions
 const randomStrings = List_1.List.apply(["this", "is", "a", "simple", "input", "output", "echo", "test", "for", "testing", "the", "autograder"]);
 const lowInts = List_1.List.apply([1, 2, 5]).map(i => i.toString());
-const guessData = List_1.List.apply([[100, 45], [1, 1], [100, 100], [101, 100], [100, 1], [100, 0], [101, 1], [599, 12], [234453, 3459], [123, 22], [100, 50], [12, 6], [13, 7], [9223372036854775807, 284693856289352]]);
+const guessData = List_1.List.apply([[100, 45], [1, 1], [100, 100], [101, 100], [100, 1], [101, 1], [599, 12], [234453, 3459], [123, 22], [100, 50], [12, 6], [13, 7], [9223372036854775807, 284693856289352]]);
 //why y no monoid
 const stopwatchData = List_1.List.apply([
     List_1.List.apply([["t", 200], ["p", 50], ["t", 70], ["t", 40], ["p", 100], ["l", 30], ["p", 40], ["p", 40], ["l", 320], ["s", 40]]).map(d => new Tuple_1.Tuple(d[0], d[1])),
@@ -150,16 +147,16 @@ function grade(r, algebra, test, success, error) {
 function gradeProject(project, filename, success, error) {
     switch (project) {
         case "io":
-            grade(Runners.PythonRunners.simpleIO(filename), inIsOut, rndStringTest, success, error);
+            grade(Runners_1.Runners.PythonRunners.simpleIO(filename), inIsOut, rndStringTest, success, error);
             break;
         case "n_green_bottles":
-            grade(Runners.PythonRunners.simpleIO(filename), greenBottles, lowIntsTest, success, error);
+            grade(Runners_1.Runners.PythonRunners.simpleIO(filename), greenBottles, lowIntsTest, success, error);
             break;
         case "stopwatch":
-            grade(Runners.PythonRunners.sleepIO(filename), stopwatch, stopWatchTest, success, error);
+            grade(Runners_1.Runners.PythonRunners.sleepIO(filename), stopwatch, stopWatchTest, success, error);
             break;
         case "guess_the_number_inversed":
-            grade(Runners.PythonRunners.guessRunner(filename), optimalGuess, guessTest, success, error);
+            grade(Runners_1.Runners.PythonRunners.guessRunner(filename), optimalGuess, guessTest, success, error);
             break;
         default:
             error("There does not exist a test for project with ID: " + project + "!");
@@ -167,103 +164,4 @@ function gradeProject(project, filename, success, error) {
     }
 }
 exports.gradeProject = gradeProject;
-//reduce overlap in code, easy
-var Runners;
-(function (Runners) {
-    function pythonSpawner(z, onData, putInput, finalizeOutput = ((a) => a)) {
-        return (filename) => (s) => new Future_1.Future((resolve, reject) => {
-            let running = true;
-            let py = process.spawn("python3", ['uploads/' + filename]);
-            let output = z;
-            py.stdout.on('data', function (data) {
-                var buff = new Buffer(data);
-                output = onData(output, buff.toString("utf8"), py.stdin);
-            });
-            py.stderr.on('data', function (err) {
-                running = false;
-                var buff = new Buffer(err);
-                resolve(new Either_1.Right(buff.toString("utf8")));
-            });
-            py.on('close', function () {
-                running = false;
-                if (!output)
-                    resolve(new Either_1.Right("No output received!"));
-                else
-                    resolve(new Either_1.Left(finalizeOutput(output)));
-            });
-            function isRunning() {
-                return running;
-            }
-            const inDone = putInput(py.stdin, s, isRunning);
-            if (inDone)
-                output = inDone;
-            setTimeout(function () {
-                if (running) {
-                    running = false;
-                    py.kill();
-                    resolve(new Either_1.Right("Max runtime of 5s exeeded!"));
-                }
-            }, 5000);
-        });
-    }
-    function simpleIn(stdin, inn, running) {
-        stdin.write(inn);
-        stdin.end();
-    }
-    function listIn(stdin, inn, running) {
-        List_1.List.forall(inn, s => stdin.write(s));
-        stdin.end();
-    }
-    var PythonRunners;
-    (function (PythonRunners) {
-        PythonRunners.multiIO = pythonSpawner(List_1.List.apply([]), (out, data, stdin) => {
-            return out.add(data.replace(/\r?\n|\r/g, ""));
-        }, listIn);
-        PythonRunners.simpleIO = pythonSpawner("", (out, data, stdin) => {
-            return out + data.replace(/\r?\n|\r/g, "");
-        }, simpleIn);
-        //NOTE output might need to be reversed, so List.apply ..... append out, also create a multiIOasList
-        PythonRunners.simpleIOasList = pythonSpawner(List_1.List.apply([]), (out, data, stdin) => {
-            return out.append(List_1.List.apply(data.split(/\r?\n|\r/)));
-        }, simpleIn);
-        PythonRunners.guessRunner = pythonSpawner(new Tuple_1.Tuple(0, 0), (out, data, stdin) => {
-            const guess = getFirstNumber(data, -1);
-            if (out._2 > 500) {
-                stdin.write("c" + BREAK);
-                stdin.end();
-                return out.map_2(a => -1);
-            }
-            if (guess > out._1)
-                stdin.write("l" + BREAK);
-            else if (guess < out._1)
-                stdin.write("h" + BREAK);
-            else {
-                stdin.write("c" + BREAK);
-                stdin.end();
-            }
-            return out.map_2(a => a + 1);
-        }, (stdin, inn, running) => {
-            stdin.write(inn[0] + BREAK);
-            return new Tuple_1.Tuple(inn[1], 0);
-        }, a => a._2);
-        PythonRunners.sleepIO = pythonSpawner(List_1.List.apply([]), (out, data, stdin) => {
-            return out.add(data.replace(/\r?\n|\r/, ""));
-        }, (stdin, inn, running) => {
-            function slowAll(s) {
-                if (s.length() == 0)
-                    stdin.end();
-                else {
-                    const tup = s.head(new Tuple_1.Tuple("", 0));
-                    setTimeout(() => {
-                        if (running() && stdin.writable) {
-                            stdin.write(tup._1 + BREAK);
-                            slowAll(s.tail());
-                        }
-                    }, tup._2);
-                }
-            }
-            slowAll(inn);
-        });
-    })(PythonRunners = Runners.PythonRunners || (Runners.PythonRunners = {}));
-})(Runners = exports.Runners || (exports.Runners = {}));
 //# sourceMappingURL=AutoGrader.js.map
