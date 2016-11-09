@@ -1,6 +1,7 @@
 ﻿import * as mongoose from 'mongoose'
 import { Table, Tables } from '../Table'
 import { Assignments } from './Assignments'
+import { Groups } from './Groups'
 
 class File extends Table<Tables.File> {
     create(a: Tables.FileTemplate, done: () => void, fail: Table.Err) {
@@ -54,5 +55,26 @@ export namespace Files {
 
     export function getID(assignment: string, student: string): string {
         return assignment + "_" + student
+    }
+
+    export function getAllForGroup(g: string, suc: Table.SucOne<Tables.Group>, error: Table.Err) {
+        Groups.instance.model.find({ _id: g }).populate({
+            path: "assignments",
+            populate: {
+                path: "files",
+                populate: {
+                    path: "student"
+                }
+            }
+        }).populate({
+            path: "assignments",
+            populate: {
+                path: "project"
+            }
+        }).exec((err, g) => {
+            if (err) error(err)
+            else if (g.length > 0) suc(g[0])
+            else error("No group with id: " + g + " found!")
+        })
     }
 }

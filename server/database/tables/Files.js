@@ -1,6 +1,7 @@
 "use strict";
 const Table_1 = require('../Table');
 const Assignments_1 = require('./Assignments');
+const Groups_1 = require('./Groups');
 class File extends Table_1.Table {
     create(a, done, fail) {
         this.removeNonFinal(a.student, a.assignment);
@@ -50,5 +51,29 @@ var Files;
         return assignment + "_" + student;
     }
     Files.getID = getID;
+    function getAllForGroup(g, suc, error) {
+        Groups_1.Groups.instance.model.find({ _id: g }).populate({
+            path: "assignments",
+            populate: {
+                path: "files",
+                populate: {
+                    path: "student"
+                }
+            }
+        }).populate({
+            path: "assignments",
+            populate: {
+                path: "project"
+            }
+        }).exec((err, g) => {
+            if (err)
+                error(err);
+            else if (g.length > 0)
+                suc(g[0]);
+            else
+                error("No group with id: " + g + " found!");
+        });
+    }
+    Files.getAllForGroup = getAllForGroup;
 })(Files = exports.Files || (exports.Files = {}));
 //# sourceMappingURL=Files.js.map

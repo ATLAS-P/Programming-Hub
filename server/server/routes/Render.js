@@ -63,9 +63,10 @@ var Render;
         });
     }
     Render.render = render;
-    function results(app, loc, data, success, fail) {
+    function results(app, loc, project, data, success, fail) {
         render(app, loc, {
-            tests: data
+            tests: data,
+            project: project
         }, success, fail);
     }
     Render.results = results;

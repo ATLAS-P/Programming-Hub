@@ -12,19 +12,43 @@
                         p.passed Passed
                 div(class=classList  id=i + "_coll" role="tabpanel" aria-laballedby=i + "_heading")
                     .panel-body
-                        h4 Used input
-                        p.test_input(id=i + "_input")= test.input
+                        h4 Test details
+                        .test_input(id=i + "_input")
+                            if project == "io"
+                                p Used input: '#{test.input}'
+                            if project == "n_green_bottles"
+                                p Used input: #{test.input}
+                            if project == "guess_the_number_inversed"
+                                p Used input: #{test.input[0]}
+                                p The computer had #{test.input[1]} in mind.
+                            if project == "stopwatch"
+                                - var inps =  test.input.toArray()
+                                for input in inps
+                                    p Input: '#{input._1}', #{input._2}ms after 
+                                        if input == inps[0]
+                                            |start of the program.
+                                        else
+                                            |last input.
             else
                 .panel-heading.failed(role="tab" id=i)
                     .left
                         h3.panel-title
-                            a(role="button" data-toggle="collapse" data-parent="#accordion" href="#" + i + "_coll" aria-expanded="false" aria-controls=i + "_coll")= "#" + i + " test"
+                            a(role="button" data-toggle="collapse" data-parent="#accordion" href="#" + i + "_coll" aria-expanded="false" aria-controls=i + "_coll")= "#" + (i + 1) + " test"
                     .right
                         p.failed Failed
                 div(class=classList id=i + "_coll" role="tabpanel" aria-laballedby=i + "_heading")
                     .panel-body
-                        h4 Used input
-                        p.test_input(id=i + "_input")= test.input
+                        h4 Test details
+                        .test_input(id=i + "_input")
+                            if project == "io"
+                                p Used input: #{test.input}
+                            if project == "n_green_bottles"
+                                p Used input: #{test.input}
+                            if project == "guess_the_number_inversed"
+                                p Used input (maximum number): #{test.input[0]}
+                                p The computer had #{test.input[1]} in mind.
+                            if project == "stopwatch"
+                                p Sorry no information yet!
                         hr
                         h4 Error message
                         p.test_message= test.message    

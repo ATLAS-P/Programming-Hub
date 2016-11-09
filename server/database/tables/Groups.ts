@@ -59,6 +59,8 @@ class Group extends Table<Tables.Group> {
         }, fail)
     }
 
+
+
     getStudents(g: string, success: Table.Suc<Tables.User>, fail: Table.Err) {
         this.populateStudents(g, g => success((g.students as any) as Tables.User[]), fail)
     }

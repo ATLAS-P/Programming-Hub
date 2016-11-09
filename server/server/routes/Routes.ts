@@ -91,7 +91,9 @@ export namespace Routes {
 
     function files(req: Req, res: Res) {
         const group = req.url.split("/")[2]
-        res.send(":p")
+        Files.getAllForGroup(group, g => {
+            Render.withUser(req, res, "files", {group:g})
+        }, e => Render.error(req, res, e))
     }
 
     function showResult(req: Req, res: Res) {
@@ -145,11 +147,12 @@ export namespace Routes {
                             else {
                                 const time = new Date()
 
-                                res.redirect("/result/" + assignment._id)
-                                students.toArray().forEach(s => {
+                                students.toArray().forEach((s, i) => {
                                     //if non final exisits override it
                                     let file = Tables.mkFile(s._id, assignment._id, time, studentIDs, result, s._id == req.user.id, data[s._id])
-                                    Files.instance.create(file, () => { }, Table.error)
+                                    Files.instance.create(file, () => {
+                                        if (i == (students.length() - 1)) res.redirect("/result/" + assignment._id)
+                                    }, Table.error)
                                 })
                             }
                         }, r => res.send("Unexpected error during validation of hand-in request!"))
@@ -187,7 +190,7 @@ export namespace Routes {
                             if (!sess.result || typeof sess.result == "undefined" || sess.result == null) sess.result = {}
 
                             sess.result[project] = r
-                            Render.results(app, "result", r.toJSONList().toArray(), html => {
+                            Render.results(app, "result", project, r.toJSONList().toArray(), html => {
                                 res.json({ success: true, html:html })
                             }, fail => {
                                 res.json({ success: false, err: fail.message })

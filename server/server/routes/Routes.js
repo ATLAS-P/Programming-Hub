@@ -71,7 +71,9 @@ var Routes;
     }
     function files(req, res) {
         const group = req.url.split("/")[2];
-        res.send(":p");
+        Files_1.Files.getAllForGroup(group, g => {
+            Render_1.Render.withUser(req, res, "files", { group: g });
+        }, e => Render_1.Render.error(req, res, e));
     }
     function showResult(req, res) {
         const assignment = req.url.split("/")[2];
@@ -118,11 +120,13 @@ var Routes;
                                 res.send("This assignment was alreaday handed in by you or your parnters!");
                             else {
                                 const time = new Date();
-                                res.redirect("/result/" + assignment._id);
-                                students.toArray().forEach(s => {
+                                students.toArray().forEach((s, i) => {
                                     //if non final exisits override it
                                     let file = Table_1.Tables.mkFile(s._id, assignment._id, time, studentIDs, result, s._id == req.user.id, data[s._id]);
-                                    Files_1.Files.instance.create(file, () => { }, Table_1.Table.error);
+                                    Files_1.Files.instance.create(file, () => {
+                                        if (i == (students.length() - 1))
+                                            res.redirect("/result/" + assignment._id);
+                                    }, Table_1.Table.error);
                                 });
                             }
                         }, r => res.send("Unexpected error during validation of hand-in request!"));
@@ -160,7 +164,7 @@ var Routes;
                             if (!sess.result || typeof sess.result == "undefined" || sess.result == null)
                                 sess.result = {};
                             sess.result[project] = r;
-                            Render_1.Render.results(app, "result", r.toJSONList().toArray(), html => {
+                            Render_1.Render.results(app, "result", project, r.toJSONList().toArray(), html => {
                                 res.json({ success: true, html: html });
                             }, fail => {
                                 res.json({ success: false, err: fail.message });

@@ -70,9 +70,10 @@ export namespace Render {
         })
     }
 
-    export function results(app: express.Express, loc: string, data: TestJSON<any>[], success: Suc, fail: Err) {
+    export function results(app: express.Express, loc: string, project:string, data: TestJSON<any>[], success: Suc, fail: Err) {
         render(app, loc, {
-            tests: data
+            tests: data,
+            project: project
         }, success, fail)
     }
 }
