@@ -18,6 +18,15 @@ block content
             +assList(a_open, 'Open Assignments', true, false, "There are no open assignments.", "Deadline")
             +assList(a_done, 'Completed Assignments', false, true, "You did not yet complete any assignments.", "Handed in on")
             +assList(a_close, 'Closed Assignments', false, false, "No assignments were closed yet.", "Closed on")
+            if admin
+                h2 Admin Links
+                ul
+                    li 
+                        a(href="/group/" + group.id + "/database/users") Students
+                    li 
+                        a(href="/group/" + group.id + "/database/files") Results
+                    li 
+                        a(href="/group/" + group.id + "/feedback") I'm feeling lucky!
         #upload
             .row
                 .col-md-3

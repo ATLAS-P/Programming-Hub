@@ -54,7 +54,7 @@ namespace Output {
 export namespace Runners {
     export type Spawn<In, Out> = (filename: string) => IOMap.IO<In, Either<Out, string>>
 
-    function pythonSpawner<In, A, Out>(z: A, onData: (out: A, data: string, stdin: stream.Writable) => A, putInput: (stdin: stream.Writable, inn: In, running: () => boolean) => void | A, finalizeOutput: (a: A) => Out = ((a: A) => a as any as Out)): Spawn<In, Out> {
+    export function pythonSpawner<In, A, Out>(z: A, onData: (out: A, data: string, stdin: stream.Writable) => A, putInput: (stdin: stream.Writable, inn: In, running: () => boolean) => void | A, finalizeOutput: (a: A) => Out = ((a: A) => a as any as Out)): Spawn<In, Out> {
         return (filename: string) => (s: In) => new Future<Either<Out, string>>((resolve, reject) => {
             let running = true
             let py = process.spawn(Config.grader.lang.python, ['uploads/' + filename])
@@ -100,26 +100,6 @@ export namespace Runners {
         export const simpleIO = pythonSpawner("", Output.simpleOut, Input.simpleIn)
         export const simpleIOasList = pythonSpawner(List.apply([]), Output.breakToList, Input.simpleIn)
         export const sleepIO = pythonSpawner(List.apply([]), Output.listOut, Input.withDelay)
-
-        //put in mp
-        export const guessRunner = pythonSpawner<number[], Tuple<number, number>, number>(new Tuple(0, 0), (out, data, stdin) => {
-            const guess = getFirstNumber(data, -1)
-            if (out._2 > 500) {
-                stdin.write("c" + BREAK)
-                stdin.end()
-                return out.map_2(a => -1)
-            }
-            if (guess > out._1) stdin.write("l" + BREAK)
-            else if (guess < out._1) stdin.write("h" + BREAK)
-            else {
-                stdin.write("c" + BREAK)
-                stdin.end()
-            }
-            return out.map_2(a => a + 1)
-        }, (stdin, inn, running) => {
-            stdin.write(inn[0] + BREAK)
-            return new Tuple(inn[1], 0)
-        }, a => a._2)
     }
 
     //also in miniprojects, so put in some math module, or str module etc..

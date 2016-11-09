@@ -1,7 +1,7 @@
 "use strict";
 const passport = require('passport');
 const fs = require('fs');
-const Miniprojects_1 = require('../../autograder/Miniprojects');
+const Projects_1 = require('../../autograder/Projects');
 const Groups_1 = require('../../database/tables/Groups');
 const Files_1 = require('../../database/tables/Files');
 const Table_1 = require('../../database/Table');
@@ -22,7 +22,12 @@ var Routes;
     const FILE_UPLOAD = GROUP + "/file-upload";
     const SUBMIT_RESULTS = GROUP + "/sendResults";
     const PRIVACY = INDEX + "legal/privacy";
+    const DATABASE = GROUP_ANY + "database";
+    const FILES = DATABASE + "/files";
+    const USERS = DATABASE + "/users";
     function addRoutes(app, root) {
+        app.get(FILES, files);
+        app.get(USERS, users);
         app.get(GROUP_ANY, group);
         app.get(INDEX, index);
         app.get(LOGOUT, logout);
@@ -52,6 +57,21 @@ var Routes;
     }
     function index(req, res) {
         Render_1.Render.withUser(req, res, "hub");
+    }
+    function users(req, res) {
+        const group = req.url.split("/")[2];
+        Groups_1.Groups.instance.populateStudents(group, g => {
+            const students = g.students;
+            const admins = g.admins;
+            if (admins.indexOf(req.user.id) >= 0)
+                Render_1.Render.withUser(req, res, "users", { users: students });
+            else
+                Render_1.Render.error(req, res, "You have insufficient rights to view this page");
+        }, error => Render_1.Render.error(req, res, error));
+    }
+    function files(req, res) {
+        const group = req.url.split("/")[2];
+        res.send(":p");
     }
     function showResult(req, res) {
         const assignment = req.url.split("/")[2];
@@ -136,7 +156,7 @@ var Routes;
                 file.pipe(fstream);
                 fstream.on('close', function () {
                     project.then((project) => {
-                        Miniprojects_1.Miniprojects.gradeProject(project, newName, function (r) {
+                        Projects_1.Projects.gradeProject(project, newName, function (r) {
                             if (!sess.result || typeof sess.result == "undefined" || sess.result == null)
                                 sess.result = {};
                             sess.result[project] = r;

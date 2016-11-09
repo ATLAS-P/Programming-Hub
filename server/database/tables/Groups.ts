@@ -60,6 +60,14 @@ class Group extends Table<Tables.Group> {
     }
 
     getStudents(g: string, success: Table.Suc<Tables.User>, fail: Table.Err) {
+        this.populateStudents(g, g => success((g.students as any) as Tables.User[]), fail)
+    }
+
+    isAdmin(g: string, user: string, success: Table.SucOne<boolean>, fail: Table.Err) {
+        this.getByID(g, g => success(g.admins.indexOf(user) >= 0), fail)
+    }
+
+    populateStudents(g: string, success: Table.SucOne<Tables.Group>, fail: Table.Err) {
         this.do(this.model.find({ _id: g }).populate({
             path: "students",
             options: {
@@ -69,9 +77,7 @@ class Group extends Table<Tables.Group> {
                     _id: 1
                 }
             }
-        }), g => {
-            success((g[0].students as any) as Tables.User[])
-        }, fail)
+        }), g => success(g[0]), fail)
     }
 }
 
@@ -92,6 +98,7 @@ export namespace Groups {
     export interface GroupDetails {
         id: string,
         name: string,
+        admins: string[],
         openAssignments: Open[],
         closedAssignments: Closed[],
         doneAssignments: Tables.PopulatedAssignment[]
@@ -127,7 +134,7 @@ export namespace Groups {
                 })
                 const openClosed: DetailsData = List.apply(split._2.toArray()).foldLeft(new Tuple(List.apply([]), List.apply([])), foldAssignmentDetails)
 
-                success(mkGroupDetails(g[0]._id, g[0].name, openClosed._1.toArray(), openClosed._2.toArray(), doneAss.toArray()))
+                success(mkGroupDetails(g[0]._id, g[0].name, g[0].admins as any as string[], openClosed._1.toArray(), openClosed._2.toArray(), doneAss.toArray()))
             }, fail)
         }, fail)
     }
@@ -163,10 +170,11 @@ export namespace Groups {
         }
     }
 
-    function mkGroupDetails(id: string, name: string, open: Open[], closed: Closed[], done: Tables.PopulatedAssignment[]): GroupDetails {
+    function mkGroupDetails(id: string, name: string, admins:string[], open: Open[], closed: Closed[], done: Tables.PopulatedAssignment[]): GroupDetails {
         return {
             id: id,
             name: name,
+            admins: admins,
             openAssignments: open,
             closedAssignments: closed,
             doneAssignments: done

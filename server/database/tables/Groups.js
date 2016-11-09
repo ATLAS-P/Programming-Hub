@@ -55,6 +55,12 @@ class Group extends Table_1.Table {
         }, fail);
     }
     getStudents(g, success, fail) {
+        this.populateStudents(g, g => success(g.students), fail);
+    }
+    isAdmin(g, user, success, fail) {
+        this.getByID(g, g => success(g.admins.indexOf(user) >= 0), fail);
+    }
+    populateStudents(g, success, fail) {
         this.do(this.model.find({ _id: g }).populate({
             path: "students",
             options: {
@@ -64,9 +70,7 @@ class Group extends Table_1.Table {
                     _id: 1
                 }
             }
-        }), g => {
-            success(g[0].students);
-        }, fail);
+        }), g => success(g[0]), fail);
     }
 }
 var Groups;
@@ -97,7 +101,7 @@ var Groups;
                     return a;
                 });
                 const openClosed = List_1.List.apply(split._2.toArray()).foldLeft(new Tuple_1.Tuple(List_1.List.apply([]), List_1.List.apply([])), foldAssignmentDetails);
-                success(mkGroupDetails(g[0]._id, g[0].name, openClosed._1.toArray(), openClosed._2.toArray(), doneAss.toArray()));
+                success(mkGroupDetails(g[0]._id, g[0].name, g[0].admins, openClosed._1.toArray(), openClosed._2.toArray(), doneAss.toArray()));
             }, fail);
         }, fail);
     }
@@ -134,10 +138,11 @@ var Groups;
             nextDeadline: nextDeadline
         };
     }
-    function mkGroupDetails(id, name, open, closed, done) {
+    function mkGroupDetails(id, name, admins, open, closed, done) {
         return {
             id: id,
             name: name,
+            admins: admins,
             openAssignments: open,
             closedAssignments: closed,
             doneAssignments: done

@@ -92,6 +92,13 @@ exports.Cons = Cons;
             return new Cons(la[0], apply(la.splice(1)));
     }
     List.apply = apply;
+    function mk(...la) {
+        if (la.length == 0)
+            return new Empty();
+        else
+            return new Cons(la[0], apply(la.splice(1)));
+    }
+    List.mk = mk;
     function unit(a) {
         return new Cons(a, new Empty());
     }

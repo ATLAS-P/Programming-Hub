@@ -112,6 +112,11 @@ export namespace List {
         else return new Cons<A>(la[0], apply(la.splice(1)))
     }
 
+    export function mk<A>(...la: A[]): List<A> {
+        if (la.length == 0) return new Empty()
+        else return new Cons<A>(la[0], apply(la.splice(1)))
+    }
+
     export function unit<A>(a: A): List<A> {
         return new Cons<A>(a, new Empty())
     }

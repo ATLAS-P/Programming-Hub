@@ -3,7 +3,7 @@ import * as socket from 'socket.io'
 import * as passport from 'passport'
 import * as fs from 'fs'
 
-import {Miniprojects} from '../../autograder/Miniprojects'
+import {Projects} from '../../autograder/Projects'
 import {Groups} from '../../database/tables/Groups'
 import {Users} from '../../database/tables/Users'
 import {Files} from '../../database/tables/Files'
@@ -36,8 +36,13 @@ export namespace Routes {
     const FILE_UPLOAD = GROUP + "/file-upload"
     const SUBMIT_RESULTS = GROUP + "/sendResults"
     const PRIVACY = INDEX + "legal/privacy"
+    const DATABASE = GROUP_ANY + "database"
+    const FILES = DATABASE + "/files"
+    const USERS = DATABASE + "/users"
 
     export function addRoutes(app: express.Express, root: string) {
+        app.get(FILES, files)
+        app.get(USERS, users)
         app.get(GROUP_ANY, group)
         app.get(INDEX, index)
         app.get(LOGOUT, logout)
@@ -71,6 +76,22 @@ export namespace Routes {
 
     function index(req: Req, res: Res) {
         Render.withUser(req, res, "hub")
+    }
+
+    function users(req: Req, res: Res) {
+        const group = req.url.split("/")[2]
+        Groups.instance.populateStudents(group, g => {
+            const students = g.students as any as Tables.User[]
+            const admins = g.admins
+
+            if (admins.indexOf(req.user.id) >= 0) Render.withUser(req, res, "users", { users: students })
+            else Render.error(req, res, "You have insufficient rights to view this page")
+        }, error => Render.error(req, res, error))
+    }
+
+    function files(req: Req, res: Res) {
+        const group = req.url.split("/")[2]
+        res.send(":p")
     }
 
     function showResult(req: Req, res: Res) {
@@ -162,7 +183,7 @@ export namespace Routes {
                 fstream.on('close', function () {
 
                     project.then((project: string) => {
-                        Miniprojects.gradeProject(project, newName, function (r) {
+                        Projects.gradeProject(project, newName, function (r) {
                             if (!sess.result || typeof sess.result == "undefined" || sess.result == null) sess.result = {}
 
                             sess.result[project] = r

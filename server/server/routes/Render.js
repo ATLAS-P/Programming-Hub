@@ -1,15 +1,24 @@
 "use strict";
 var Render;
 (function (Render) {
-    function withUser(req, res, loc) {
-        res.render(loc, {
-            user: req.user
-        });
+    function withUser(req, res, loc, data = {}) {
+        const sendData = data;
+        sendData['user'] = req.user;
+        res.render(loc, sendData);
     }
     Render.withUser = withUser;
+    function error(req, res, err) {
+        res.render("error", {
+            user: req.user,
+            error: err
+        });
+    }
+    Render.error = error;
     function groupDetails(req, res, loc, data) {
+        console.log(data.admins);
         res.render(loc, {
             user: req.user,
+            admin: data.admins.indexOf(req.user.id) >= 0,
             a_open: data.openAssignments,
             a_close: data.closedAssignments,
             a_done: data.doneAssignments,

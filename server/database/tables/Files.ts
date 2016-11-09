@@ -1,14 +1,13 @@
 ﻿import * as mongoose from 'mongoose'
 import { Table, Tables } from '../Table'
+import { Assignments } from './Assignments'
 
 class File extends Table<Tables.File> {
     create(a: Tables.FileTemplate, done: () => void, fail: Table.Err) {
         this.removeNonFinal(a.student, a.assignment)
-        super.create(a, done, fail)
-    }
-
-    getByID(id: string, success: Table.SucOne<Tables.File>, fail: Table.Err) {
-        fail("Get by ID function not supported for file, use getForStudent instead")
+        Assignments.instance.addFile(a.assignment, a._id, () => {
+            super.create(a, done, fail)
+        }, fail)
     }
 
     getAssignment(s: string, a: string, success: Table.SucOne<Tables.File>, fail: Table.Err) {
@@ -52,4 +51,8 @@ class File extends Table<Tables.File> {
 
 export namespace Files {
     export const instance = new File(Tables.File)
+
+    export function getID(assignment: string, student: string): string {
+        return assignment + "_" + student
+    }
 }

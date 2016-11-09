@@ -123,6 +123,7 @@ export namespace Tables {
     interface GenericAssignment {
         _id: any
         due: Date
+        files: string[]
     }
     export interface AssignmentTemplate extends GenericAssignment {
         project: string
@@ -135,7 +136,8 @@ export namespace Tables {
         return {
             _id: id,
             project: project,
-            due: due
+            due: due,
+            files: []
         }
     }
 
@@ -165,6 +167,7 @@ export namespace Tables {
     }
 
     export interface FileTemplate {
+        _id: any,
         student: string,
         assignment: string,
         timestamp: Date,
@@ -177,6 +180,7 @@ export namespace Tables {
     export interface File extends mongoose.Document, FileTemplate { }
     export function mkFile(student: string, assignment: string, timestamp: Date, partners: string[], json: Object, final:boolean, reflection:string, feedback:string = ""): FileTemplate {
         return {
+            _id: assignment + "_" + student,
             student: student,
             assignment: assignment,
             timestamp: timestamp,
@@ -207,6 +211,7 @@ export namespace Tables {
     export const assignment = new mongoose.Schema({
         _id: String,
         project: refrence("Project"),
+        files: [refrence("File")],
         due: Date
     })
 
@@ -219,6 +224,7 @@ export namespace Tables {
     }) 
 
     export const file = new mongoose.Schema({
+        _id: String,
         student: refrence("User"),
         assignment: refrence("Assignment"),
         timestamp: Date,

@@ -1,7 +1,6 @@
 "use strict";
 const Future_1 = require("../functional/Future");
 const List_1 = require("../functional/List");
-const Tuple_1 = require("../functional/Tuple");
 const Either_1 = require("../functional/Either");
 const Config_1 = require('../server/Config');
 const process = require('child_process');
@@ -88,33 +87,13 @@ var Runners;
             }, 5000);
         });
     }
+    Runners.pythonSpawner = pythonSpawner;
     var PythonRunners;
     (function (PythonRunners) {
         PythonRunners.multiIO = pythonSpawner(List_1.List.apply([]), Output.listOut, Input.listIn);
         PythonRunners.simpleIO = pythonSpawner("", Output.simpleOut, Input.simpleIn);
         PythonRunners.simpleIOasList = pythonSpawner(List_1.List.apply([]), Output.breakToList, Input.simpleIn);
         PythonRunners.sleepIO = pythonSpawner(List_1.List.apply([]), Output.listOut, Input.withDelay);
-        //put in mp
-        PythonRunners.guessRunner = pythonSpawner(new Tuple_1.Tuple(0, 0), (out, data, stdin) => {
-            const guess = getFirstNumber(data, -1);
-            if (out._2 > 500) {
-                stdin.write("c" + BREAK);
-                stdin.end();
-                return out.map_2(a => -1);
-            }
-            if (guess > out._1)
-                stdin.write("l" + BREAK);
-            else if (guess < out._1)
-                stdin.write("h" + BREAK);
-            else {
-                stdin.write("c" + BREAK);
-                stdin.end();
-            }
-            return out.map_2(a => a + 1);
-        }, (stdin, inn, running) => {
-            stdin.write(inn[0] + BREAK);
-            return new Tuple_1.Tuple(inn[1], 0);
-        }, a => a._2);
     })(PythonRunners = Runners.PythonRunners || (Runners.PythonRunners = {}));
     //also in miniprojects, so put in some math module, or str module etc..
     function getFirstNumber(s, z) {

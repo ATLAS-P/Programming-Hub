@@ -1,0 +1,17 @@
+﻿extends structure/default.jade
+
+block content
+    .container
+        table.table.table-striped
+            thead
+                tr
+                    th Project
+                    th Student
+                    th View
+            tbody
+                for file in files
+                    tr
+                        td= file.assignment.project.name
+                        td= user.surename
+                        td
+                            a(href="mailto:" + user._id + "@student.utwente.nl")= user._id

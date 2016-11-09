@@ -110,7 +110,8 @@ var Tables;
         return {
             _id: id,
             project: project,
-            due: due
+            due: due,
+            files: []
         };
     }
     Tables.mkAssignment = mkAssignment;
@@ -126,6 +127,7 @@ var Tables;
     Tables.mkGroup = mkGroup;
     function mkFile(student, assignment, timestamp, partners, json, final, reflection, feedback = "") {
         return {
+            _id: assignment + "_" + student,
             student: student,
             assignment: assignment,
             timestamp: timestamp,
@@ -154,6 +156,7 @@ var Tables;
     Tables.assignment = new mongoose.Schema({
         _id: String,
         project: refrence("Project"),
+        files: [refrence("File")],
         due: Date
     });
     Tables.group = new mongoose.Schema({
@@ -164,6 +167,7 @@ var Tables;
         admins: [refrence("User")]
     });
     Tables.file = new mongoose.Schema({
+        _id: String,
         student: refrence("User"),
         assignment: refrence("Assignment"),
         timestamp: Date,

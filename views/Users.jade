@@ -1,0 +1,20 @@
+﻿extends structure/default.jade
+
+block content
+    .container
+        table.table.table-striped
+            thead
+                tr
+                    th Firstname
+                    th Lastname
+                    th Email
+                    th Results
+            tbody
+                for user in users
+                    tr
+                        td= user.name
+                        td= user.surename
+                        td
+                            a(href="mailto:" + user._id + "@student.utwente.nl")= user._id
+                        td
+                            a(hraf="#") Nope.

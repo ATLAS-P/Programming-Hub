@@ -1,12 +1,12 @@
 "use strict";
 const Table_1 = require('../Table');
+const Assignments_1 = require('./Assignments');
 class File extends Table_1.Table {
     create(a, done, fail) {
         this.removeNonFinal(a.student, a.assignment);
-        super.create(a, done, fail);
-    }
-    getByID(id, success, fail) {
-        fail("Get by ID function not supported for file, use getForStudent instead");
+        Assignments_1.Assignments.instance.addFile(a.assignment, a._id, () => {
+            super.create(a, done, fail);
+        }, fail);
     }
     getAssignment(s, a, success, fail) {
         super.getOne({ student: s, assignment: a }, {}, success, fail);
@@ -46,5 +46,9 @@ class File extends Table_1.Table {
 var Files;
 (function (Files) {
     Files.instance = new File(Table_1.Tables.File);
+    function getID(assignment, student) {
+        return assignment + "_" + student;
+    }
+    Files.getID = getID;
 })(Files = exports.Files || (exports.Files = {}));
 //# sourceMappingURL=Files.js.map

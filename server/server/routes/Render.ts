@@ -9,15 +9,25 @@ export namespace Render {
     export type Suc = (html: string) => void
     export type Err = (err: Error) => void
 
-    export function withUser(req: Routes.Req, res: Routes.Res, loc: string) {
-        res.render(loc, {
-            user: req.user
+    export function withUser(req: Routes.Req, res: Routes.Res, loc: string, data: {} = {}) {
+        const sendData = data
+        sendData['user'] = req.user
+
+        res.render(loc, sendData)
+    }
+
+    export function error(req: Routes.Req, res: Routes.Res, err:string) {
+        res.render("error", {
+            user: req.user,
+            error: err
         })
     }
 
     export function groupDetails(req: Routes.Req, res: Routes.Res, loc: string, data: Groups.GroupDetails) {
+        console.log(data.admins)
         res.render(loc, {
             user: req.user,
+            admin: data.admins.indexOf(req.user.id) >= 0,
             a_open: data.openAssignments,
             a_close: data.closedAssignments,
             a_done: data.doneAssignments,
