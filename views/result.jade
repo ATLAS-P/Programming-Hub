@@ -48,7 +48,13 @@
                                 p Used input (maximum number): #{test.input[0]}
                                 p The computer had #{test.input[1]} in mind.
                             if project == "stopwatch"
-                                p Sorry no information yet!
+                                - var inps =  test.input.toArray()
+                                for input in inps
+                                    p Input: '#{input._1}', #{input._2}ms after 
+                                        if input == inps[0]
+                                            |start of the program.
+                                        else
+                                            |last input.
                         hr
                         h4 Error message
                         p.test_message= test.message    
