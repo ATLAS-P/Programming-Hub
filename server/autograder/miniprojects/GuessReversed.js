@@ -19,18 +19,22 @@ var GuessReversed;
         const runner = Runners_1.Runners.pythonSpawner(new Tuple_1.Tuple(0, 0), (out, data, stdin) => {
             const guess = getFirstNumber(data, -1);
             if (out._2 > 500) {
-                stdin.write("c" + BREAK);
-                stdin.end();
+                if (stdin.writable) {
+                    stdin.write("c" + BREAK);
+                    stdin.end();
+                }
                 return out.map_2(a => -1);
             }
-            if (guess > out._1)
-                stdin.write("l" + BREAK);
-            else if (guess < out._1)
-                stdin.write("h" + BREAK);
-            else {
-                stdin.write("c" + BREAK);
-                stdin.end();
-            }
+            else if (guess > out._1)
+                if (stdin.writable)
+                    stdin.write("l" + BREAK);
+                else if (guess < out._1)
+                    if (stdin.writable)
+                        stdin.write("h" + BREAK);
+                    else if (stdin.writable) {
+                        stdin.write("c" + BREAK);
+                        stdin.end();
+                    }
             return out.map_2(a => a + 1);
         }, (stdin, inn, running) => {
             stdin.write(inn[0] + BREAK);

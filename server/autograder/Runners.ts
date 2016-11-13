@@ -68,9 +68,9 @@ export namespace Runners {
             py.stderr.on('data', function (err) {
                 running = false
                 if (py.stdin.writable) py.stdin.end()
-                console.log("ERROR, BUT WE CAUGHT IT !!!!! " + buff.toString("utf8"))
-
                 var buff = new Buffer(err as Buffer)
+
+                console.log("ERROR, BUT WE CAUGHT IT !!!!! " + buff.toString("utf8"))
                 resolve(new Right(buff.toString("utf8")))
             });
 

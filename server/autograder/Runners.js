@@ -55,7 +55,6 @@ var Runners;
             let running = true;
             let py = process.spawn(Config_1.Config.grader.lang.python, ['uploads/' + filename]);
             let output = z;
-            console.log(py.stdin.writable);
             py.stdout.on('data', function (data) {
                 var buff = new Buffer(data);
                 output = onData(output, buff.toString("utf8"), py.stdin);
@@ -64,6 +63,7 @@ var Runners;
                 running = false;
                 if (py.stdin.writable)
                     py.stdin.end();
+                console.log("ERROR, BUT WE CAUGHT IT !!!!! " + buff.toString("utf8"));
                 var buff = new Buffer(err);
                 resolve(new Either_1.Right(buff.toString("utf8")));
             });
