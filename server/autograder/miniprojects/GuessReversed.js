@@ -28,8 +28,11 @@ var GuessReversed;
                 return out.map_2(a => -1);
             }
             else if (guess > out._1)
-                if (stdin.writable)
+                if (stdin.writable) {
+                    console.log("trying to write something");
                     stdin.write("l" + BREAK);
+                    console.log("Done");
+                }
                 else if (guess < out._1)
                     if (stdin.writable)
                         stdin.write("h" + BREAK);

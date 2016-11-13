@@ -76,6 +76,7 @@ export namespace Runners {
             });
 
             py.on('close', function () {
+                console.log("Closing!!!!!")
                 running = false
                 if (!output) resolve(new Right("No output received!"))
                 else resolve(new Left(finalizeOutput(output)))

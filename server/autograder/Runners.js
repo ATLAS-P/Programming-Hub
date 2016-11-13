@@ -69,6 +69,7 @@ var Runners;
                 resolve(new Either_1.Right(buff.toString("utf8")));
             });
             py.on('close', function () {
+                console.log("Closing!!!!!");
                 running = false;
                 if (!output)
                     resolve(new Either_1.Right("No output received!"));
