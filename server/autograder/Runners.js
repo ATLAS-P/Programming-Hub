@@ -63,8 +63,8 @@ var Runners;
                 running = false;
                 if (py.stdin.writable)
                     py.stdin.end();
-                console.log("ERROR, BUT WE CAUGHT IT !!!!! " + buff.toString("utf8"));
                 var buff = new Buffer(err);
+                console.log("ERROR, BUT WE CAUGHT IT !!!!! " + buff.toString("utf8"));
                 resolve(new Either_1.Right(buff.toString("utf8")));
             });
             py.on('close', function () {
