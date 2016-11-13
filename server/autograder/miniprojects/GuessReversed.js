@@ -17,9 +17,7 @@ var GuessReversed;
             return new Tuple_1.Tuple(o <= bound, "Your result was not optimal. Your AI needed " + o + " tries. Optimal result should be less or equal to: " + bound + " tries.");
         });
         const runner = Runners_1.Runners.pythonSpawner(new Tuple_1.Tuple(0, 0), (out, data, stdin) => {
-            console.log(data);
             const guess = getFirstNumber(data, -1);
-            console.log(guess);
             if (out._2 > 500) {
                 if (stdin.writable) {
                     stdin.write("c" + BREAK);
@@ -28,11 +26,8 @@ var GuessReversed;
                 return out.map_2(a => -1);
             }
             else if (guess > out._1)
-                if (stdin.writable) {
-                    console.log("trying to write something");
+                if (stdin.writable)
                     stdin.write("l" + BREAK);
-                    console.log("Done");
-                }
                 else if (guess < out._1)
                     if (stdin.writable)
                         stdin.write("h" + BREAK);
