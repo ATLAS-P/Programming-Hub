@@ -82,6 +82,58 @@ export namespace Runners {
                 else resolve(new Left(finalizeOutput(output)))
             });
 
+            py.on('error', function () {
+                console.log("PY ERROR")
+            });
+
+            py.stderr.on('close', function () {
+                console.log("stderr close")
+            });
+            py.stderr.on('data', function () {
+                console.log("stderr data")
+            });
+            py.stderr.on('end', function () {
+                console.log("stderr end")
+            });
+            py.stderr.on('readable', function () {
+                console.log("stderr readable")
+            });
+            py.stderr.on('error', function () {
+                console.log("stderr error")
+            });
+
+            py.stdin.on('close', function () {
+                console.log("stdin close")
+            });
+            py.stdin.on('data', function () {
+                console.log("stdin data")
+            });
+            py.stdin.on('end', function () {
+                console.log("stdin end")
+            });
+            py.stdin.on('readable', function () {
+                console.log("stdin readable")
+            });
+            py.stdin.on('error', function () {
+                console.log("stdin error")
+            });
+
+            py.stdout.on('close', function () {
+                console.log("stdout close")
+            });
+            py.stdout.on('data', function () {
+                console.log("stdout data")
+            });
+            py.stdout.on('end', function () {
+                console.log("stdout end")
+            });
+            py.stdout.on('readable', function () {
+                console.log("stdout readable")
+            });
+            py.stdout.on('error', function () {
+                console.log("stdout error")
+            });
+
             //check if possible as inline
             function isRunning(): boolean {
                 return running
