@@ -59,9 +59,9 @@ export namespace Runners {
             let running = true
             let py = process.spawn(Config.grader.lang.python, ['uploads/' + filename])
             let output = z
+            let inputError = null 
 
             py.stdout.on('data', function (data) {
-                console.log("received at least")
                 var buff = new Buffer(data as Buffer)
                 output = onData(output, buff.toString("utf8"), py.stdin)
             });
@@ -70,25 +70,18 @@ export namespace Runners {
                 running = false
                 if (py.stdin.writable) py.stdin.end()
                 var buff = new Buffer(err as Buffer)
-
-                console.log("ERROR, BUT WE CAUGHT IT !!!!! " + buff.toString("utf8"))
                 resolve(new Right(buff.toString("utf8")))
             });
 
             py.on('close', function () {
-                console.log("Closing!!!!!")
                 running = false
-                if (!output) resolve(new Right("No output received!"))
+                if (inputError) resolve(new Right("There seems to be something wrong with your inputs and outputs, make sure there are no unnecessary print statements!"))
+                else if (!output) resolve(new Right("No output received!"))
                 else resolve(new Left(finalizeOutput(output)))
             });
 
-            py.on('error', function () {
-                console.log("PY ERROR")
-            });
-
             py.stdin.on('error', function (err) {
-                console.log("stdin error!!!!!!")
-                console.log(err)
+                inputError = err
             });
 
             //check if possible as inline
@@ -97,7 +90,6 @@ export namespace Runners {
             }
 
             const inDone = putInput(py.stdin, s, isRunning)
-            console.log(py.stdin.writable)
             if (inDone) output = inDone as A
 
             setTimeout(function () {

@@ -16,9 +16,7 @@ export namespace GuessReversed {
             return new Tuple(o <= bound, "Your result was not optimal. Your AI needed " + o + " tries. Optimal result should be less or equal to: " + bound + " tries.")
         })
         const runner = Runners.pythonSpawner<number[], Tuple<number, number>, number>(new Tuple(0, 0), (out, data, stdin) => {
-            console.log(data)
             const guess = getFirstNumber(data, -1)
-            console.log(guess)
             if (out._2 > 500) {
                 if (stdin.writable) {
                     stdin.write("c" + BREAK)
@@ -26,11 +24,7 @@ export namespace GuessReversed {
                 }
                 return out.map_2(a => -1)
             }
-            else if (guess > out._1) if (stdin.writable) {
-                console.log("trying to write something")
-                stdin.write("l" + BREAK)
-                console.log("Done")
-            }
+            else if (guess > out._1) if (stdin.writable) stdin.write("l" + BREAK)
             else if (guess < out._1) if (stdin.writable) stdin.write("h" + BREAK)
             else if (stdin.writable) {
                 stdin.write("c" + BREAK)
