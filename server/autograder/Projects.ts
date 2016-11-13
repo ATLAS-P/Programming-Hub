@@ -1,20 +1,21 @@
 ﻿import {AutoChecker} from "./AutoGrader"
 import {Future} from "../functional/Future"
 import {Runners} from "./Runners"
-import {List} from "../functional/List"
-import {Tuple} from "../functional/Tuple"
+import { List } from "../functional/List"
+import { Tuple } from "../functional/Tuple"
 import { IOMap } from "../functional/IOMap"
 import { IODebug } from "./miniprojects/IODebug"
 import { Stopwatch } from "./miniprojects/Stopwatch"
 import { GreenBottles } from "./miniprojects/GreenBottles"
 import { GuessReversed } from "./miniprojects/GuessReversed"
 import {Result, Test} from "./Result"
+import {BinarySearch} from "./miniprojects/BinarySearch"
 
 export namespace TestHelper {
     export const init = IOMap.applyWithInput
 
     export const testIO = AutoChecker.evaluateEither
-    export const testIOCurry = f => a => testIO(a, f)
+    export const testIOCurry = (f: (inn, out) => Tuple<boolean, string>) => a => testIO(a, f)
 
     export const testData = AutoChecker.evaluateEitherWith
     export const testDataCurry = (data, f) => a => testData(a, data, f)
@@ -44,6 +45,10 @@ export namespace DataHelper {
 
     //make something more modular, scalable
     export function rndList<A>(seed: number, size: number, ...a: A[]): List<A> {
+        return rnd<A>(Pools.list<A>(a), seed, a.length, 0, size)
+    }
+
+    export function rndList2<A>(seed: number, size: number, a: A[]): List<A> {
         return rnd<A>(Pools.list<A>(a), seed, a.length, 0, size)
     }
 
@@ -118,7 +123,8 @@ export namespace Projects {
         "io": IODebug.init(),
         "n_green_bottles": GreenBottles.init(),
         "stopwatch": Stopwatch.init(),
-        "guess_the_number_inversed": GuessReversed.init()
+        "guess_the_number_inversed": GuessReversed.init(),
+        "binary_search": BinarySearch.init()
     }
 
     export function grade<In, Out, A, B>(r: IOMap.IO<In, Out>, algebra: Mapping<In, Out, A, B>, test: IOMap<In, Out, A>, success: (r: B) => void, error: (err: string) => void) {

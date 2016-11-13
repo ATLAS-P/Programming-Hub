@@ -7,11 +7,12 @@ const IODebug_1 = require("./miniprojects/IODebug");
 const Stopwatch_1 = require("./miniprojects/Stopwatch");
 const GreenBottles_1 = require("./miniprojects/GreenBottles");
 const GuessReversed_1 = require("./miniprojects/GuessReversed");
+const BinarySearch_1 = require("./miniprojects/BinarySearch");
 var TestHelper;
 (function (TestHelper) {
     TestHelper.init = IOMap_1.IOMap.applyWithInput;
     TestHelper.testIO = AutoGrader_1.AutoChecker.evaluateEither;
-    TestHelper.testIOCurry = f => a => TestHelper.testIO(a, f);
+    TestHelper.testIOCurry = (f) => a => TestHelper.testIO(a, f);
     TestHelper.testData = AutoGrader_1.AutoChecker.evaluateEitherWith;
     TestHelper.testDataCurry = (data, f) => a => TestHelper.testData(a, data, f);
     function buildTest(data) {
@@ -43,6 +44,10 @@ var DataHelper;
         return rnd(Pools.list(a), seed, a.length, 0, size);
     }
     DataHelper.rndList = rndList;
+    function rndList2(seed, size, a) {
+        return rnd(Pools.list(a), seed, a.length, 0, size);
+    }
+    DataHelper.rndList2 = rndList2;
     function rndInt(seed, size, min, max) {
         return rnd(Pools.ints, seed, max, min, size);
     }
@@ -110,7 +115,8 @@ var Projects;
         "io": IODebug_1.IODebug.init(),
         "n_green_bottles": GreenBottles_1.GreenBottles.init(),
         "stopwatch": Stopwatch_1.Stopwatch.init(),
-        "guess_the_number_inversed": GuessReversed_1.GuessReversed.init()
+        "guess_the_number_inversed": GuessReversed_1.GuessReversed.init(),
+        "binary_search": BinarySearch_1.BinarySearch.init()
     };
     function grade(r, algebra, test, success, error) {
         algebra(test).run(r).then(success, error);

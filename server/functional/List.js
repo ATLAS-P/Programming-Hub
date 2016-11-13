@@ -71,6 +71,11 @@ class List {
     toArray() {
         return this.foldRight([], (a, aa) => aa.concat(a)).reverse();
     }
+    sort(ordering) {
+        const array = this.toArray();
+        array.sort(ordering);
+        return List.apply(array);
+    }
 }
 exports.List = List;
 class Empty extends List {
@@ -107,19 +112,28 @@ exports.Cons = Cons;
         return l.foldLeft(0, (acc, a) => acc + a);
     }
     List.sum = sum;
+    //wrong, use below!
     function range(n, from = 0) {
         const go = (left, acc = new Empty) => {
-            return left == 0 ? acc : go(left - 1, new Cons(from + n - left, acc));
+            return left == 0 ? acc : go(left - 1, new Cons(from - n + left, acc));
         };
         return go(n);
     }
     List.range = range;
+    function range2(n, from = 0) {
+        const go = (left, acc = new Empty) => {
+            return left == 0 ? acc : go(left - 1, new Cons(from + left - 1, acc));
+        };
+        return go(n);
+    }
+    List.range2 = range2;
     function concat(lla) {
         return lla.foldRight(apply([]), (la, acc_la) => acc_la.append(la));
     }
     List.concat = concat;
+    //reame to foreach
     function forall(la, f) {
-        la.map(f);
+        la.foldLeft(null, (none, a) => f(a));
     }
     List.forall = forall;
 })(List = exports.List || (exports.List = {}));

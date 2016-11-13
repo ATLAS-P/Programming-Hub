@@ -13,7 +13,7 @@ var Input;
     }
     Input.simpleIn = simpleIn;
     function listIn(stdin, inn, running) {
-        List_1.List.forall(inn, s => stdin.write(s));
+        List_1.List.forall(inn, s => stdin.write(s + BREAK));
         stdin.end();
     }
     Input.listIn = listIn;
@@ -55,12 +55,15 @@ var Runners;
             let running = true;
             let py = process.spawn(Config_1.Config.grader.lang.python, ['uploads/' + filename]);
             let output = z;
+            console.log(py.stdin.writable);
             py.stdout.on('data', function (data) {
                 var buff = new Buffer(data);
                 output = onData(output, buff.toString("utf8"), py.stdin);
             });
             py.stderr.on('data', function (err) {
                 running = false;
+                if (py.stdin.writable)
+                    py.stdin.end();
                 var buff = new Buffer(err);
                 resolve(new Either_1.Right(buff.toString("utf8")));
             });
@@ -76,6 +79,7 @@ var Runners;
                 return running;
             }
             const inDone = putInput(py.stdin, s, isRunning);
+            console.log(py.stdin.writable);
             if (inDone)
                 output = inDone;
             setTimeout(function () {
@@ -92,6 +96,7 @@ var Runners;
     (function (PythonRunners) {
         PythonRunners.multiIO = pythonSpawner(List_1.List.apply([]), Output.listOut, Input.listIn);
         PythonRunners.simpleIO = pythonSpawner("", Output.simpleOut, Input.simpleIn);
+        PythonRunners.listInSimpleOut = pythonSpawner("", Output.simpleOut, Input.listIn);
         PythonRunners.simpleIOasList = pythonSpawner(List_1.List.apply([]), Output.breakToList, Input.simpleIn);
         PythonRunners.sleepIO = pythonSpawner(List_1.List.apply([]), Output.listOut, Input.withDelay);
     })(PythonRunners = Runners.PythonRunners || (Runners.PythonRunners = {}));

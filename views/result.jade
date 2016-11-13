@@ -21,6 +21,13 @@
                             if project == "guess_the_number_inversed"
                                 p Used input: #{test.input[0]}
                                 p The computer had #{test.input[1]} in mind.
+                            if project == "binary_search"
+                                - var search = test.input.head(0)
+                                - var length = test.input.tail().head(0)
+                                - var array = test.input.tail().tail().map(function(a){return " " + a}).toArray()
+                                p Searching for: #{search}.
+                                p Array length: #{length}.
+                                p Array: #{array}.
                             if project == "stopwatch"
                                 - var inps =  test.input.toArray()
                                 for input in inps
@@ -47,6 +54,14 @@
                             if project == "guess_the_number_inversed"
                                 p Used input (maximum number): #{test.input[0]}
                                 p The computer had #{test.input[1]} in mind.
+                            if project == "binary_search"
+                                - var search = test.input.head(0)
+                                - var length = test.input.tail().head(0)
+                                - var array = test.input.tail().tail().map(function(a){return  " " + a}).toArray()
+                                p Searching for: #{search}.
+                                p Array length: #{length}.
+                                p Array length: #{array.length}.
+                                p Array: #{array}.
                             if project == "stopwatch"
                                 - var inps =  test.input.toArray()
                                 for input in inps

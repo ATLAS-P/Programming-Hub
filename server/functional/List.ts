@@ -93,6 +93,12 @@ export abstract class List<A> {
     toArray(): A[] {
         return this.foldRight<A[]>([], (a, aa) => aa.concat(a)).reverse()
     }
+
+    sort(ordering?:(a:A, b:A) => number): List<A> {
+        const array = this.toArray()
+        array.sort(ordering)
+        return List.apply(array)
+    }
 }
 
 export class Empty extends List<any> { }
@@ -125,9 +131,18 @@ export namespace List {
         return l.foldLeft(0, (acc, a) => acc + a)
     }
 
+    //wrong, use below!
     export function range(n: number, from: number = 0): List<number> {
         const go = (left: number, acc: List<number> = new Empty): List<number> => {
-            return left == 0? acc : go(left - 1, new Cons(from + n - left, acc))
+            return left == 0 ? acc : go(left - 1, new Cons(from - n + left, acc))
+        }
+
+        return go(n)
+    }
+
+    export function range2(n: number, from: number = 0): List<number> {
+        const go = (left: number, acc: List<number> = new Empty): List<number> => {
+            return left == 0 ? acc : go(left - 1, new Cons(from + left - 1, acc))
         }
 
         return go(n)
@@ -137,7 +152,8 @@ export namespace List {
         return lla.foldRight(apply([]), (la, acc_la) => acc_la.append(la))
     }
 
+    //reame to foreach
     export function forall<A>(la: List<A>, f: (a: A) => void): void {
-        la.map(f)
+        la.foldLeft(null, (none, a) => f(a))
     }
 }

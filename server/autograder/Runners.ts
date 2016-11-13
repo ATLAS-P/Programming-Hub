@@ -18,7 +18,7 @@ namespace Input {
     }
 
     export function listIn<In>(stdin: stream.Writable, inn: List<In>, running: () => boolean) {
-        List.forall(inn, s => stdin.write(s))
+        List.forall(inn, s => stdin.write(s + BREAK))
         stdin.end()
     }
 
@@ -67,6 +67,9 @@ export namespace Runners {
 
             py.stderr.on('data', function (err) {
                 running = false
+                if (py.stdin.writable) py.stdin.end()
+                console.log("ERROR, BUT WE CAUGHT IT !!!!! " + buff.toString("utf8"))
+
                 var buff = new Buffer(err as Buffer)
                 resolve(new Right(buff.toString("utf8")))
             });
@@ -83,6 +86,7 @@ export namespace Runners {
             }
 
             const inDone = putInput(py.stdin, s, isRunning)
+            console.log(py.stdin.writable)
             if (inDone) output = inDone as A
 
             setTimeout(function () {
@@ -98,6 +102,7 @@ export namespace Runners {
     export namespace PythonRunners {
         export const multiIO = pythonSpawner(List.apply([]), Output.listOut, Input.listIn)
         export const simpleIO = pythonSpawner("", Output.simpleOut, Input.simpleIn)
+        export const listInSimpleOut = pythonSpawner("", Output.simpleOut, Input.listIn)
         export const simpleIOasList = pythonSpawner(List.apply([]), Output.breakToList, Input.simpleIn)
         export const sleepIO = pythonSpawner(List.apply([]), Output.listOut, Input.withDelay)
     }

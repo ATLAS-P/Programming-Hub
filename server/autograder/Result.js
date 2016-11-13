@@ -31,8 +31,8 @@ class Test {
 }
 exports.Test = Test;
 class Success extends Test {
-    constructor() {
-        super(...arguments);
+    constructor(...args) {
+        super(...args);
         this.success = true;
     }
     toJSON() {
