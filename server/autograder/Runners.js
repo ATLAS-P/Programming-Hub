@@ -56,6 +56,7 @@ var Runners;
             let py = process.spawn(Config_1.Config.grader.lang.python, ['uploads/' + filename]);
             let output = z;
             py.stdout.on('data', function (data) {
+                console.log("received at least");
                 var buff = new Buffer(data);
                 output = onData(output, buff.toString("utf8"), py.stdin);
             });

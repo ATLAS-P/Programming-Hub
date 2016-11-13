@@ -61,6 +61,7 @@ export namespace Runners {
             let output = z
 
             py.stdout.on('data', function (data) {
+                console.log("received at least")
                 var buff = new Buffer(data as Buffer)
                 output = onData(output, buff.toString("utf8"), py.stdin)
             });
