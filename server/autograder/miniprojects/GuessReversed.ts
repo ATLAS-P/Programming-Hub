@@ -17,19 +17,17 @@ export namespace GuessReversed {
         })
         const runner = Runners.pythonSpawner<number[], Tuple<number, number>, number>(new Tuple(0, 0), (out, data, stdin) => {
             const guess = getFirstNumber(data, -1)
+
             if (out._2 > 500) {
-                if (stdin.writable) {
-                    stdin.write("c" + BREAK)
-                    stdin.end()
-                }
-                return out.map_2(a => -1)
-            }
-            else if (guess > out._1) if (stdin.writable) stdin.write("l" + BREAK)
-            else if (guess < out._1) if (stdin.writable) stdin.write("h" + BREAK)
-            else if (stdin.writable) {
                 stdin.write("c" + BREAK)
                 stdin.end()
+                return out.map_2(a => -1)
             }
+            else if (guess > out._1) stdin.write("l" + BREAK)
+            else if (guess < out._1) stdin.write("h" + BREAK)
+
+            stdin.write("c" + BREAK)
+            stdin.end()
             return out.map_2(a => a + 1)
         }, (stdin, inn, running) => {
             stdin.write(inn[0] + BREAK)

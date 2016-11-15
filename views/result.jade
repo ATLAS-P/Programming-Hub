@@ -16,6 +16,18 @@
                         .test_input(id=i + "_input")
                             if project == "io"
                                 p Used input: '#{test.input}'
+                            if project == "fibs"
+                                - var inp = test.input.toArray()
+                                p First and second fibonacci number: #{inp[0]} and #{inp[1]}
+                                p Pair #1: #{inp[2]} and #{inp[3]}
+                                p Pair #2: #{inp[4]} and #{inp[5]}
+                                p Pair #3: #{inp[6]} and #{inp[7]}
+                            if project == "calculator"
+                                p Used input: '#{test.input}'
+                            if project == "decrypt"
+                                - var inp = test.input.toArray()
+                                p Rotation: '#{inp[0]}'
+                                p Data: '#{inp[1]}'
                             if project == "n_green_bottles"
                                 p Used input: #{test.input}
                             if project == "guess_the_number_inversed"
@@ -49,11 +61,23 @@
                         .test_input(id=i + "_input")
                             if project == "io"
                                 p Used input: #{test.input}
+                            if project == "fibs"
+                                - var inp = test.input.toArray()
+                                p First and second fibonacci number: #{inp[0]} and #{inp[1]}
+                                p Pair #1: #{inp[2]} and #{inp[3]}
+                                p Pair #2: #{inp[4]} and #{inp[5]}
+                                p Pair #3: #{inp[6]} and #{inp[7]}
+                            if project == "calculator"
+                                p Used input: '#{test.input}'
                             if project == "n_green_bottles"
                                 p Used input: #{test.input}
                             if project == "guess_the_number_inversed"
                                 p Used input (maximum number): #{test.input[0]}
                                 p The computer had #{test.input[1]} in mind.
+                            if project == "decrypt"
+                                - var inp = test.input.toArray()
+                                p Rotation: '#{inp[0]}'
+                                p Data: '#{inp[1]}'
                             if project == "binary_search"
                                 - var search = test.input.head(0)
                                 - var length = test.input.tail().head(0)

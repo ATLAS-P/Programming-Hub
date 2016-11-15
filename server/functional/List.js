@@ -41,6 +41,9 @@ class List {
     prepend(la) {
         return la.append(this);
     }
+    get(n) {
+        return this.match(() => null, (x, xs) => (n == 0) ? x : xs.get(n - 1));
+    }
     map(f) {
         return this.foldRight(List.apply([]), (a, lb) => lb.add(f(a)));
     }

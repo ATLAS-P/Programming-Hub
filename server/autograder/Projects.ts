@@ -7,6 +7,9 @@ import { IOMap } from "../functional/IOMap"
 import { IODebug } from "./miniprojects/IODebug"
 import { Stopwatch } from "./miniprojects/Stopwatch"
 import { GreenBottles } from "./miniprojects/GreenBottles"
+import { Fibonacci } from "./miniprojects/Fibonacci"
+import { CeasarCipher } from "./miniprojects/CeasarCipher"
+import { Calculator } from "./miniprojects/Calculator"
 import { GuessReversed } from "./miniprojects/GuessReversed"
 import {Result, Test} from "./Result"
 import {BinarySearch} from "./miniprojects/BinarySearch"
@@ -124,7 +127,10 @@ export namespace Projects {
         "n_green_bottles": GreenBottles.init(),
         "stopwatch": Stopwatch.init(),
         "guess_the_number_inversed": GuessReversed.init(),
-        "binary_search": BinarySearch.init()
+        "binary_search": BinarySearch.init(),
+        "fibs": Fibonacci.init(),
+        "calculator": Calculator.init(),
+        "decrypt": CeasarCipher.init(),
     }
 
     export function grade<In, Out, A, B>(r: IOMap.IO<In, Out>, algebra: Mapping<In, Out, A, B>, test: IOMap<In, Out, A>, success: (r: B) => void, error: (err: string) => void) {

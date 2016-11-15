@@ -57,6 +57,10 @@ export abstract class List<A> {
         return la.append(this)
     }
 
+    get(n: number): A {
+        return this.match(() => null, (x, xs) => (n == 0)? x : xs.get(n - 1))
+    }
+
     map<B>(f: (a: A) => B): List<B> {
         return this.foldRight(List.apply([]), (a, lb) => lb.add(f(a)))
     }

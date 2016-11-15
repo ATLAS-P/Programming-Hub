@@ -6,6 +6,9 @@ const IOMap_1 = require("../functional/IOMap");
 const IODebug_1 = require("./miniprojects/IODebug");
 const Stopwatch_1 = require("./miniprojects/Stopwatch");
 const GreenBottles_1 = require("./miniprojects/GreenBottles");
+const Fibonacci_1 = require("./miniprojects/Fibonacci");
+const CeasarCipher_1 = require("./miniprojects/CeasarCipher");
+const Calculator_1 = require("./miniprojects/Calculator");
 const GuessReversed_1 = require("./miniprojects/GuessReversed");
 const BinarySearch_1 = require("./miniprojects/BinarySearch");
 var TestHelper;
@@ -116,7 +119,10 @@ var Projects;
         "n_green_bottles": GreenBottles_1.GreenBottles.init(),
         "stopwatch": Stopwatch_1.Stopwatch.init(),
         "guess_the_number_inversed": GuessReversed_1.GuessReversed.init(),
-        "binary_search": BinarySearch_1.BinarySearch.init()
+        "binary_search": BinarySearch_1.BinarySearch.init(),
+        "fibs": Fibonacci_1.Fibonacci.init(),
+        "calculator": Calculator_1.Calculator.init(),
+        "decrypt": CeasarCipher_1.CeasarCipher.init(),
     };
     function grade(r, algebra, test, success, error) {
         algebra(test).run(r).then(success, error);
