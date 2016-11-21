@@ -1,7 +1,8 @@
-﻿import {Routes} from './Routes'
-import {Render} from './Render'
-import {Groups} from '../../database/tables/Groups'
-import {Files} from '../../database/tables/Files'
+﻿import { Routes } from './Routes'
+import { Render } from './Render'
+import { TestJSON } from '../../autograder/Result'
+import { Groups } from '../../database/tables/Groups'
+import { Files } from '../../database/tables/Files'
 
 import * as express from "express"
 
@@ -9,22 +10,26 @@ export namespace Sockets {
     type Handler = (socket: SocketIO.Socket) => void
     type SimpleCall = () => void
     type GroupCall = (group: string) => void
+    type feedbackCall = (file:string, feedback: string) => void
+    type ResultsCall = (data: TestJSON<any>[], project:string) => void
     type NonFinalCall = (accept: boolean, assignment: string) => void
 
     //on or get is for receiving, others can be used to emit
     const ON_CONNECTION = "connection"
     const GET_GROUPS = "getGroups"
     const GET_GROUP_USERS = "getUsersIn"
+    const GET_RESULTS = "getResults"
+    const ON_UPDATE_FEEDBACK = "updateFeedback"
     const GET_NON_FINAL = "getNonFinalHandIns"
     const ON_HANDLE_NON_FINAL = "handleNonFinal"
 
     const SEND_GROUPS = "setGroups"
     const SEND_GROUP_USERS = "setUsersIn"
     const SEND_NON_FINAL = "setNonFinalHandIns"
+    const SEND_RESULTS = "setResults"
+    const SEND_FEEDBACK = "feedbacked"
 
     export function bindHandlers(app: express.Express, io: SocketIO.Server) {
-        console.log("setting op io")
-
         io.on(ON_CONNECTION, connection(app))
     }
 
@@ -36,6 +41,8 @@ export namespace Sockets {
             socket.on(GET_GROUP_USERS, getOtherUsersIn(app, socket))
             socket.on(GET_NON_FINAL, getNonFinalFiles(app, socket))
             socket.on(ON_HANDLE_NON_FINAL, handleNonFinal(app, socket))
+            socket.on(GET_RESULTS, buildResults(app, socket))
+            socket.on(ON_UPDATE_FEEDBACK, updateFeedback(app, socket))
         }
     }
 
@@ -91,6 +98,18 @@ export namespace Sockets {
         }
     }
 
+    export function buildResults(app: express.Express, socket: SocketIO.Socket): ResultsCall {
+        return (data, project) => {
+            Render.results(app, "result", project, data, html => emitHtml(socket, SEND_RESULTS, true, html), err => emitHtml(socket, SEND_RESULTS, false, err))
+        }
+    }
+
+    export function updateFeedback(app: express.Express, socket: SocketIO.Socket): feedbackCall {
+        return (file, feedback) => {
+            console.log(file, feedback)
+            Files.instance.updateFeedback(file, feedback, (file) => socket.emit(SEND_FEEDBACK, true), err => socket.emit(SEND_FEEDBACK, false, err))
+        }
+    }
     export function emitHtml(socket: SocketIO.Socket, to: string, success: boolean, data: string | Error) {
         if (success) socket.emit(to, { success: true, html: data as string })
         else socket.emit(to, { success: false, err: (data instanceof Error ? data.message : data) })

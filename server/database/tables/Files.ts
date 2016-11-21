@@ -48,6 +48,12 @@ class File extends Table<Tables.File> {
     mkFinal(s: string, ass: string) {
         this.model.findOne({ student: s, assignment: ass, final: false }).update({ final: true }).exec()
     }
+
+    updateFeedback(id: string, feedback: string, success: Table.SucOne<Tables.File>, fail: Table.Err) {
+        this.updateOne(id, (file:Tables.File) => {
+            file.feedback = feedback
+        }, success, fail)
+    }
 }
 
 export namespace Files {

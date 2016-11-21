@@ -14,22 +14,48 @@ var Files;
             $(".nonFinalHandin#" + ass).remove();
             $("#nonFinalAlert").remove();
         });
-        setResult(JSON.parse($('#result').attr('data')));
-    }
-    Files.init = init;
-    function setResult(res) {
-        if (res.type == 'autograder') {
-            setGraderResult(res.data);
+        $("#updateFeadback").click(function () {
+            const file = $(this).attr("file");
+            const feedback = $("#feedback").val();
+            sendFeedback(file, feedback);
+        });
+        socket.on("setResults", setResults);
+        socket.on("feedbacked", doneFeedback);
+        const data = JSON.parse($("#displayResults").attr("data"));
+        const project = $("#displayResults").attr("project");
+        if (data.length > 0) {
+            setResult(data, project);
+            $("#displayResults").attr("data", "");
         }
     }
-    function setGraderResult(res) {
-        const p = document.createElement("p");
-        p.innerText = "Tests passed: " + (res.tests - res.fail.length) + "/" + res.tests;
-        const p2 = document.createElement("p");
-        p2.innerText = "Failed tests: " + res.fail.toString().replace(/,/g, ", ");
-        $("#result").append(p);
-        $("#result").append(p2);
-        $("#result").attr("data", "");
+    Files.init = init;
+    function setResult(res, project) {
+        socket.emit("getResults", res, project);
+    }
+    Files.setResult = setResult;
+    function sendFeedback(file, feedback) {
+        socket.emit("updateFeedback", file, feedback);
+    }
+    function doneFeedback(success, err) {
+        console.log("Feedbacked");
+        if (success) {
+            $("#feedbackMessage").text("Your feedback has been recoreded");
+            $("#feedbackMessage").addClass("success");
+            $("#feedbackMessage").removeClass("fail");
+        }
+        else {
+            $("#feedbackMessage").text(err);
+            $("#feedbackMessage").addClass("fail");
+            $("#feedbackMessage").removeClass("success");
+        }
+    }
+    function setResults(html) {
+        if (html.success) {
+            $("#displayResults").html(html.html);
+        }
+        else {
+            $("#displayResults").html(html.err);
+        }
     }
 })(Files || (Files = {}));
 $(document).ready(Files.init);

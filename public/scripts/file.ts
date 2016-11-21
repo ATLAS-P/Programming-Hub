@@ -1,7 +1,9 @@
 ﻿namespace Files {
     interface Result {
-        type: String,
-        data: Object
+        tests: Object,
+        success: boolean,
+        passed: number,
+        failed: any[]
     }
 
     interface Grader {
@@ -24,26 +26,52 @@
             $(".nonFinalHandin#" + ass).remove()
             $("#nonFinalAlert").remove()
         })
+        $("#updateFeadback").click(function () {
+            const file = $(this).attr("file")
+            const feedback = $("#feedback").val()
 
-        setResult(JSON.parse($('#result').attr('data')))
-    }
+            sendFeedback(file, feedback)
+        })
 
-    function setResult(res: Result) {
-        if (res.type == 'autograder') {
-            setGraderResult(res.data as Grader)
+        socket.on("setResults", setResults)
+        socket.on("feedbacked", doneFeedback)
+
+        const data = JSON.parse($("#displayResults").attr("data"))
+        const project = $("#displayResults").attr("project")
+
+        if (data.length > 0) {
+            setResult(data, project)
+            $("#displayResults").attr("data", "")
         }
     }
 
-    function setGraderResult(res: Grader) {
-        const p = document.createElement("p")
-        p.innerText = "Tests passed: " + (res.tests - res.fail.length) + "/" + res.tests
+    export function setResult(res, project) {
+        socket.emit("getResults", res, project)
+    }
 
-        const p2 = document.createElement("p")
-        p2.innerText = "Failed tests: " + res.fail.toString().replace(/,/g, ", ")
+    function sendFeedback(file: string, feedback: string) {
+        socket.emit("updateFeedback", file, feedback)
+    }
 
-        $("#result").append(p)
-        $("#result").append(p2)
-        $("#result").attr("data", "")
+    function doneFeedback(success: boolean, err?: string) {
+        console.log("Feedbacked")
+        if (success) {
+            $("#feedbackMessage").text("Your feedback has been recoreded")
+            $("#feedbackMessage").addClass("success")
+            $("#feedbackMessage").removeClass("fail")
+        } else {
+            $("#feedbackMessage").text(err)
+            $("#feedbackMessage").addClass("fail")
+            $("#feedbackMessage").removeClass("success")
+        }
+    }
+
+    function setResults(html: HtmlResponse) {
+        if (html.success) {
+            $("#displayResults").html(html.html)
+        } else {
+            $("#displayResults").html(html.err)
+        }
     }
 }
 

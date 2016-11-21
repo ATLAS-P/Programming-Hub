@@ -43,6 +43,11 @@ class File extends Table_1.Table {
     mkFinal(s, ass) {
         this.model.findOne({ student: s, assignment: ass, final: false }).update({ final: true }).exec();
     }
+    updateFeedback(id, feedback, success, fail) {
+        this.updateOne(id, (file) => {
+            file.feedback = feedback;
+        }, success, fail);
+    }
 }
 var Files;
 (function (Files) {

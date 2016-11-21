@@ -31,14 +31,17 @@ class Test {
 }
 exports.Test = Test;
 class Success extends Test {
-    constructor(...args) {
-        super(...args);
+    constructor() {
+        super(...arguments);
         this.success = true;
     }
     toJSON() {
         return {
-            input: this.input,
-            success: true
+            input: {
+                input: this.input
+            },
+            success: true,
+            message: ""
         };
     }
 }
@@ -50,7 +53,9 @@ class Fail extends Test {
     }
     toJSON() {
         return {
-            input: this.input,
+            input: {
+                input: this.input
+            },
             success: false,
             message: this.error
         };

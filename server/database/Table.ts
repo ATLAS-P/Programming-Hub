@@ -1,5 +1,6 @@
 ﻿import * as mongoose from 'mongoose'
-import {List} from '../functional/List'
+import { List } from '../functional/List'
+import { TestJSON } from '../autograder/Result'
 
 //change all to use promise no callback
 export class Table<A extends mongoose.Document> {
@@ -172,20 +173,20 @@ export namespace Tables {
         assignment: string,
         timestamp: Date,
         partners: string[],
-        html: Object,
+        json: Object[],
         final: boolean,
         reflection: string,
         feedback: string
     }
     export interface File extends mongoose.Document, FileTemplate { }
-    export function mkFile(student: string, assignment: string, timestamp: Date, partners: string[], json: Object, final:boolean, reflection:string, feedback:string = ""): FileTemplate {
+    export function mkFile(student: string, assignment: string, timestamp: Date, partners: string[], json: TestJSON<any>[], final:boolean, reflection:string, feedback:string = ""): FileTemplate {
         return {
             _id: assignment + "_" + student,
             student: student,
             assignment: assignment,
             timestamp: timestamp,
             partners: partners,
-            html: json,
+            json: json,
             final: final,
             reflection: reflection,
             feedback: feedback
@@ -229,7 +230,11 @@ export namespace Tables {
         assignment: refrence("Assignment"),
         timestamp: Date,
         partners: [refrence("User")],
-        html: Object,
+        json: [{
+            input: Object,
+            success: Boolean,
+            message: String
+        }],
         final: Boolean,
         reflection: String,
         feedback: String
