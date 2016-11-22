@@ -17,7 +17,7 @@ block content
                             .btn.btn-danger.declineNonFinal Decline
                 hr
         h2= file.assignment.project.name
-        h3 Basic information
+        h3 Information
         p Student: #{file.student.name} #{file.student.surename}
         p Group:
         ul
@@ -31,16 +31,23 @@ block content
             a(href=file.assignment.project.info) link
         hr
         h3 Result
-        #result(data=file.html)
+        #displayResults(data=file.json project=file.assignment.project._id)
+            if file.json.length == 0
+                p Sorry the old result format cannot be displayed. Results you hand in from now on will be displayed here.
         hr
         h3 Reflection
         p= file.reflection
         hr
         h3 Feedback
         if file.final
-            if file.feedback.length > 0
-                p= file.feedback
+            if admin
+                textarea.form-control#feedback(rows="5" placeholder="Write feedback on the assignment here...")= file.feedback
+                p#feedbackMessage
+                button.btn.btn-success#updateFeadback(type="button" file=file._id) Update Feedback
             else
-                p You did not receive any feedback yet
+                if file.feedback.length > 0
+                    p= file.feedback
+                else
+                    p You did not receive any feedback yet
         else
             p You cannot receive feedback on pending handins!

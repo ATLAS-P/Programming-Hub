@@ -8,13 +8,16 @@ var Sockets;
     const ON_CONNECTION = "connection";
     const GET_GROUPS = "getGroups";
     const GET_GROUP_USERS = "getUsersIn";
+    const GET_RESULTS = "getResults";
+    const ON_UPDATE_FEEDBACK = "updateFeedback";
     const GET_NON_FINAL = "getNonFinalHandIns";
     const ON_HANDLE_NON_FINAL = "handleNonFinal";
     const SEND_GROUPS = "setGroups";
     const SEND_GROUP_USERS = "setUsersIn";
     const SEND_NON_FINAL = "setNonFinalHandIns";
+    const SEND_RESULTS = "setResults";
+    const SEND_FEEDBACK = "feedbacked";
     function bindHandlers(app, io) {
-        console.log("setting op io");
         io.on(ON_CONNECTION, connection(app));
     }
     Sockets.bindHandlers = bindHandlers;
@@ -25,6 +28,8 @@ var Sockets;
             socket.on(GET_GROUP_USERS, getOtherUsersIn(app, socket));
             socket.on(GET_NON_FINAL, getNonFinalFiles(app, socket));
             socket.on(ON_HANDLE_NON_FINAL, handleNonFinal(app, socket));
+            socket.on(GET_RESULTS, buildResults(app, socket));
+            socket.on(ON_UPDATE_FEEDBACK, updateFeedback(app, socket));
         };
     }
     Sockets.connection = connection;
@@ -77,6 +82,19 @@ var Sockets;
         };
     }
     Sockets.handleNonFinal = handleNonFinal;
+    function buildResults(app, socket) {
+        return (data, project) => {
+            Render_1.Render.results(app, "result", project, data, html => emitHtml(socket, SEND_RESULTS, true, html), err => emitHtml(socket, SEND_RESULTS, false, err));
+        };
+    }
+    Sockets.buildResults = buildResults;
+    function updateFeedback(app, socket) {
+        return (file, feedback) => {
+            console.log(file, feedback);
+            Files_1.Files.instance.updateFeedback(file, feedback, (file) => socket.emit(SEND_FEEDBACK, true), err => socket.emit(SEND_FEEDBACK, false, err));
+        };
+    }
+    Sockets.updateFeedback = updateFeedback;
     function emitHtml(socket, to, success, data) {
         if (success)
             socket.emit(to, { success: true, html: data });

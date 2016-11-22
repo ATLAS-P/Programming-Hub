@@ -19,6 +19,7 @@ var Routes;
     const GROUP = INDEX + "group";
     const GROUP_ANY = GROUP + "/*";
     const FILE = INDEX + "results/*";
+    const FILE_OF = FILE + "/*";
     const FILE_UPLOAD = GROUP + "/file-upload";
     const SUBMIT_RESULTS = GROUP + "/sendResults";
     const PRIVACY = INDEX + "legal/privacy";
@@ -31,6 +32,7 @@ var Routes;
         app.get(GROUP_ANY, group);
         app.get(INDEX, index);
         app.get(LOGOUT, logout);
+        app.get(FILE_OF, showResultOf);
         app.get(FILE, showResult);
         app.get(PRIVACY, showPrivacy);
         app.post(SUBMIT_RESULTS, submitResults);
@@ -80,7 +82,14 @@ var Routes;
         if (!req.user)
             res.redirect("/");
         else
-            Files_1.Files.instance.getDeepAssignment(req.user.id, assignment, f => Render_1.Render.file(req, res, "file", f), e => res.send(e));
+            Files_1.Files.instance.getDeepAssignment(req.user.id, assignment, f => Render_1.Render.file(req, res, "file", f, false), e => res.send(e));
+    }
+    function showResultOf(req, res) {
+        const data = req.url.split("/");
+        const assignment = data[2];
+        const user = data[3];
+        //check if req.user == admin for the group (not not possible though..., change design)
+        Files_1.Files.instance.getDeepAssignment(user, assignment, f => Render_1.Render.file(req, res, "file", f, true), e => res.send(e));
     }
     function group(req, res) {
         req.session.result = null;
@@ -102,6 +111,7 @@ var Routes;
             if (sess.result && assignment && assignment.project._id == data.project) {
                 if (assignment.due > date) {
                     const result = sess.result[data.project];
+                    console.log(result);
                     if (result) {
                         let students = List_1.List.apply([]);
                         group.students.forEach(s => {
@@ -160,10 +170,11 @@ var Routes;
                 file.pipe(fstream);
                 fstream.on('close', function () {
                     project.then((project) => {
-                        Projects_1.Projects.gradeProject(project, newName, function (r) {
+                        Projects_1.Projects.gradeProject(project, newName, r => {
                             if (!sess.result || typeof sess.result == "undefined" || sess.result == null)
                                 sess.result = {};
-                            sess.result[project] = r;
+                            sess.result[project] = r.toJSONList().toArray();
+                            console.log(sess.result[project]);
                             Render_1.Render.results(app, "result", project, r.toJSONList().toArray(), html => {
                                 res.json({ success: true, html: html });
                             }, fail => {

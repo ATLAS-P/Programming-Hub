@@ -38,10 +38,11 @@ export namespace Render {
         })
     }
 
-    export function file(req: Routes.Req, res: Routes.Res, loc: string, data: Tables.File) {
+    export function file(req: Routes.Req, res: Routes.Res, loc: string, data: Tables.File, admin:boolean) {
         res.render(loc, {
             user: req.user,
-            file: data
+            file: data,
+            admin: admin
         })
     }
 

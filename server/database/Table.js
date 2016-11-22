@@ -132,7 +132,7 @@ var Tables;
             assignment: assignment,
             timestamp: timestamp,
             partners: partners,
-            html: json,
+            json: json,
             final: final,
             reflection: reflection,
             feedback: feedback
@@ -172,7 +172,11 @@ var Tables;
         assignment: refrence("Assignment"),
         timestamp: Date,
         partners: [refrence("User")],
-        html: Object,
+        json: [{
+                input: Object,
+                success: Boolean,
+                message: String
+            }],
         final: Boolean,
         reflection: String,
         feedback: String

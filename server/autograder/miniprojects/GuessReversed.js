@@ -27,8 +27,10 @@ var GuessReversed;
                 stdin.write("l" + BREAK);
             else if (guess < out._1)
                 stdin.write("h" + BREAK);
-            stdin.write("c" + BREAK);
-            stdin.end();
+            else {
+                stdin.write("c" + BREAK);
+                stdin.end();
+            }
             return out.map_2(a => a + 1);
         }, (stdin, inn, running) => {
             stdin.write(inn[0] + BREAK);

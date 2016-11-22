@@ -1,9 +1,11 @@
 ﻿import {List} from "../functional/List"
 
 export interface TestJSON<A> {
-    input: A,
+    input: {
+        input: A
+    },
     success: boolean,
-    message?: string
+    message: string
 }
 
 export class Result<A> {
@@ -54,8 +56,11 @@ class Success<A> extends Test<A> {
 
     toJSON(): TestJSON<A> {
         return {
-            input: this.input,
-            success: true
+            input: {
+                input: this.input
+            },
+            success: true,
+            message: ""
         }
     }
 }
@@ -72,7 +77,9 @@ class Fail<A> extends Test<A> {
 
     toJSON(): TestJSON<A> {
         return {
-            input: this.input,
+            input: {
+                input: this.input
+            },
             success: false,
             message: this.error
         }

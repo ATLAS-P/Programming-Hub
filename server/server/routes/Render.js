@@ -29,10 +29,11 @@ var Render;
         });
     }
     Render.groupDetails = groupDetails;
-    function file(req, res, loc, data) {
+    function file(req, res, loc, data, admin) {
         res.render(loc, {
             user: req.user,
-            file: data
+            file: data,
+            admin: admin
         });
     }
     Render.file = file;
