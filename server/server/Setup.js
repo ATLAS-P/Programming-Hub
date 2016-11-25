@@ -71,7 +71,7 @@ var Setup;
         };
         const handleLogin = (request, accessToken, refreshToken, profile, done) => {
             process.nextTick(() => {
-                if (profile._json.domain == "student.utwente.nl") {
+                if (profile._json.domain == "student.utwente.nl" || profile.email == "ruudvandamme55@gmail.com") {
                     Users_1.Users.getByGProfile(profile, u => done(null, Users_1.Users.simplify(u)), e => done(null, null));
                 }
                 else
