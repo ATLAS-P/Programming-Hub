@@ -1,5 +1,5 @@
 ﻿mixin assList(list, name, open, details, nomess, deadline)
-    h3.special= name
+    h3= name
     if list.length > 0
         table.table.table-striped
             thead
@@ -33,7 +33,7 @@
         p= nomess
 
  mixin testResult(title, id)
-    h3.special=title
+    h3=title
     table.table.table-striped
         thead
             tr

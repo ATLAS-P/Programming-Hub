@@ -39,14 +39,15 @@ body
 	min-height 100%
 	width 100%
 	position relative
-	padding-top 10px
 	overflow auto
+	background-color #f5f5f5
 
 .btn:focus, .btn:active
 	outline none !important
 
 #content
 	padding-bottom 80px
+	margin-top 40px
 
 #footer
 	position absolute
@@ -54,7 +55,10 @@ body
 	width 100%
 
 #header
-	height 170px
+	height 105px
+	background-color #e2e2e2
+	-webkit-box-shadow: 0px 5px 10px 0px rgba(0,0,0,0.25)
+	box-shadow: 0px 5px 10px 0px rgba(0,0,0,0.25)
 
 //headings
 
@@ -77,6 +81,7 @@ h3.special
 #upload
 	display none
 	margin-bottom 40px
+	margin-top 20px
 
 #errMessage
 	font-family Open Sans
@@ -85,7 +90,7 @@ h3.special
 	display none
 
 #uploadButtons
-	margin-top 8px
+	margin-top 10px
 	:not(:nth-child(1))
 		margin-left 6px
 
@@ -101,9 +106,9 @@ textarea
 
 #profileImage
 	float right
-	padding-top 20px
+	padding-top 13px
 	img
-		width 100px
+		width 75px
 		border-radius 50px
 	a:hover, a:focus
 		text-decoration none
@@ -118,7 +123,7 @@ textarea
 	border-radius 50px
 
 .group
-	border 1px dashed blueish
+	background-color white
 	padding 15px
 	height 175px
 	h3
@@ -126,11 +131,17 @@ textarea
 		margin-bottom 20px
 		text-align center
 	text-align center
-	margin-bottom 20px
+	margin-bottom 30px
+	border-radius 5px
+	-webkit-box-shadow: 5px 5px 10px 0px rgba(0,0,0,0.25)
+	box-shadow: 5px 5px 10px 0px rgba(0,0,0,0.25)
+	transition 0.2s
 
 .group:hover
-	border 1px solid blueish
 	cursor pointer
+	transition 0.2s
+	-webkit-box-shadow: 5px 5px 10px 0px rgba(0,0,0,0.4)
+	box-shadow: 5px 5px 10px 0px rgba(0,0,0,0.4)
 
 #sendButtons
 	@extends .center
@@ -176,3 +187,18 @@ date
 
 #feedbackMessage.fail
 	color #df0000
+
+#welcome_message
+	margin-top 100px
+	font-size 18px
+
+#title_header a:hover, #title_header a:active, #title_header a:focus
+	text-decoration none
+
+#title_header
+	a
+		color #333
+	margin-top 10px
+
+h1, h2, h3
+	font-family: Open Sans

@@ -35,8 +35,6 @@ export namespace Sockets {
 
     export function connection(app: express.Express): Handler {
         return socket => {
-            console.log("socket connected")
-
             socket.on(GET_GROUPS, getGroupsOverview(app, socket))
             socket.on(GET_GROUP_USERS, getOtherUsersIn(app, socket))
             socket.on(GET_NON_FINAL, getNonFinalFiles(app, socket))
@@ -106,7 +104,6 @@ export namespace Sockets {
 
     export function updateFeedback(app: express.Express, socket: SocketIO.Socket): feedbackCall {
         return (file, feedback) => {
-            console.log(file, feedback)
             Files.instance.updateFeedback(file, feedback, (file) => socket.emit(SEND_FEEDBACK, true), err => socket.emit(SEND_FEEDBACK, false, err))
         }
     }

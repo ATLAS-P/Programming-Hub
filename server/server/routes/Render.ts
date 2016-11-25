@@ -24,7 +24,6 @@ export namespace Render {
     }
 
     export function groupDetails(req: Routes.Req, res: Routes.Res, loc: string, data: Groups.GroupDetails) {
-        console.log(data.admins)
         res.render(loc, {
             user: req.user,
             admin: data.admins.indexOf(req.user.id) >= 0,

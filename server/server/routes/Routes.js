@@ -111,7 +111,6 @@ var Routes;
             if (sess.result && assignment && assignment.project._id == data.project) {
                 if (assignment.due > date) {
                     const result = sess.result[data.project];
-                    console.log(result);
                     if (result) {
                         let students = List_1.List.apply([]);
                         group.students.forEach(s => {
@@ -174,7 +173,6 @@ var Routes;
                             if (!sess.result || typeof sess.result == "undefined" || sess.result == null)
                                 sess.result = {};
                             sess.result[project] = r.toJSONList().toArray();
-                            console.log(sess.result[project]);
                             Render_1.Render.results(app, "result", project, r.toJSONList().toArray(), html => {
                                 res.json({ success: true, html: html });
                             }, fail => {

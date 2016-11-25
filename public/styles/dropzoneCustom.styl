@@ -29,11 +29,19 @@
 .dz-message
 	font-family Open Sans
 	font-size 14px
-	padding 25px
 
 .dropzone
-	border 1px dashed blueish
-	background-color #fefefe
+	background-color white
+	border none
+	border-radius 5px
 	text-align: center
-	padding 0px
 	min-height 128px
+	-webkit-box-shadow: 5px 5px 10px 0px rgba(0,0,0,0.25)
+	box-shadow: 5px 5px 10px 0px rgba(0,0,0,0.25)
+	transition 0.2s
+
+.dropzone:hover
+	cursor pointer
+	transition 0.2s
+	-webkit-box-shadow: 5px 5px 10px 0px rgba(0,0,0,0.4)
+	box-shadow: 5px 5px 10px 0px rgba(0,0,0,0.4)

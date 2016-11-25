@@ -31,14 +31,14 @@ class Test {
 }
 exports.Test = Test;
 class Success extends Test {
-    constructor() {
-        super(...arguments);
+    constructor(...args) {
+        super(...args);
         this.success = true;
     }
     toJSON() {
         return {
             input: {
-                input: this.input
+                input: Result.delist(this.input)
             },
             success: true,
             message: ""
@@ -54,7 +54,7 @@ class Fail extends Test {
     toJSON() {
         return {
             input: {
-                input: this.input
+                input: Result.delist(this.input)
             },
             success: false,
             message: this.error
@@ -66,6 +66,13 @@ class Fail extends Test {
         return new Result(List_1.List.apply(test ? [test] : []));
     }
     Result.unit = unit;
+    function delist(a) {
+        if (a.toArray)
+            return a.toArray();
+        else
+            return a;
+    }
+    Result.delist = delist;
 })(Result = exports.Result || (exports.Result = {}));
 (function (Test) {
     function unit(success, input, message) {

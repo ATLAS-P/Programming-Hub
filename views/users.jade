@@ -2,6 +2,7 @@
 
 block content
     .container
+        -var mails = ""
         table.table.table-striped
             thead
                 tr
@@ -15,6 +16,10 @@ block content
                         td= user.name
                         td= user.surename
                         td
-                            a(href="mailto:" + user._id + "@student.utwente.nl")= user._id
+                            - var mail = user._id + "@student.utwente.nl"
+                            - mails += mail + ","
+                            a(href="mailto:" + mail)= user._id
                         td
                             a(href="users/" + user._id) View
+        hr
+        a(href="mailto:" + mails) Click to send a mail to all students in the group

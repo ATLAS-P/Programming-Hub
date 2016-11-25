@@ -57,7 +57,7 @@ class Success<A> extends Test<A> {
     toJSON(): TestJSON<A> {
         return {
             input: {
-                input: this.input
+                input: Result.delist(this.input)
             },
             success: true,
             message: ""
@@ -78,7 +78,7 @@ class Fail<A> extends Test<A> {
     toJSON(): TestJSON<A> {
         return {
             input: {
-                input: this.input
+                input: Result.delist(this.input)
             },
             success: false,
             message: this.error
@@ -89,6 +89,11 @@ class Fail<A> extends Test<A> {
 export namespace Result {
     export function unit<A>(test?: Test<A>): Result<A> {
         return new Result<A>(List.apply(test ? [test] : []))
+    }
+
+    export function delist(a: any): any[] | any {
+        if (a.toArray) return a.toArray()
+        else return a
     }
 }
 

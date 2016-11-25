@@ -15,7 +15,6 @@ var Render;
     }
     Render.error = error;
     function groupDetails(req, res, loc, data) {
-        console.log(data.admins);
         res.render(loc, {
             user: req.user,
             admin: data.admins.indexOf(req.user.id) >= 0,
