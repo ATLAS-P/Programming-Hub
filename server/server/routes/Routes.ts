@@ -170,21 +170,25 @@ export namespace Routes {
                                 const pending = "https://atlasprogramming.file.core.windows.net/handins/pending/" + req.user.id + "/" + data.project + ".py"
 
                                 azureStorage.createDirectoryIfNotExists('handins', dir, (error, resu, response) => {
-                                    students.toArray().forEach((s, i) => {
-                                        let file = Tables.mkFile(s._id, assignment._id, time, studentIDs, result, s._id == req.user.id, data[s._id])
-                                        Files.instance.create(file, () => {
-                                            if (s._id == req.user.id) res.redirect("/results/" + assignment._id)
-                                            azureStorage.createDirectoryIfNotExists('handins', dir + "/" + s._id, (error, resu, response) => {
-                                                azureStorage.startCopyFile(pending, "handins", dir + "/" + s._id, data.project + ".py", (error, resu, response) => {
-                                                    if (i == students.length() - 1) {
-                                                        azureStorage.deleteFile("handins", "pending" + "/" + req.user.id, data.project + ".py", (e, r) => {
-                                                            if (e) console.log(e)
-                                                        })
-                                                    }
+                                    const dir2 = dir + "/" + data.group
+
+                                    azureStorage.createDirectoryIfNotExists('handins', dir2, (error, resu, response) => {
+                                        students.toArray().forEach((s, i) => {
+                                            let file = Tables.mkFile(s._id, assignment._id, time, studentIDs, result, s._id == req.user.id, data[s._id])
+                                            Files.instance.create(file, () => {
+                                                if (s._id == req.user.id) res.redirect("/results/" + assignment._id)
+                                                azureStorage.createDirectoryIfNotExists('handins', dir2 + "/" + s._id, (error, resu, response) => {
+                                                    azureStorage.startCopyFile(pending, "handins", dir2 + "/" + s._id, data.project + ".py", (error, resu, response) => {
+                                                        if (i == students.length() - 1) {
+                                                            azureStorage.deleteFile("handins", "pending" + "/" + req.user.id, data.project + ".py", (e, r) => {
+                                                                if (e) console.log(e)
+                                                            })
+                                                        }
+                                                    })
                                                 })
-                                            })
-                                            //move pending to done, remove pending if i == length - 1
-                                        }, Table.error)
+                                                //move pending to done, remove pending if i == length - 1
+                                            }, Table.error)
+                                        })
                                     })
                                 })
                             }
