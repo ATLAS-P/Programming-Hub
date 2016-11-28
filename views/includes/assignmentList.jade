@@ -28,7 +28,7 @@
                             a(href="javascript:Group.gradeProject('" + project.project._id + "', '" + project._id + "', '" + project.project.name + "', " + open + ")") Upload
                         if details
                             td
-                                a(href="/results/" + project._id) View
+                                a(href="/results/" + group.id + "/" + project._id) View
     else 
         p= nomess
 

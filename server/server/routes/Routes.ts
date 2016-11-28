@@ -34,7 +34,7 @@ export namespace Routes {
     const AUTH_CALLBACK = AUTH + "/callback"
     const GROUP = INDEX + "group"
     const GROUP_ANY = GROUP + "/*"
-    const FILE = INDEX + "results/*"
+    const FILE = INDEX + "results/*/*"
     const FILE_OF = FILE + "/*"
     const FILE_UPLOAD = GROUP + "/file-upload"
     const SUBMIT_RESULTS = GROUP + "/sendResults"
@@ -107,20 +107,32 @@ export namespace Routes {
     }
 
     function showResult(req: Req, res: Res) {
-        const assignment = req.url.split("/")[2]
+        const data = req.url.split("/")
+
+        const group = data[2]
+        const assignment = data[3]
 
         if (!req.user) res.redirect("/")
-        else Files.instance.getDeepAssignment(req.user.id, assignment, f => Render.file(req, res, "file", f, false), e => res.send(e))
+        else Files.instance.getDeepAssignment(req.user.id, assignment, f => {
+            let token = azureStorage.generateSharedAccessSignature("handins", "projects/" + group + "/" + req.user.id, (f.assignment as any).project.id + ".py", { AccessPolicy: { Permissions: "r", Expiry: azure.date.minutesFromNow(10) } })
+
+            Render.file(req, res, "file", f, group, token, false)
+        }, e => res.send(e))
     }
 
     function showResultOf(req: Req, res: Res) {
         const data = req.url.split("/")
 
-        const assignment = data[2]
-        const user = data[3]
+        const group = data[2]
+        const assignment = data[3]
+        const user = data[4]
 
         //check if req.user == admin for the group (not not possible though..., change design)
-        Files.instance.getDeepAssignment(user, assignment, f => Render.file(req, res, "file", f, true), e => res.send(e))
+        Files.instance.getDeepAssignment(user, assignment, f => {
+            let token = azureStorage.generateSharedAccessSignature("handins", "projects/" + group + "/" + user, (f.assignment as any).project.id + ".py", { AccessPolicy: { Permissions: "r", Expiry: azure.date.minutesFromNow(10) } })
+
+            Render.file(req, res, "file", f, group, token, true)
+        }, e => res.send(e))
     }
 
     function group(req: Req, res: Res) {

@@ -28,11 +28,13 @@ var Render;
         });
     }
     Render.groupDetails = groupDetails;
-    function file(req, res, loc, data, admin) {
+    function file(req, res, loc, data, group, token, admin) {
         res.render(loc, {
             user: req.user,
             file: data,
-            admin: admin
+            admin: admin,
+            group: group,
+            token: token
         });
     }
     Render.file = file;

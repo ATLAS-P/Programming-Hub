@@ -29,6 +29,9 @@ block content
             date= file.assignment.due
         p Additional assignment info: 
             a(href=file.assignment.project.info) link
+        p Uploaded file: 
+            a(href="https://atlasprogramming.file.core.windows.net/handins/projects/" + group + "/" + user.id + "/" + file.assignment.project.id + ".py?" + token) link
+            |&nbsp;(only available for uploads done after 29th of November)
         hr
         h3 Result
         #displayResults(data=file.json project=file.assignment.project._id)

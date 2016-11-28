@@ -37,11 +37,13 @@ export namespace Render {
         })
     }
 
-    export function file(req: Routes.Req, res: Routes.Res, loc: string, data: Tables.File, admin:boolean) {
+    export function file(req: Routes.Req, res: Routes.Res, loc: string, data: Tables.File, group:string, token:string, admin:boolean) {
         res.render(loc, {
             user: req.user,
             file: data,
-            admin: admin
+            admin: admin,
+            group: group,
+            token: token
         })
     }
 
