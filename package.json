@@ -8,6 +8,7 @@
     "email": "rikmuld@gmail.com"
   },
   "dependencies": {
+    "azure-storage": "^1.3.2",
     "body-parser": "^1.15.2",
     "busboy": "^0.2.13",
     "child-process": "^1.0.2",

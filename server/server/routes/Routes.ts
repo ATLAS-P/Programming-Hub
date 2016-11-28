@@ -2,6 +2,7 @@
 import * as socket from 'socket.io'
 import * as passport from 'passport'
 import * as fs from 'fs'
+import * as azure from 'azure-storage'
 
 import {Projects} from '../../autograder/Projects'
 import {Groups} from '../../database/tables/Groups'
@@ -14,6 +15,7 @@ import {List} from '../../functional/List'
 import {Result, TestJSON} from '../../autograder/Result'
 import {Render} from './Render'
 import {Sockets} from './Sockets'
+import {Config} from '../Config'
 
 //cleanups needed below
 export namespace Routes {
@@ -41,6 +43,9 @@ export namespace Routes {
     const FILES = DATABASE + "/files"
     const USERS = DATABASE + "/users"
 
+    //TODO properly
+    let azureStorage: azure.FileService
+
     export function addRoutes(app: express.Express, root: string) {
         app.get(FILES, files)
         app.get(USERS, users)
@@ -63,6 +68,9 @@ export namespace Routes {
             successRedirect: '/',
             failureRedirect: '/'
         }))
+
+        //DO PROPERLY
+        azureStorage = azure.createFileService(Config.storage.name, Config.storage.key)
     }
 
     function showPrivacy(req: Req, res: Res) {
@@ -158,13 +166,26 @@ export namespace Routes {
                             if (nogo) res.send("This assignment was alreaday handed in by you or your parnters!")
                             else {
                                 const time = new Date()
+                                const dir = "projects"
+                                const pending = "https://atlasprogramming.file.core.windows.net/handins/pending/" + req.user.id + "/" + data.project + ".py"
 
-                                students.toArray().forEach((s, i) => {
-                                    //if non final exisits override it
-                                    let file = Tables.mkFile(s._id, assignment._id, time, studentIDs, result, s._id == req.user.id, data[s._id])
-                                    Files.instance.create(file, () => {
-                                        if (i == (students.length() - 1)) res.redirect("/result/" + assignment._id)
-                                    }, Table.error)
+                                azureStorage.createDirectoryIfNotExists('handins', dir, (error, resu, response) => {
+                                    students.toArray().forEach((s, i) => {
+                                        let file = Tables.mkFile(s._id, assignment._id, time, studentIDs, result, s._id == req.user.id, data[s._id])
+                                        Files.instance.create(file, () => {
+                                            if (s._id == req.user.id) res.redirect("/results/" + assignment._id)
+                                            azureStorage.createDirectoryIfNotExists('handins', dir + "/" + s._id, (error, resu, response) => {
+                                                azureStorage.startCopyFile(pending, "handins", dir + "/" + s._id, data.project + ".py", (error, resu, response) => {
+                                                    if (i == students.length() - 1) {
+                                                        azureStorage.deleteFile("handins", "pending" + "/" + req.user.id, data.project + ".py", (e, r) => {
+                                                            if (e) console.log(e)
+                                                        })
+                                                    }
+                                                })
+                                            })
+                                            //move pending to done, remove pending if i == length - 1
+                                        }, Table.error)
+                                    })
                                 })
                             }
                         }, r => res.send("Unexpected error during validation of hand-in request!"))
@@ -201,14 +222,26 @@ export namespace Routes {
                         Projects.gradeProject(project, newName, r => {
                             if (!sess.result || typeof sess.result == "undefined" || sess.result == null) sess.result = {}
 
-                            sess.result[project] = r.toJSONList().toArray()
-                            Render.results(app, "result", project, r.toJSONList().toArray(), html => {
-                                res.json({ success: true, html:html })
-                            }, fail => {
-                                res.json({ success: false, err: fail.message })
-                                })
+                            const dir = "pending"
+                            azureStorage.createDirectoryIfNotExists('handins', dir, (error, result, response) => { 
+                                azureStorage.createDirectoryIfNotExists('handins', dir + "/" + req.user.id, (error, result, response) => { 
+                                    azureStorage.createFileFromLocalFile('handins', dir + "/" + req.user.id, project + ".py", filepath, (error, result, response) => {
+                                        if (error) {
+                                            res.json({ success: false, err: error.message })
+                                            fs.unlink(filepath)
+                                        } else {
+                                            sess.result[project] = r.toJSONList().toArray()
+                                            Render.results(app, "result", project, r.toJSONList().toArray(), html => {
+                                                res.json({ success: true, html: html })
+                                            }, fail => {
+                                                res.json({ success: false, err: fail.message })
+                                            })
 
-                            fs.unlink(filepath)
+                                            fs.unlink(filepath)
+                                        }
+                                    })
+                                })
+                            })
                         }, (err: string) => {
                                 res.json({ success: false, err: err })
                                 fs.unlink(filepath)

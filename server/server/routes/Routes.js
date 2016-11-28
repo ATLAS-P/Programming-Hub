@@ -1,6 +1,7 @@
 "use strict";
 const passport = require('passport');
 const fs = require('fs');
+const azure = require('azure-storage');
 const Projects_1 = require('../../autograder/Projects');
 const Groups_1 = require('../../database/tables/Groups');
 const Files_1 = require('../../database/tables/Files');
@@ -9,6 +10,7 @@ const Future_1 = require('../../functional/Future');
 const IOMap_1 = require('../../functional/IOMap');
 const List_1 = require('../../functional/List');
 const Render_1 = require('./Render');
+const Config_1 = require('../Config');
 //cleanups needed below
 var Routes;
 (function (Routes) {
@@ -26,6 +28,8 @@ var Routes;
     const DATABASE = GROUP_ANY + "database";
     const FILES = DATABASE + "/files";
     const USERS = DATABASE + "/users";
+    //TODO properly
+    let azureStorage;
     function addRoutes(app, root) {
         app.get(FILES, files);
         app.get(USERS, users);
@@ -45,6 +49,8 @@ var Routes;
             successRedirect: '/',
             failureRedirect: '/'
         }));
+        //DO PROPERLY
+        azureStorage = azure.createFileService(Config_1.Config.storage.name, Config_1.Config.storage.key);
     }
     Routes.addRoutes = addRoutes;
     function showPrivacy(req, res) {
@@ -129,13 +135,27 @@ var Routes;
                                 res.send("This assignment was alreaday handed in by you or your parnters!");
                             else {
                                 const time = new Date();
-                                students.toArray().forEach((s, i) => {
-                                    //if non final exisits override it
-                                    let file = Table_1.Tables.mkFile(s._id, assignment._id, time, studentIDs, result, s._id == req.user.id, data[s._id]);
-                                    Files_1.Files.instance.create(file, () => {
-                                        if (i == (students.length() - 1))
-                                            res.redirect("/result/" + assignment._id);
-                                    }, Table_1.Table.error);
+                                const dir = "projects";
+                                const pending = "https://atlasprogramming.file.core.windows.net/handins/pending/" + req.user.id + "/" + data.project + ".py";
+                                azureStorage.createDirectoryIfNotExists('handins', dir, (error, resu, response) => {
+                                    students.toArray().forEach((s, i) => {
+                                        let file = Table_1.Tables.mkFile(s._id, assignment._id, time, studentIDs, result, s._id == req.user.id, data[s._id]);
+                                        Files_1.Files.instance.create(file, () => {
+                                            if (s._id == req.user.id)
+                                                res.redirect("/results/" + assignment._id);
+                                            azureStorage.createDirectoryIfNotExists('handins', dir + "/" + s._id, (error, resu, response) => {
+                                                azureStorage.startCopyFile(pending, "handins", dir + "/" + s._id, data.project + ".py", (error, resu, response) => {
+                                                    if (i == students.length() - 1) {
+                                                        azureStorage.deleteFile("handins", "pending" + "/" + req.user.id, data.project + ".py", (e, r) => {
+                                                            if (e)
+                                                                console.log(e);
+                                                        });
+                                                    }
+                                                });
+                                            });
+                                            //move pending to done, remove pending if i == length - 1
+                                        }, Table_1.Table.error);
+                                    });
                                 });
                             }
                         }, r => res.send("Unexpected error during validation of hand-in request!"));
@@ -172,13 +192,26 @@ var Routes;
                         Projects_1.Projects.gradeProject(project, newName, r => {
                             if (!sess.result || typeof sess.result == "undefined" || sess.result == null)
                                 sess.result = {};
-                            sess.result[project] = r.toJSONList().toArray();
-                            Render_1.Render.results(app, "result", project, r.toJSONList().toArray(), html => {
-                                res.json({ success: true, html: html });
-                            }, fail => {
-                                res.json({ success: false, err: fail.message });
+                            const dir = "pending";
+                            azureStorage.createDirectoryIfNotExists('handins', dir, (error, result, response) => {
+                                azureStorage.createDirectoryIfNotExists('handins', dir + "/" + req.user.id, (error, result, response) => {
+                                    azureStorage.createFileFromLocalFile('handins', dir + "/" + req.user.id, project + ".py", filepath, (error, result, response) => {
+                                        if (error) {
+                                            res.json({ success: false, err: error.message });
+                                            fs.unlink(filepath);
+                                        }
+                                        else {
+                                            sess.result[project] = r.toJSONList().toArray();
+                                            Render_1.Render.results(app, "result", project, r.toJSONList().toArray(), html => {
+                                                res.json({ success: true, html: html });
+                                            }, fail => {
+                                                res.json({ success: false, err: fail.message });
+                                            });
+                                            fs.unlink(filepath);
+                                        }
+                                    });
+                                });
                             });
-                            fs.unlink(filepath);
                         }, (err) => {
                             res.json({ success: false, err: err });
                             fs.unlink(filepath);
