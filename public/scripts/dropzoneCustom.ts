@@ -3,6 +3,8 @@ let zone
 
 const noPyhon = 'Please only use python files!'
 
+let lastExtension = ""
+
 Dropzone.options.zonemini = {
     createImageThumbnails: false,
     parallelUploads: 1,
@@ -27,8 +29,10 @@ function canAcceptFile(file, accept) {
 }
 
 function sending(file, xhr, formData) {
-    console.log(project, formData)
     formData.append("project", project)
+    formData.append("type", projectType)
+
+    lastExtension = file.name.split(".").pop()
 }
 
 function fileAdded(file) {

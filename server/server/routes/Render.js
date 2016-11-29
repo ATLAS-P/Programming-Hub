@@ -44,6 +44,13 @@ var Render;
         }, success, fail);
     }
     Render.groupsOverview = groupsOverview;
+    function upload(app, loc, project, filename, success, fail) {
+        render(app, loc, {
+            project: project,
+            file: filename
+        }, success, fail);
+    }
+    Render.upload = upload;
     function users(app, loc, data, success, fail) {
         render(app, loc, {
             users: data

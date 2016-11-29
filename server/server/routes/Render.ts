@@ -53,6 +53,13 @@ export namespace Render {
         }, success, fail)
     }
 
+    export function upload(app: express.Express, loc: string, project:string, filename:string, success: Suc, fail: Err) {
+        render(app, loc, {
+            project: project, 
+            file: filename
+        }, success, fail)
+    }
+
     export function users(app: express.Express, loc: string, data: Tables.User[], success: Suc, fail: Err) {
         render(app, loc, {
             users: data

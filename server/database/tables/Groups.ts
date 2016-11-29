@@ -146,13 +146,13 @@ export namespace Groups {
     }
 
     function groupToOverview(g: Tables.PopulatedGroup): GroupOverview {
-        const data: OverviewData = List.apply((g.assignments as {}[]) as Tables.AssignmentTemplate[]).foldLeft(new Tuple3(0, "", new Date()), foldAssignmentOverview)
+        const data: OverviewData = List.apply((g.assignments as {}[]) as Tables.AssignmentTemplate[]).foldLeft(new Tuple3(0, "", null), foldAssignmentOverview)
         return mkGroupOverview(g._id, g.name, data._1, data._2, data._3)
     }
 
     function foldAssignmentOverview(data: OverviewData, a: Tables.AssignmentTemplate): OverviewData {
         if (a.due > new Date()) {
-            if (data._3 < a.due) return new Tuple3(data._1 + 1, a.project, a.due)
+            if (data._3 == null || a.due < data._3) return new Tuple3(data._1 + 1, a.project, a.due)
             else return new Tuple3(data._1 + 1, data._2, data._3)
         } else return data
     }

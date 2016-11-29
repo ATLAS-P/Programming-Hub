@@ -30,17 +30,23 @@ block content
         p Additional assignment info: 
             a(href=file.assignment.project.info) link
         p Uploaded file: 
-            a(href="https://atlasprogramming.file.core.windows.net/handins/projects/" + group + "/" + user.id + "/" + file.assignment.project.id + ".py?" + token) link
+            - var extension = typeof file.extension == "undefined"? "py" : file.extension
+            a(href="https://atlasprogramming.file.core.windows.net/handins/projects/" + group + "/" + user.id + "/" + file.assignment.project.id + "." + extension + "?" + token) link
             |&nbsp;(only available for uploads done after 29th of November)
         hr
-        h3 Result
-        #displayResults(data=file.json project=file.assignment.project._id)
-            if file.json.length == 0
-                p Sorry the old result format cannot be displayed. Results you hand in from now on will be displayed here.
-        hr
-        h3 Reflection
-        p= file.reflection
-        hr
+        if file.assignment.project.type == "auto_code"
+            h3 Result
+            #displayResults(data=file.json project=file.assignment.project._id)
+                if file.json.length == 0
+                    p Sorry the old result format cannot be displayed. Results you hand in from now on will be displayed here.
+            hr
+        if file.assignment.project.type == "auto_code"
+            h3 Reflection
+            p= file.reflection
+        else if file.reflection.length > 0 && file.reflection != " "
+            h3 Additional Comments
+            p= file.reflection
+            hr
         h3 Feedback
         if file.final
             if admin

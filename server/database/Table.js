@@ -125,7 +125,7 @@ var Tables;
         };
     }
     Tables.mkGroup = mkGroup;
-    function mkFile(student, assignment, timestamp, partners, json, final, reflection, feedback = "") {
+    function mkFile(student, assignment, timestamp, partners, json, final, extension, reflection, feedback = "") {
         return {
             _id: assignment + "_" + student,
             student: student,
@@ -135,7 +135,8 @@ var Tables;
             json: json,
             final: final,
             reflection: reflection,
-            feedback: feedback
+            feedback: feedback,
+            extension: extension
         };
     }
     Tables.mkFile = mkFile;
@@ -179,7 +180,8 @@ var Tables;
             }],
         final: Boolean,
         reflection: String,
-        feedback: String
+        feedback: String,
+        extension: String
     });
     function refrence(to) {
         return { type: String, ref: to };

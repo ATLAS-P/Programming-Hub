@@ -25,10 +25,7 @@
                         td 
                             a(href=project.project.info) Link
                         td.fixed180
-                            if project.project.type == "files"
-                                p Soonish!
-                            else
-                                a(href="javascript:Group.uploadFile('" + project.project._id + "', '" + project._id + "', '" + project.project.name + "', " + open + ", '" + project.project.type + "')") Upload
+                            a(href="javascript:Group.uploadFile('" + project.project._id + "', '" + project._id + "', '" + project.project.name + "', " + open + ", '" + project.project.type + "')") Upload
                         if details
                             td
                                 a(href="/results/" + group.id + "/" + project._id) View

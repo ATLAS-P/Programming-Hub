@@ -176,10 +176,11 @@ export namespace Tables {
         json: Object[],
         final: boolean,
         reflection: string,
-        feedback: string
+        feedback: string,
+        extension: string
     }
     export interface File extends mongoose.Document, FileTemplate { }
-    export function mkFile(student: string, assignment: string, timestamp: Date, partners: string[], json: TestJSON<any>[], final:boolean, reflection:string, feedback:string = ""): FileTemplate {
+    export function mkFile(student: string, assignment: string, timestamp: Date, partners: string[], json: TestJSON<any>[], final: boolean, extension:string, reflection:string, feedback:string = ""): FileTemplate {
         return {
             _id: assignment + "_" + student,
             student: student,
@@ -189,7 +190,8 @@ export namespace Tables {
             json: json,
             final: final,
             reflection: reflection,
-            feedback: feedback
+            feedback: feedback,
+            extension: extension
         }
     }
 
@@ -237,7 +239,8 @@ export namespace Tables {
         }],
         final: Boolean,
         reflection: String,
-        feedback: String
+        feedback: String,
+        extension: String
     })
 
     function refrence(to: string): {} {

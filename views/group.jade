@@ -43,7 +43,6 @@ block content
                     p#errMessage Please only use python files!
             #testResults
                 hr
-                h3 Test Results
                 #completedTests
         #studentInfo
             .row
@@ -53,13 +52,15 @@ block content
                         label(for="partners") Select all partners
                         select.form-control(name="partners" multiple="")#partners
                 .col-sm-9
-                    h3 Reflections
+                    h3#reftitle Reflections
                     form#finalizeResults(action="sendResults" method="post")
                         #reflections
                             .form-group.reflection(student=user.email)
                                 label.control-label(for=user.id) #{user.name} #{user.surename}
-                                textarea.form-control(maxlength="500" rows="5" id=user.id name=user.id placeholder="Please write a short reflection, max 500 characters...")
+                                textarea.form-control.refbox(maxlength="500" rows="5" id=user.id name=user.id placeholder="Please write a short reflection, max 500 characters...")
                         input#projectID.hide(type="text" name="project")
+                        input#projectType.hide(type="text" name="projectType")
+                        input#extension.hide(type="text" name="extension")
                         input#assignmentID.hide(type="text" name="assignment")
                         input#groupID.hide(type="text" name="group" value=group.id)
             hr

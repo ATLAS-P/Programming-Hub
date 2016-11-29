@@ -21,14 +21,20 @@ var Group;
     Group.init = init;
     function finalizeResult() {
         $("#projectID").attr('value', project);
+        $("#projectType").attr('value', projectType);
+        $("#extension").attr('value', lastExtension);
         $("#assignmentID").attr('value', assignment);
         $("#groupID").attr('value', (window.location.pathname + window.location.search).split("/")[2]);
         let flag = true;
         $('.reflection textarea').each(function () {
-            console.log("boe", $(this));
             if ($(this).val().length == 0) {
-                flag = false;
-                $(this).parent().addClass('has-error');
+                if (projectType == "auto_code") {
+                    flag = false;
+                    $(this).parent().addClass('has-error');
+                }
+                else {
+                    $(this).val(" ");
+                }
             }
             else {
                 $(this).parent().removeClass('has-error');
@@ -97,6 +103,16 @@ var Group;
             $("#submitResult").removeClass("disabled");
         else
             $("#submitResult").addClass("disabled");
+        if (type == "auto_code") {
+            $("#submitResult").text("Send and write reflection");
+            $("#reftitle").text("Reflections");
+            $(".refbox").attr("placeholder", "Please write a short reflection, max 500 characters...");
+        }
+        else {
+            $("#submitResult").text("Upload");
+            $("#reftitle").text("Additional Comments");
+            $(".refbox").attr("placeholder", "Please write any additional comments here, max 500 characters...");
+        }
         $("#mpname").text("'" + name + "' ");
         $("#assignments").fadeOut(100, () => $("#upload").fadeIn(100));
     }
@@ -178,7 +194,12 @@ var Group;
         area.setAttribute("rows", "5");
         area.setAttribute("id", id);
         area.setAttribute("name", id);
-        area.setAttribute("placeholder", "Please write a short reflection, max 500 characters...");
+        if (projectType == "auto_code") {
+            area.setAttribute("placeholder", "Please write a short reflection, max 500 characters...");
+        }
+        else {
+            area.setAttribute("placeholder", "Please write any additional comments here, max 500 characters...");
+        }
         formGroup.appendChild(area);
         return formGroup;
     }
