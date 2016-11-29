@@ -30,13 +30,12 @@ block content
                 .col-md-3
                 .col-md-6
                     h3
-                        |Upload your 
+                        |Upload your file for 
                         span#mpname undefined 
-                        |miniproject!
+                        |!
                     form.dropzone#zonemini(action="file-upload" method="post" enctype="multipart/form-data")
                         input.hide(type="file" name="miniproject")
-                        .dz-message
-                            |Drop miniproject here or click to upload.
+                        .dz-message Drop file here or click to upload.
                     #uploadButtons
                         button.btn.btn-info#switchProject(type="button") Switch assignment
                         button.btn.btn-success#submitResult(type="button") Send and write reflection
