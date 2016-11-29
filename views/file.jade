@@ -35,7 +35,6 @@ block content
             |&nbsp;(only available for uploads done after 29th of November)
         hr
         if file.assignment.project.type == "auto_code"
-            h3 Result
             #displayResults(data=file.json project=file.assignment.project._id)
                 if file.json.length == 0
                     p Sorry the old result format cannot be displayed. Results you hand in from now on will be displayed here.
