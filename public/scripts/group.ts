@@ -9,6 +9,8 @@ interface Response {
 let project: string
 let assignment: string
 
+let projectType:string
+
 let result: Response
 let bestScript: string
 let hasStudents = false
@@ -101,7 +103,8 @@ namespace Group {
         return sel
     }
 
-    export function gradeProject(id: string, ass: string, name: string, submit: boolean) {
+    export function uploadFile(id: string, ass: string, name: string, submit: boolean, type:string) {
+        projectType = type
         project = id
         assignment = ass
 

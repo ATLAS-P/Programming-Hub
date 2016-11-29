@@ -74,8 +74,12 @@ var Setup;
                 if (profile._json.domain == "student.utwente.nl" || profile.email == "ruudvandamme55@gmail.com") {
                     Users_1.Users.getByGProfile(profile, u => done(null, Users_1.Users.simplify(u)), e => done(null, null));
                 }
-                else
+                else {
                     done(null, null);
+                    process.nextTick(() => {
+                        request.logout();
+                    });
+                }
             });
         };
         passport.serializeUser((user, done) => done(null, user));

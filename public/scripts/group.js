@@ -1,6 +1,7 @@
 //needs major cleanups splitting up etc..
 let project;
 let assignment;
+let projectType;
 let result;
 let bestScript;
 let hasStudents = false;
@@ -86,7 +87,8 @@ var Group;
         //res.failed.forEach((val: string) => addDataOf("option", val, sel))
         return sel;
     }
-    function gradeProject(id, ass, name, submit) {
+    function uploadFile(id, ass, name, submit, type) {
+        projectType = type;
         project = id;
         assignment = ass;
         $("#projectid").attr("value", id);
@@ -98,7 +100,7 @@ var Group;
         $("#mpname").text("'" + name + "' ");
         $("#assignments").fadeOut(100, () => $("#upload").fadeIn(100));
     }
-    Group.gradeProject = gradeProject;
+    Group.uploadFile = uploadFile;
     function stopGrade() {
         project = "";
         $("#upload").fadeOut(100, () => $("#assignments").fadeIn(100, () => removeResults()));

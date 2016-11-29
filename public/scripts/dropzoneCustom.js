@@ -3,7 +3,7 @@ const noPyhon = 'Please only use python files!';
 Dropzone.options.zonemini = {
     createImageThumbnails: false,
     parallelUploads: 1,
-    maxFilesize: 0.05,
+    maxFilesize: 1,
     accept: (file, accept) => canAcceptFile(file, accept),
     init: dropzoneInit,
     success: (file, response) => fileGraded(file, response),
@@ -15,7 +15,7 @@ function dropzoneInit() {
     zone.on("sending", sending);
 }
 function canAcceptFile(file, accept) {
-    if (!isPython(file)) {
+    if (!isPython(file) && projectType == "auto_code") {
         zone.removeFile(file);
         Group.showErrorNoPython(true, noPyhon);
     }
@@ -27,7 +27,7 @@ function sending(file, xhr, formData) {
     formData.append("project", project);
 }
 function fileAdded(file) {
-    if (isPython(file))
+    if (isPython(file) || projectType != "auto_code")
         Group.showErrorNoPython(false);
     else {
         zone.removeFile(file);
