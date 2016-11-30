@@ -31,7 +31,7 @@ block content
             a(href=file.assignment.project.info) link
         p Uploaded file: 
             - var extension = typeof file.extension == "undefined"? "py" : file.extension
-            a(href="https://atlasprogramming.file.core.windows.net/handins/projects/" + group + "/" + user.id + "/" + file.assignment.project.id + "." + extension + "?" + token) link
+            a(href="https://atlasprogramming.file.core.windows.net/handins/projects/" + group + "/" + file.student._id + "/" + file.assignment.project.id + "." + extension + "?" + token) link
             |&nbsp;(only available for uploads done after 29th of November)
         hr
         if file.assignment.project.type == "auto_code"
