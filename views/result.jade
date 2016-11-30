@@ -18,7 +18,7 @@
     if project == "guess_the_number_inversed"
         p Used input: #{test.input.input[0]}
         p The computer had #{test.input.input[1]} in mind.
-    if project == "binary_search"
+    if project == "binary_search" || project == "binary_search_v2"
         - var search = test.input.input[0]
         - var length = test.input.input[1]
         - var array = test.input.input.slice(2).map(function(a){return " " + a})
@@ -33,6 +33,10 @@
                     |start of the program.
                 else
                     |last input.
+    if project == "text_frame"
+        p Used input: '#{test.input.input}'
+    if project == "recursion_on_lists"
+        p Used input: '#{test.input.input}'
 
 h3 Test Results
 .panel-group(id="accordion" role="tablist" aria-multiselectable="true")

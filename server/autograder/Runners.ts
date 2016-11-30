@@ -106,6 +106,7 @@ export namespace Runners {
         export const multiIO = pythonSpawner(List.apply([]), Output.breakToList, Input.listIn)
         export const simpleIO = pythonSpawner("", Output.simpleOut, Input.simpleIn)
         export const listInSimpleOut = pythonSpawner("", Output.simpleOut, Input.listIn)
+        export const listInSimpleOutAsList = pythonSpawner(List.apply([]), Output.breakToList, Input.listIn)
         export const simpleIOasList = pythonSpawner(List.apply([]), Output.breakToList, Input.simpleIn)
         export const sleepIO = pythonSpawner(List.apply([]), Output.listOut, Input.withDelay)
     }

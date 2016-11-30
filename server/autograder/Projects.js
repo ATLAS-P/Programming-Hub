@@ -10,6 +10,9 @@ const Fibonacci_1 = require("./miniprojects/Fibonacci");
 const CeasarCipher_1 = require("./miniprojects/CeasarCipher");
 const Calculator_1 = require("./miniprojects/Calculator");
 const GuessReversed_1 = require("./miniprojects/GuessReversed");
+const TextFrame_1 = require("./miniprojects/TextFrame");
+const BinarySearch2_1 = require("./miniprojects/BinarySearch2");
+const ListRecursion_1 = require("./miniprojects/ListRecursion");
 const BinarySearch_1 = require("./miniprojects/BinarySearch");
 var TestHelper;
 (function (TestHelper) {
@@ -123,6 +126,9 @@ var Projects;
         "fibs": Fibonacci_1.Fibonacci.init(),
         "calculator": Calculator_1.Calculator.init(),
         "decrypt": CeasarCipher_1.CeasarCipher.init(),
+        "text_frame": TextFrame_1.TextFrame.init(),
+        "binary_search_v2": BinarySearch2_1.BinarySearch2.init(),
+        "recursion_on_lists": ListRecursion_1.ListRecursion.init()
     };
     function grade(r, algebra, test, success, error) {
         algebra(test).run(r).then(success, error);

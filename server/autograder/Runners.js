@@ -101,6 +101,7 @@ var Runners;
         PythonRunners.multiIO = pythonSpawner(List_1.List.apply([]), Output.breakToList, Input.listIn);
         PythonRunners.simpleIO = pythonSpawner("", Output.simpleOut, Input.simpleIn);
         PythonRunners.listInSimpleOut = pythonSpawner("", Output.simpleOut, Input.listIn);
+        PythonRunners.listInSimpleOutAsList = pythonSpawner(List_1.List.apply([]), Output.breakToList, Input.listIn);
         PythonRunners.simpleIOasList = pythonSpawner(List_1.List.apply([]), Output.breakToList, Input.simpleIn);
         PythonRunners.sleepIO = pythonSpawner(List_1.List.apply([]), Output.listOut, Input.withDelay);
     })(PythonRunners = Runners.PythonRunners || (Runners.PythonRunners = {}));

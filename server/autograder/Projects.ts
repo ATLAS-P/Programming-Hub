@@ -1,6 +1,6 @@
-﻿import {AutoChecker} from "./AutoGrader"
-import {Future} from "../functional/Future"
-import {Runners} from "./Runners"
+﻿import { AutoChecker } from "./AutoGrader"
+import { Future } from "../functional/Future"
+import { Runners } from "./Runners"
 import { List } from "../functional/List"
 import { Tuple } from "../functional/Tuple"
 import { IOMap } from "../functional/IOMap"
@@ -11,8 +11,11 @@ import { Fibonacci } from "./miniprojects/Fibonacci"
 import { CeasarCipher } from "./miniprojects/CeasarCipher"
 import { Calculator } from "./miniprojects/Calculator"
 import { GuessReversed } from "./miniprojects/GuessReversed"
-import {Result, Test} from "./Result"
-import {BinarySearch} from "./miniprojects/BinarySearch"
+import { TextFrame } from "./miniprojects/TextFrame"
+import { BinarySearch2 } from "./miniprojects/BinarySearch2"
+import { ListRecursion } from "./miniprojects/ListRecursion"
+import { Result, Test } from "./Result"
+import { BinarySearch } from "./miniprojects/BinarySearch"
 
 export namespace TestHelper {
     export const init = IOMap.applyWithInput
@@ -131,6 +134,9 @@ export namespace Projects {
         "fibs": Fibonacci.init(),
         "calculator": Calculator.init(),
         "decrypt": CeasarCipher.init(),
+        "text_frame": TextFrame.init(),
+        "binary_search_v2": BinarySearch2.init(),
+        "recursion_on_lists": ListRecursion.init()
     }
 
     export function grade<In, Out, A, B>(r: IOMap.IO<In, Out>, algebra: Mapping<In, Out, A, B>, test: IOMap<In, Out, A>, success: (r: B) => void, error: (err: string) => void) {

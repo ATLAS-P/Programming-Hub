@@ -4,7 +4,7 @@ import { Result } from "../Result"
 import { List } from "../../functional/List"
 import { Tuple } from "../../functional/Tuple"
 
-export namespace BinarySearch {
+export namespace BinarySearch2 {
     export function init(): Project<any, any, any, any> {
         const buildSet = (tries: List<number>, set: List<number>) => tries.map(a => set.add(set.length()).add(a).map(b => b.toString()))
 
@@ -21,6 +21,8 @@ export namespace BinarySearch {
             buildSet(tries3, set3)
         ]))
 
+        const stepAnswers = List.apply([7, 7])
+
         const input = TestHelper.buildTest(data)
         const test = TestHelper.testIOCurry(optimalAndProper)
         const runner = Runners.PythonRunners.listInSimpleOutAsList
@@ -36,8 +38,30 @@ export namespace BinarySearch {
         const outIndex = out.get(0)
         const outSteps = out.get(1)
 
+        const counts = binarySearchCount(data, search)
+
         if (expected != outIndex) return new Tuple(false, "The returned index is not correct, expected: " + expected + ", found: " + out)
-        else if (outSteps != 0) return new Tuple(false, "") //add test
+        else if (Math.abs(counts - outSteps) > 4) return new Tuple(false, "The amount of steps taken was not correct, expected something close to: " + counts + ", found: " + outSteps)
+        else if (outSteps > 7) return new Tuple(false, "The amount of steps taken was not optimal, optimal amount is always below 8 for the given array, found: " + outSteps)
         else return new Tuple(true, "")
+    }
+
+    function binarySearchCount(list: List<number>, item:number): number {
+        let first = 0
+        let last = list.length() - 1
+        let found = false
+        let counts = 0
+
+        while (first <= last && !found) {
+            counts += 1
+            let midpoint = Math.floor((first + last) / 2)
+            if (list[midpoint] == item) found = true
+            else {
+                if (item < list.get(midpoint))last = midpoint - 1
+                else first = midpoint + 1
+            }
+        }
+
+        return counts
     }
 }
