@@ -42,6 +42,8 @@ export namespace Routes {
     const DATABASE = GROUP_ANY + "database"
     const FILES = DATABASE + "/files"
     const USERS = DATABASE + "/users"
+    const USER = USERS + "/*"
+    const OVERVIEW = INDEX + "overview/*"
 
     //TODO properly
     let azureStorage: azure.FileService
@@ -49,6 +51,8 @@ export namespace Routes {
     export function addRoutes(app: express.Express, root: string) {
         app.get(FILES, files)
         app.get(USERS, users)
+        app.get(USER, showResults("user", 5, 2))
+        app.get(OVERVIEW, showResults("overview", 3, 2))
         app.get(GROUP_ANY, group)
         app.get(INDEX, index)
         app.get(LOGOUT, logout)
@@ -102,8 +106,23 @@ export namespace Routes {
     function files(req: Req, res: Res) {
         const group = req.url.split("/")[2]
         Files.getAllForGroup(group, g => {
-            Render.withUser(req, res, "files", {group:g})
+            Render.withUser(req, res, "files", { group: g })
         }, e => Render.error(req, res, e))
+    }
+
+    function showResults(location: string, user_index:number, group_index:number): (Req, Res) => void {
+        return (req: Req, res: Res) => {
+            const user = req.url.split("/")[user_index]
+            const group = req.url.split("/")[group_index]
+
+            Files.getForStudent(user, files => {
+                Users.instance.getByID(user, student => {
+                    Groups.instance.getByID(group, g => {
+                        Render.userResults(req, res, location, files, g, student)
+                    }, e => Render.error(req, res, e))
+                }, e => Render.error(req, res, e))
+            }, e => Render.error(req, res, e))
+        }
     }
 
     function showResult(req: Req, res: Res) {

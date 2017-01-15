@@ -37,7 +37,7 @@ export namespace Render {
         })
     }
 
-    export function file(req: Routes.Req, res: Routes.Res, loc: string, data: Tables.File, group:string, token:string, admin:boolean) {
+    export function file(req: Routes.Req, res: Routes.Res, loc: string, data: Tables.File, group: string, token: string, admin: boolean) {
         res.render(loc, {
             user: req.user,
             file: data,
@@ -66,10 +66,18 @@ export namespace Render {
         }, success, fail)
     }
 
+    export function userResults(req: express.Request, res: express.Response, loc: string, files: Tables.File[], group: Tables.Group, student: Tables.User) {
+        withUser(req, res, loc, {
+            files: files,
+            group: group,
+            student: student
+        })
+    }
+
     export function files(app: express.Express, loc: string, data: Tables.File[], success: Suc, fail: Err) {
         render(app, loc, {
             files: data
-        }, success, fail)
+        }, success as Suc, fail)
     }
 
     export function render(app: express.Express, loc: string, data: {}, success: Suc, fail: Err) {

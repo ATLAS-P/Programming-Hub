@@ -19,12 +19,16 @@ block content
             +assList(a_done, 'Completed Assignments', false, true, "You did not yet complete any assignments.", "Handed in on")
             +assList(a_close, 'Closed Assignments', false, false, "No assignments were closed yet.", "Closed on")
             if admin
-                h2 Admin Links
+                h2 admin links
                 ul
                     li 
-                        a(href="/group/" + group.id + "/database/users") Students / Mailing list
+                        a(href="/group/" + group.id + "/database/users") students / mailing list
                     li 
-                        a(href="/group/" + group.id + "/database/files") Results
+                        a(href="/group/" + group.id + "/database/files") results
+            else
+                hr
+                a.btn.btn-default(href="/overview/" + group._id + "/" + user._id) Generate Overview
+
         #upload
             .row
                 .col-md-3

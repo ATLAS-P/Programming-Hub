@@ -4,6 +4,7 @@ const fs = require('fs');
 const azure = require('azure-storage');
 const Projects_1 = require('../../autograder/Projects');
 const Groups_1 = require('../../database/tables/Groups');
+const Users_1 = require('../../database/tables/Users');
 const Files_1 = require('../../database/tables/Files');
 const Table_1 = require('../../database/Table');
 const Future_1 = require('../../functional/Future');
@@ -28,11 +29,15 @@ var Routes;
     const DATABASE = GROUP_ANY + "database";
     const FILES = DATABASE + "/files";
     const USERS = DATABASE + "/users";
+    const USER = USERS + "/*";
+    const OVERVIEW = INDEX + "overview/*";
     //TODO properly
     let azureStorage;
     function addRoutes(app, root) {
         app.get(FILES, files);
         app.get(USERS, users);
+        app.get(USER, showResults("user", 5, 2));
+        app.get(OVERVIEW, showResults("overview", 3, 2));
         app.get(GROUP_ANY, group);
         app.get(INDEX, index);
         app.get(LOGOUT, logout);
@@ -82,6 +87,19 @@ var Routes;
         Files_1.Files.getAllForGroup(group, g => {
             Render_1.Render.withUser(req, res, "files", { group: g });
         }, e => Render_1.Render.error(req, res, e));
+    }
+    function showResults(location, user_index, group_index) {
+        return (req, res) => {
+            const user = req.url.split("/")[user_index];
+            const group = req.url.split("/")[group_index];
+            Files_1.Files.getForStudent(user, files => {
+                Users_1.Users.instance.getByID(user, student => {
+                    Groups_1.Groups.instance.getByID(group, g => {
+                        Render_1.Render.userResults(req, res, location, files, g, student);
+                    }, e => Render_1.Render.error(req, res, e));
+                }, e => Render_1.Render.error(req, res, e));
+            }, e => Render_1.Render.error(req, res, e));
+        };
     }
     function showResult(req, res) {
         const data = req.url.split("/");

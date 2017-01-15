@@ -117,6 +117,7 @@ namespace Group {
         $("#projectid").attr("value", id)
 
         canSubmit = submit
+
         if (submit) $("#submitResult").removeClass("disabled")
         else $("#submitResult").addClass("disabled")
 

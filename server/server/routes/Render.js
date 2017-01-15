@@ -57,6 +57,14 @@ var Render;
         }, success, fail);
     }
     Render.users = users;
+    function userResults(req, res, loc, files, group, student) {
+        withUser(req, res, loc, {
+            files: files,
+            group: group,
+            student: student
+        });
+    }
+    Render.userResults = userResults;
     function files(app, loc, data, success, fail) {
         render(app, loc, {
             files: data

@@ -56,6 +56,20 @@ var Files;
         return assignment + "_" + student;
     }
     Files.getID = getID;
+    function getForStudent(s, suc, error) {
+        Files.instance.model.find({ "student": s }).populate({
+            path: "assignment",
+            populate: {
+                path: "project"
+            }
+        }).populate("partners").sort({ "timestamp": 1 }).exec((err, files) => {
+            if (err)
+                error(err);
+            else
+                suc(files);
+        });
+    }
+    Files.getForStudent = getForStudent;
     function getAllForGroup(g, suc, error) {
         Groups_1.Groups.instance.model.find({ _id: g }).populate({
             path: "assignments",

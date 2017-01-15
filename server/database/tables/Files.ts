@@ -63,6 +63,18 @@ export namespace Files {
         return assignment + "_" + student
     }
 
+    export function getForStudent(s: string, suc: Table.Suc<Tables.File>, error: Table.Err) {
+        instance.model.find({ "student": s }).populate({
+            path: "assignment",
+            populate: {
+                path: "project"
+            }
+        }).populate("partners").sort({"timestamp": 1}).exec((err, files) => {
+            if (err) error(err)
+            else suc(files)
+        })
+    }
+
     export function getAllForGroup(g: string, suc: Table.SucOne<Tables.Group>, error: Table.Err) {
         Groups.instance.model.find({ _id: g }).populate({
             path: "assignments",
