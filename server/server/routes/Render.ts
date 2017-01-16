@@ -66,9 +66,9 @@ export namespace Render {
         }, success, fail)
     }
 
-    export function userResults(req: express.Request, res: express.Response, loc: string, files: Tables.File[], group: Tables.Group, student: Tables.User) {
+    export function userResults(req: express.Request, res: express.Response, loc: string, files: Tables.Assignment[], group: Tables.Group, student: Tables.User) {
         withUser(req, res, loc, {
-            files: files,
+            assignments: files,
             group: group,
             student: student
         })

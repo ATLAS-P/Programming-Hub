@@ -59,7 +59,7 @@ var Render;
     Render.users = users;
     function userResults(req, res, loc, files, group, student) {
         withUser(req, res, loc, {
-            files: files,
+            assignments: files,
             group: group,
             student: student
         });

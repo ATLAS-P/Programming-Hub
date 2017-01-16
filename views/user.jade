@@ -12,14 +12,16 @@ block content
                     th Feedbacked
                     th View
             tbody
-                for file in files
-                    tr
-                        td= file.assignment.project.name
-                        td
-                            date= file.timestamp
-                        td= file.feedback.length > 0
-                        td
-                            a(href="/results/" + group._id + "/" + file.assignment._id + "/" + student._id) View
+                for assignment in assignments
+                    - var file = assignment.files[0]
+                    if typeof file != 'undefined'
+                        tr
+                            td= assignment.project.name
+                            td
+                                date= file.timestamp
+                            td= file.feedback.length > 0
+                            td
+                                a(href="/results/" + group._id + "/" + assignment._id + "/" + student._id) View
         hr
         a.btn.btn-default(href="/overview/" + group._id + "/" + student._id) Generate Overview
 

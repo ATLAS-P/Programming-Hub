@@ -92,11 +92,10 @@ var Routes;
         return (req, res) => {
             const user = req.url.split("/")[user_index];
             const group = req.url.split("/")[group_index];
-            Files_1.Files.getForStudent(user, files => {
+            Files_1.Files.getForStudent(user, group, g => {
+                const asses = g.assignments;
                 Users_1.Users.instance.getByID(user, student => {
-                    Groups_1.Groups.instance.getByID(group, g => {
-                        Render_1.Render.userResults(req, res, location, files, g, student);
-                    }, e => Render_1.Render.error(req, res, e));
+                    Render_1.Render.userResults(req, res, location, asses, g, student);
                 }, e => Render_1.Render.error(req, res, e));
             }, e => Render_1.Render.error(req, res, e));
         };

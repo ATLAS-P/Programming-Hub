@@ -63,25 +63,22 @@ export namespace Files {
         return assignment + "_" + student
     }
 
-    export function getForStudent(s: string, suc: Table.Suc<Tables.File>, error: Table.Err) {
-        instance.model.find({ "student": s }).populate({
-            path: "assignment",
-            populate: {
-                path: "project"
-            }
-        }).populate("partners").sort({"timestamp": 1}).exec((err, files) => {
-            if (err) error(err)
-            else suc(files)
-        })
+    export function getForStudent(s: string, g:string, suc: Table.SucOne<Tables.Group>, error: Table.Err) {
+        getForGroup(g, {"student": s}, suc, error)
     }
 
     export function getAllForGroup(g: string, suc: Table.SucOne<Tables.Group>, error: Table.Err) {
+        getForGroup(g, {}, suc, error)
+    }
+
+    export function getForGroup(g: string, fileFileter: {}, suc: Table.SucOne<Tables.Group>, error: Table.Err) {
         Groups.instance.model.find({ _id: g }).populate({
             path: "assignments",
             populate: {
                 path: "files",
+                match: fileFileter,
                 populate: {
-                    path: "student"
+                    path: "student partners"
                 }
             }
         }).populate({
@@ -93,6 +90,6 @@ export namespace Files {
             if (err) error(err)
             else if (g.length > 0) suc(g[0])
             else error("No group with id: " + g + " found!")
-        })
+            })
     }
 }

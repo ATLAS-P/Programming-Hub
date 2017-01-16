@@ -115,11 +115,10 @@ export namespace Routes {
             const user = req.url.split("/")[user_index]
             const group = req.url.split("/")[group_index]
 
-            Files.getForStudent(user, files => {
+            Files.getForStudent(user, group, g => {
+                const asses = g.assignments as any as Tables.Assignment[]
                 Users.instance.getByID(user, student => {
-                    Groups.instance.getByID(group, g => {
-                        Render.userResults(req, res, location, files, g, student)
-                    }, e => Render.error(req, res, e))
+                    Render.userResults(req, res, location, asses, g, student)
                 }, e => Render.error(req, res, e))
             }, e => Render.error(req, res, e))
         }

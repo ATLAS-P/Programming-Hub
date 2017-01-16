@@ -56,27 +56,22 @@ var Files;
         return assignment + "_" + student;
     }
     Files.getID = getID;
-    function getForStudent(s, suc, error) {
-        Files.instance.model.find({ "student": s }).populate({
-            path: "assignment",
-            populate: {
-                path: "project"
-            }
-        }).populate("partners").sort({ "timestamp": 1 }).exec((err, files) => {
-            if (err)
-                error(err);
-            else
-                suc(files);
-        });
+    function getForStudent(s, g, suc, error) {
+        getForGroup(g, { "student": s }, suc, error);
     }
     Files.getForStudent = getForStudent;
     function getAllForGroup(g, suc, error) {
+        getForGroup(g, {}, suc, error);
+    }
+    Files.getAllForGroup = getAllForGroup;
+    function getForGroup(g, fileFileter, suc, error) {
         Groups_1.Groups.instance.model.find({ _id: g }).populate({
             path: "assignments",
             populate: {
                 path: "files",
+                match: fileFileter,
                 populate: {
-                    path: "student"
+                    path: "student partners"
                 }
             }
         }).populate({
@@ -93,6 +88,6 @@ var Files;
                 error("No group with id: " + g + " found!");
         });
     }
-    Files.getAllForGroup = getAllForGroup;
+    Files.getForGroup = getForGroup;
 })(Files = exports.Files || (exports.Files = {}));
 //# sourceMappingURL=Files.js.map
