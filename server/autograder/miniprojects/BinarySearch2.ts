@@ -40,7 +40,7 @@ export namespace BinarySearch2 {
 
         const counts = binarySearchCount(data, search)
 
-        if (expected != outIndex) return new Tuple(false, "The returned index is not correct, expected: " + expected + ", found: " + out)
+        if (expected != outIndex) return new Tuple(false, "The returned index is not correct, expected: " + expected + ", found: " + outIndex)
         else if (Math.abs(counts - outSteps) > 4) return new Tuple(false, "The amount of steps taken was not correct, expected something close to: " + counts + ", found: " + outSteps)
         else if (outSteps > 7) return new Tuple(false, "The amount of steps taken was not optimal, optimal amount is always below 8 for the given array, found: " + outSteps)
         else return new Tuple(true, "")
