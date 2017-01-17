@@ -25,9 +25,9 @@ block content
                         a(href="/group/" + group.id + "/database/users") students / mailing list
                     li 
                         a(href="/group/" + group.id + "/database/files") results
-            else
-                hr
-                a.btn.btn-default(href="/overview/" + group.id + "/" + user._id) Generate Overview
+            
+            hr
+            a.btn.btn-default(href="/overview/" + group.id + "/" + user.id) Generate Overview
 
         #upload
             .row
