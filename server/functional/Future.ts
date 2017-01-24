@@ -8,13 +8,6 @@
     map<B>(f: (a: A) => B): Future<B> {
         return this.flatMap(a => Future.unit(f(a)))
     }
-
-    act(f: (a: A) => void): Future<A> {
-        return this.map(a => {
-            f(a)
-            return a
-        })
-    }
 }
 
 export namespace Future {
