@@ -1,95 +1,68 @@
 ﻿import * as mongoose from 'mongoose'
+import * as mongodb from 'mongodb'
 import { Table, Tables } from '../Table'
 import { Assignments } from './Assignments'
 import { Groups } from './Groups'
+import { Users } from './Users'
+import { Future } from '../../functional/Future'
 
 class File extends Table<Tables.File> {
-    create(a: Tables.FileTemplate, done: () => void, fail: Table.Err) {
-        this.removeNonFinal(a.student, a.assignment)
-        Assignments.instance.addFile(a.assignment, a._id, () => {
-            super.create(a, done, fail)
-        }, fail)
-    }
-
-    getAssignment(s: string, a: string, success: Table.SucOne<Tables.File>, fail: Table.Err) {
-        super.getOne({ student: s, assignment: a }, {}, success, fail)
-    }
-
-    getDeepAssignment(s: string, a: string, success: Table.SucOne<Tables.File>, fail: Table.Err) {
-        this.do(this.model.find({ student: s, assignment: a }).populate({
-            path: "assignment",
-            populate: {
-                path: "project"
-            }
-        }).populate({ path: "partners student" }), f => success(f[0]), fail)
-    }
-
-    getAssignmentsFinal(s: string, la: string[], success: Table.Suc<Tables.File>, fail: Table.Err) {
-        this.model.find({ student: s, assignment: { $in: la }, final: true }, (err, res) => {
-            if (err) fail(err)
-            else success(res)
+    create(a: Tables.FileTemplate): Future<Tables.File> {
+        return super.create(a).flatMap(file => {
+            return Assignments.instance.addFile(file.assignment, file._id).flatMap(a =>
+                Users.instance.addFile(file.students, a.group, file._id).map(u => file)
+            )
         })
     }
 
-    getNonFinalFor(s: string, success: Table.Suc<Tables.File>, fail: Table.Err) {
-        this.do(this.model.find({ student: s, final: false }).populate({
-            path: "assignment",
-            populate: {
-                path: "project"
-            }
-        }), success, fail)
+    populateUsers<B>(query: Files.QueryA<B>): Files.QueryA<B> {
+        return query.populate("students")
     }
 
-    //add callbacks
-    removeNonFinal(s: string, ass: string) {
-        this.model.find({ student: s, assignment: ass, final: false }).remove().exec()
+    populateAssignment<B>(query: Files.QueryA<B>): Files.QueryA<B> {
+        return query.populate("assignment")
     }
 
-    mkFinal(s: string, ass: string) {
-        this.model.findOne({ student: s, assignment: ass, final: false }).update({ final: true }).exec()
+    populateAll<B>(query: Files.QueryA<B>): Files.QueryA<B> {
+        return this.populateUsers(this.populateAssignment(query))
     }
 
-    updateFeedback(id: string, feedback: string, success: Table.SucOne<Tables.File>, fail: Table.Err) {
-        this.updateOne(id, (file:Tables.File) => {
-            file.feedback = feedback
-        }, success, fail)
+    removeStudent(file: string, student: string): Future<Tables.File> {
+        return this.updateOne(file, (file: Tables.File) => {
+            const index = file.students.indexOf(student)
+            if(index >= 0) file.students.splice(index, 1)
+        })
+    }
+
+    updateFeedback(file: string, feedback: string): Future<Tables.File> {
+        return this.updateOne(file, file => file.feedback = feedback)
+    }
+
+    updateNotes(file: string, notes: string): Future<Tables.File> {
+        return this.updateOne(file, file => file.notes = notes)
     }
 }
 
 export namespace Files {
+    export type QueryA<A> = mongoose.DocumentQuery<A, Tables.File>
+    export type Query = mongoose.DocumentQuery<Tables.File[], Tables.File>
+    export type QueryOne = mongoose.DocumentQuery<Tables.File, Tables.File> 
+
     export const instance = new File(Tables.File)
 
-    export function getID(assignment: string, student: string): string {
-        return assignment + "_" + student
+    export function forStudent(student: string): Future<Tables.User> {
+        return Users.instance.exec(Users.instance.getByID(student)).flatMap(s => Users.instance.populateAllFiles(s))
     }
 
-    export function getForStudent(s: string, g:string, suc: Table.SucOne<Tables.Group>, error: Table.Err) {
-        getForGroup(g, {"student": s}, suc, error)
+    export function forStudentInGroup(student: string, group: string): Future<Tables.User> {
+        return Users.instance.exec(Users.instance.getByID(student)).flatMap(s => Users.instance.populateGroupFiles(s, group))
     }
 
-    export function getAllForGroup(g: string, suc: Table.SucOne<Tables.Group>, error: Table.Err) {
-        getForGroup(g, {}, suc, error)
+    export function forAssignment(assignment: string): Assignments.QueryOne {
+        return Assignments.instance.populateFiles(Assignments.instance.getByID(assignment))
     }
 
-    export function getForGroup(g: string, fileFileter: {}, suc: Table.SucOne<Tables.Group>, error: Table.Err) {
-        Groups.instance.model.find({ _id: g }).populate({
-            path: "assignments",
-            populate: {
-                path: "files",
-                match: fileFileter,
-                populate: {
-                    path: "student partners"
-                }
-            }
-        }).populate({
-            path: "assignments",
-            populate: {
-                path: "project"
-            }
-        }).exec((err, g) => {
-            if (err) error(err)
-            else if (g.length > 0) suc(g[0])
-            else error("No group with id: " + g + " found!")
-            })
+    export function forGroup(group: string): Groups.QueryOne {
+        return Groups.instance.populateFiles(Groups.instance.getByID(group))
     }
 }

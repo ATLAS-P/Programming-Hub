@@ -1,6 +1,8 @@
 ﻿import * as mongoose from 'mongoose'
 import { List } from '../functional/List'
 import { TestJSON } from '../autograder/Result'
+import { Future } from '../functional/Future'
+import { IOMap } from '../functional/IOMap'
 
 //change all to use promise no callback
 export class Table<A extends mongoose.Document> {
@@ -10,106 +12,80 @@ export class Table<A extends mongoose.Document> {
         this.model = m
     }
 
-    get(query: {}, sort: {}, success: Table.Suc<A>, fail: Table.Err) {
-        this.model.find(query).sort(sort).exec((err, res: A[]) => {
-            if (err) fail(err)
-            else if (res.length == 0) fail("No entries found")
-            else success(res)
-        })
-    }
+    exec<B>(query: mongoose.DocumentQuery<B, A>, alwaysOne: boolean = true): Future<B> {
+        const exists = res => {
+            if (!res) return false
+            else if ((res as A[]).length) {
+                return (res as A[]).length > 0
+            } else return true
+        }
 
-    getOne(query: {}, sort: {}, success: Table.SucOne<A>, fail: Table.Err, safe:boolean = true) {
-        this.model.findOne(query).sort(sort).exec((err, res: A) => {
-            if (err) fail(err)
-            else if (!res && safe) fail("No entries found")
-            else success(res)
-        })
-    }
-
-    updateOne(id: string, update: (a: A) => void, success: Table.SucOne<A>, fail: Table.Err) {
-        this.getByID(id, a => {
-            update(a)
-            a.save((err, a: A, affect: number): void => {
-                if (err) fail(err)
-                else success(a)
+        return new Future<B>((resolve, reject) => {
+            query.exec((err, res: B) => {
+                if (err) reject(err)
+                else if (alwaysOne && !exists(res)) reject("No entries found")
+                else resolve(res)
             })
-        }, fail)
+        })
+    } 
+
+    get(query: {}): mongoose.DocumentQuery<A[], A> {
+        return this.model.find(query)
     }
 
-    do(query: mongoose.DocumentQuery<A[], A>, success: Table.Suc<A>, fail: Table.Err) {
-        query.exec((err, res) => {
-            if (err) fail(err)
-            else if (res.length == 0) fail("No entries found")
-            else success(res)
+    getByIDs(ids: string[]): mongoose.DocumentQuery<A[], A> {
+        return this.get({ _id: { $in: ids } })
+    }
+
+    getAll(): mongoose.DocumentQuery<A[], A> {
+        return this.get({})
+    }
+
+    getOne(query: {}): mongoose.DocumentQuery<A, A> {
+        return this.model.findOne(query)
+    }
+
+    getByID(id: string): mongoose.DocumentQuery<A, A> {
+        return this.getOne({ _id: id })
+    }
+
+    updateOne(id: string, update: (a: A) => void): Future<A> {
+        return this.exec(this.getByID(id)).flatMap(a => {
+            update(a)
+            return a.save()
         })
     }
 
-    doOne(query: mongoose.DocumentQuery<A, A>, success: Table.SucOne<A>, fail: Table.Err) {
-        query.exec((err, res) => {
-            if (err) fail(err)
-            else if (!res) fail("No entries found")
-            else success(res)
+    update(ids: string[], update: (a: A) => void): Future<A[]> {
+        return this.exec(this.getByIDs(ids)).flatMap(a => {
+            return IOMap.traverse<A, A, A>(List.apply(a), IOMap.apply).run(a2 => {
+                update(a2)
+                return Future.lift(a2.save())
+            }).map(la => la.toArray())
         })
     }
 
-    getByID(id: string, success: Table.SucOne<A>, fail: Table.Err, safe:boolean = true) {
-        this.getOne({ _id: id }, {}, success, fail, safe)
+    create(a: {}): Future<A> {
+        return Future.lift(this.model.create(a))
     }
 
-    getByIDs(ids: string[], success: Table.Suc<A>, fail: Table.Err) {
-        this.get({ _id: { $in: ids } }, {}, success, fail)
-    }
-
-    getAll(success: Table.Suc<A>, fail: Table.Err) {
-        this.get({}, {}, success, fail)
-    }
-
-    create(a: {}, done: () => void, fail: Table.Err) {
-        this.model.create(a, (err, res) => {
-            if (err) fail(err)
-            else done()
-        })
-    }
-}
-
-export namespace Table {
-    export type SucOne<A> = (res: A) => void
-    export type Suc<A> = (res: A[]) => void
-    export type Err = (err: any) => void
-
-    export function error(err: any) {
-        console.log(err)
-    }
-
-    export function done() {
-        console.log("done!")
+    map<B>(query: mongoose.DocumentQuery<A, A>, f: (a: A) => B): Future<B> {
+        return this.exec(query, true).map(f)
     }
 }
 
 export namespace Tables {
-    interface ProjectTemplate {
-        _id: any,
-        name: string,
-        level: number,
-        info: string,
-        type: string
-    }
-    export interface Project extends mongoose.Document, ProjectTemplate { }
-    export function mkProject(id: string, name: string, level: number, info: string, type: string): ProjectTemplate {
-        return {
-            name: name,
-            _id: id,
-            level: level,
-            info: info,
-            type: type
-        }
-    }
-
     export interface UserTemplate {
         _id: any,
         name: string,
         surename: string,
-        groups: string[],
+        groups: {
+            group: string,
+            files: {
+                final: boolean,
+                file: string
+            }[]
+        }[],
     }
     export interface User extends mongoose.Document, UserTemplate { }
     export function mkUser(id: string, name: string, surename: string): UserTemplate {
@@ -121,24 +97,27 @@ export namespace Tables {
         }
     }
 
-    interface GenericAssignment {
+    export interface AssignmentTemplate {
         _id: any
         due: Date
         files: string[]
-    }
-    export interface AssignmentTemplate extends GenericAssignment {
+        name: string
+        group: string
+        link: string
         project: string
-    }
-    export interface PopulatedAssignment extends GenericAssignment {
-        project: ProjectTemplate,
+        typ: string
     }
     export interface Assignment extends mongoose.Document, AssignmentTemplate { }
-    export function mkAssignment(id: string, project: string, due: Date): AssignmentTemplate {
+    export function mkAssignment(id: string, name: string, group: string, due: Date, typ:string, link:string = "", project:string = ""): AssignmentTemplate {
         return {
             _id: id,
-            project: project,
+            name: name,
             due: due,
-            files: []
+            files: [],
+            typ: typ,
+            project: project,
+            link: link,
+            group: group
         }
     }
 
@@ -152,7 +131,7 @@ export namespace Tables {
         admins: string[],
     }
     export interface PopulatedGroup extends GenericGroup {
-        assignments: PopulatedAssignment[]
+        assignments: AssignmentTemplate[]
         students: UserTemplate[],
         admins: UserTemplate[]
     }
@@ -168,54 +147,52 @@ export namespace Tables {
     }
 
     export interface FileTemplate {
-        _id: any,
-        student: string,
+        students: string[],
         assignment: string,
+        group: string,
         timestamp: Date,
-        partners: string[],
-        json: Object[],
-        final: boolean,
-        reflection: string,
+        autograder: Object[],
+        notes: string,
         feedback: string,
-        extension: string
+        urls: string[]
     }
     export interface File extends mongoose.Document, FileTemplate { }
-    export function mkFile(student: string, assignment: string, timestamp: Date, partners: string[], json: TestJSON<any>[], final: boolean, extension:string, reflection:string, feedback:string = ""): FileTemplate {
+    export function mkFile(assignment: string, group: string, timestamp: Date, students: string[], files: string[], notes: string, feedback: string = "", autograder: TestJSON<any>[]): FileTemplate {
         return {
-            _id: assignment + "_" + student,
-            student: student,
+            students: students,
             assignment: assignment,
             timestamp: timestamp,
-            partners: partners,
-            json: json,
-            final: final,
-            reflection: reflection,
+            autograder: autograder,
+            notes: notes,
             feedback: feedback,
-            extension: extension
+            group: group,
+            urls: files
         }
     }
-
-    export const project = new mongoose.Schema({
-        _id: String,
-        name: String,
-        level: Number,
-        info: String,
-        type: String
-    })
 
     export const user = new mongoose.Schema({
         _id: String,
         name: String,
         surename: String,
-        groups: [refrence("Group")],
+        groups: [{
+            group: refrence("Group"),
+            files: [{
+                final: Boolean,
+                file: refrence("File")
+            }]
+        }],
         admin: Boolean
     })
 
     export const assignment = new mongoose.Schema({
         _id: String,
-        project: refrence("Project"),
         files: [refrence("File")],
-        due: Date
+        due: Date,
+        group: String,
+        name: String,
+        link: String,
+        typ: String,
+        project: String
     })
 
     export const group = new mongoose.Schema({
@@ -227,20 +204,17 @@ export namespace Tables {
     }) 
 
     export const file = new mongoose.Schema({
-        _id: String,
-        student: refrence("User"),
         assignment: refrence("Assignment"),
         timestamp: Date,
-        partners: [refrence("User")],
-        json: [{
+        students: [refrence("User")],
+        autograder: [{
             input: Object,
             success: Boolean,
             message: String
         }],
-        final: Boolean,
-        reflection: String,
+        notes: String,
         feedback: String,
-        extension: String
+        urls: [String]
     })
 
     function refrence(to: string): {} {
@@ -251,5 +225,4 @@ export namespace Tables {
     export const File = mongoose.model<Tables.File>('File', Tables.file)
     export const Group = mongoose.model<Group>('Group', Tables.group)
     export const User = mongoose.model<User>('User', Tables.user)
-    export const Project = mongoose.model<Project>('Project', Tables.project)
 }

@@ -1,28 +1,47 @@
 ﻿import * as mongoose from 'mongoose'
 import { Table, Tables } from '../Table'
 import { Groups } from './Groups'
+import { Future } from '../../functional/Future'
+import { List } from '../../functional/List'
 
 class User extends Table<Tables.User> {
-    addToGroup(s: string, g: string, updateGroup: boolean, admin: boolean, done: () => void, fail: Table.Err) {
-        this.updateOne(s, (a: Tables.User) => {
-            if (a.groups.indexOf(g) == -1) a.groups.push(g)
-        }, a => {
-            if (updateGroup) Groups.instance.addUser(g, s, admin, false, done, fail)
-            else done()
-        }, fail)
+    addToGroup(s: string, g: string, updateGroup: boolean, admin: boolean): Future<Tables.User> {
+        return this.updateOne(s, (a: Tables.User) => {
+            if (Users.groupIDs(a).toArray().indexOf(g) == -1) a.groups.push({ group: g, files: [] })
+        }).flatMap(a => {
+            if (updateGroup) return Groups.instance.addUser(g, s, admin, false).map(u => a)
+            else return Future.unit(a)
+        })
     }
 
-    inGroup(g: string, query: {}, sort: boolean, suc: Table.Suc<Tables.User>, err: Table.Err) {
-        query['groups'] = { $eq: g }
-        this.get(query, sort ? { name: 1, surename: 1 } : {}, suc, err)
+    getGroups(s: string): Future<Tables.Group[]> {
+        return this.exec(this.getByID(s)).flatMap(u =>
+            Groups.instance.exec(Groups.instance.getByIDs(Users.groupIDs(u).toArray()), false))
     }
 
-    getGroups(s: string, deep:boolean, suc: Table.Suc<Tables.PopulatedGroup>, err: Table.Err) {
-        this.getByID(s, u => Groups.instance.getAndPopulate({ _id: { $in: u.groups } }, false, deep, suc, err), err)
+    addFile(students: string[], group: string, file: string): Future<Tables.User[]> {
+        return this.update(students, user => {
+            List.apply(user.groups).filter(g => g.group == group).head(null).files.push({file:file, final:false})
+        })
+    }
+
+    populateAllFiles<B>(user: Tables.User): Future<Tables.User> {
+        return Future.lift(this.model.populate(user, {
+            path: "groups.files.file"
+        }))
+    }
+
+    populateGroupFiles<B>(user: Tables.User, group: string): Future<Tables.User> {
+        user.groups = user.groups.filter(g => g.group == group)
+        return this.populateAllFiles(user)
     }
 }
 
 export namespace Users {
+    export type Query = mongoose.DocumentQuery<Tables.User[], Tables.User>
+    export type QueryOne = mongoose.DocumentQuery<Tables.User, Tables.User> 
+    export type QueryA<A> = mongoose.DocumentQuery<A, Tables.User> 
+
     export interface GoogleProfile {
         email: string,
         name: {
@@ -42,11 +61,17 @@ export namespace Users {
 
     export const instance = new User(Tables.User)
 
-    export function getByGProfile(p: GoogleProfile, suc: (u: Tables.UserTemplate) => void, err: Table.Err) {
-        const id = getIDByGProfile(p)
+    export function groupIDs(user: Tables.User): List<string> {
+        return List.apply(user.groups).map(groupData => groupData.group)
+    }
 
-        //TODO not sure if getByID (findOne) will return successfully if no were found, test
-        instance.getByID(id, user => returnOrCreate(id, p, user, suc, err), err, false)
+    export function sortByName(query: Users.Query): Users.Query {
+        return query.sort({ name: 1, surename: 1 })
+    }
+
+    export function getByGProfile(p: GoogleProfile): Future<Tables.User> {
+        const id = getIDByGProfile(p)
+        return instance.exec(instance.getByID(id), false).flatMap(u => returnOrCreate(id, p, u))
     }
 
     export function simplify(u: Tables.UserTemplate): SimpleUser {
@@ -54,22 +79,15 @@ export namespace Users {
     }
 
     export function mkSimpleUser(id:string, name:string, surename: string) {
-        return {
-            id: id,
-            name: name,
-            surename: surename
-        }
+        return { id: id, name: name, surename: surename }
     }
 
     export function getIDByGProfile(p: GoogleProfile): string {
         return p.email.split("@")[0]
     }
 
-    export function returnOrCreate(id: string, p: GoogleProfile, user: Tables.User, suc: (u: Tables.UserTemplate) => void, err: Table.Err) {
-        if (user) suc(user)
-        else {
-            const user = Tables.mkUser(id, p.name.givenName, p.name.familyName)
-            instance.create(user, () => suc(user), Table.error)
-        }
+    export function returnOrCreate(id: string, p: GoogleProfile, user: Tables.User): Future<Tables.User> {
+        if (user) return Future.unit(user)
+        else return instance.create(Tables.mkUser(id, p.name.givenName, p.name.familyName))
     }
 }

@@ -2,184 +2,126 @@
 import { Table, Tables } from '../Table'
 import { Users } from './Users'
 import { Assignments } from './Assignments'
-import { Projects } from './Projects'
 import { Files } from './Files'
 import { List } from '../../functional/List'
 import { Tuple, Tuple3 } from '../../functional/Tuple'
+import { Future } from '../../functional/Future'
+import { IOMap } from '../../functional/IOMap'
 
 class Group extends Table<Tables.Group> {
-    create(group: Tables.GroupTemplate, done: () => void, err: Table.Err) {
-        super.create(group, () => {
-            const addToGroup = (s: string) => Users.instance.addToGroup(s, group._id, false, false, done, err)
+    create(g: Tables.GroupTemplate): Future<Tables.Group> {
+        return super.create(g).flatMap(group => {
+            const addToGroup = (s: string) => Future.lift(Users.instance.addToGroup(s, group._id, false, false).then(user =>
+                List.mk<string>(), (err) =>
+                    List.mk<string>(err)))
 
-            group.students.forEach(addToGroup)
-            group.admins.forEach(addToGroup)
-        }, err)
+            const users = List.apply(group.students).append(List.apply(group.admins))
+            const error = IOMap.traverse<string, List<string>, List<string>>(users, IOMap.apply).run(addToGroup).map(s => List.concat(s))
+
+            return error.flatMap(errors => {
+                if (errors.length() == 0) return Future.unit(group)
+                else return Future.reject(new Tuple(group, errors))
+            })
+        })
     }
 
-    addUser(g: string, s: string, admin: boolean, updateStudent: boolean, done: () => void, fail: Table.Err) {
-        this.updateOne(g, (a: Tables.Group) => {
-            if (admin) {
-                if (a.admins.indexOf(s) == -1) a.admins.push(s)
-            }
-            else {
-                if (a.students.indexOf(s) == -1) a.students.push(s)
-            }
-        }, a => {
-            if (updateStudent) Users.instance.addToGroup(s, g, admin, false, done, fail)
-            else done()
-        }, fail)
+    addUser(g: string, s: string, admin: boolean, updateStudent: boolean): Future<Tables.Group> {
+        return this.updateOne(g, (a: Tables.Group) => {
+            if (admin) if (a.admins.indexOf(s) == -1) a.admins.push(s)
+            else if (a.students.indexOf(s) == -1) a.students.push(s)
+        }).flatMap(a => {
+            if (updateStudent) return Users.instance.addToGroup(s, g, admin, false).map(u => a)
+            else return Future.unit(a)
+        })
     }
 
-    mkAndAddAssignment(g: string, assignment: Tables.AssignmentTemplate, success: Table.SucOne<Tables.Group>, fail: Table.Err) {
-        Assignments.instance.create(assignment, () => Groups.instance.addAssignment(g, assignment._id, success, fail), fail)
+    mkAndAddAssignment(g: string, assignment: Tables.AssignmentTemplate): Future<Tables.Assignment> {
+        return Assignments.instance.create(assignment).flatMap(a => this.addAssignment(g, a._id).map(g => a))
     }
 
-    addAssignment(g: string, ass: string, success: Table.SucOne<Tables.Group>, fail: Table.Err) {
-        Groups.instance.updateOne(g, a => a.assignments.push(ass), success, fail)
+    addAssignment(g: string, ass: string): Future<Tables.Group> {
+        return this.updateOne(g, a => a.assignments.push(ass))
     }
 
-    getAndPopulate(query: {}, deep: boolean, users: boolean, success: Table.Suc<Tables.PopulatedGroup>, fail: Table.Err, sort: {} = {}) {
-        const pop = deep ? {
-            path: users ? "assignments students admins" : "assignments",
-            options: {
+    populateAssignments<B>(query: Groups.QueryA<B>, deep: boolean): Groups.QueryA<B> {
+        const pop = {
+            path: "assignments",
+            options: deep ? {
                 populate: {
                     path: "project"
                 },
                 sort: { due: 1 }
-            }
-        } : {
-            path: "assignments", options: {
+            } : {
                 sort: { due: 1 }
             }
         }
 
-        this.do(this.model.find(query).populate(pop).sort(sort), g => {
-            success((g as {}[]) as Tables.PopulatedGroup[])
-        }, fail)
+        return query.populate(pop)
     }
 
-
-
-    getStudents(g: string, success: Table.Suc<Tables.User>, fail: Table.Err) {
-        this.populateStudents(g, g => success((g.students as any) as Tables.User[]), fail)
+    populateStudents<B>(query: Groups.QueryA<B>): Groups.QueryA<B> {
+        return this.populateUserType(query, "students.name students.surename")
     }
 
-    isAdmin(g: string, user: string, success: Table.SucOne<boolean>, fail: Table.Err) {
-        this.getByID(g, g => success(g.admins.indexOf(user) >= 0), fail)
+    populateAdmins<B>(query: Groups.QueryA<B>): Groups.QueryA<B> {
+        return this.populateUserType(query, "admins.name admins.surename")
     }
 
-    populateStudents(g: string, success: Table.SucOne<Tables.Group>, fail: Table.Err) {
-        this.do(this.model.find({ _id: g }).populate({
-            path: "students",
-            options: {
-                sort: {
-                    name: 1,
-                    surename: 1,
-                    _id: 1
+    populateUsers<B>(query: Groups.QueryA<B>): Groups.QueryA<B> {
+        return this.populateStudents(this.populateAdmins(query))
+    }
+
+    populateAll<B>(query: Groups.QueryA<B>, deep:boolean): Groups.QueryA<B> {
+        return this.populateAssignments(this.populateUsers(query), deep)
+    }
+
+    populateFiles<B>(query: Groups.QueryA<B>, fileFileter: {} = {}): Groups.QueryA<B> {
+        return query.populate({
+            path: "assignments",
+            populate: {
+                path: "files",
+                match: fileFileter,
+                populate: {
+                    path: "students.name students.surename"
                 }
             }
-        }), g => success(g[0]), fail)
+        })
+    }
+
+    private populateUserType<B>(query: Groups.QueryA<B>, typ: string): Groups.QueryA<B> {
+        return query.populate({
+            path: typ,
+            options: {
+                sort: { name: 1, surename: 1, _id: 1 }
+            }
+        })
+    }
+
+    getStudents(g: string): Future<Tables.User[]> {
+        return this.map(this.populateStudents(this.getByID(g)), g => (g.students as any) as Tables.User[])
+    }
+
+    getAdmins(g: string): Future<Tables.User[]> {
+        return this.map(this.populateAdmins(this.getByID(g)), g => (g.admins as any) as Tables.User[])
+    }
+
+    isAdmin(g: string, user: string): Future<boolean> {
+        return this.map(this.getByID(g), g => g.admins.indexOf(user) >= 0)
     }
 }
 
 export namespace Groups {
-    type OverviewData = Tuple3<number, string, Date>
-    type Open = Tables.PopulatedAssignment
-    type Closed = Tables.PopulatedAssignment
-    type DetailsData = Tuple<List<Open>, List<Closed>>
-
-    export interface GroupOverview {
-        id: string,
-        name: string,
-        openAssignments: number,
-        nextProject: string,
-        nextDeadline: Date
-    }
-
-    export interface GroupDetails {
-        id: string,
-        name: string,
-        admins: string[],
-        openAssignments: Open[],
-        closedAssignments: Closed[],
-        doneAssignments: Tables.PopulatedAssignment[]
-    }
+    export type QueryA<A> = mongoose.DocumentQuery<A, Tables.Group>
+    export type Query = mongoose.DocumentQuery<Tables.Group[], Tables.Group>
+    export type QueryOne = mongoose.DocumentQuery<Tables.Group, Tables.Group> 
 
     export const instance = new Group(Tables.Group)
 
-    //expensive... perhaps better to not show upcomming deadlines per group this way... although with this it is easy to extract upcomming deadlines and those can also be given then
-    export function getOverviewForUser(user: string, success: Table.Suc<GroupOverview>, fail: Table.Err) {
-        Users.instance.getGroups(user, false, (gs) => {
-            const lg = List.apply(gs)
-            const assignments = List.concat(lg.map(g => List.apply(g.assignments.map(a => a._id)))).toArray()
-            Files.instance.getAssignmentsFinal(user, assignments, files => {
-                success(groupsToOverview(lg.map(g => {
-                    const open = g.assignments.filter(a => files.find(f => f.assignment == a._id) ? false : true)
-                    g.assignments = open
-                    return g
-                }).toArray()))
-            }, fail)
-        }, fail)
+    export function getGroups(user: string): Future<Tables.Group[]> {
+        return Users.instance.getGroups(user)
     }
 
-    export function getGroupDetails(s:string, g: string, success: Table.SucOne<GroupDetails>, fail: Table.Err) {
-        instance.getAndPopulate({ _id: g }, true, false, g => {
-            let assignments = List.apply(g[0].assignments)
-
-            Files.instance.getAssignmentsFinal(s, assignments.map(a => a._id).toArray(), files => {
-                let split = assignments.filter2(a => files.find(f => f.assignment == a._id)? true:false)
-
-                let doneAss = split._1.map(a => {
-                    a.due = files.find(f => f.assignment == a._id).timestamp
-                    return a
-                })
-                const openClosed: DetailsData = List.apply(split._2.toArray()).foldLeft(new Tuple(List.apply([]), List.apply([])), foldAssignmentDetails)
-
-                success(mkGroupDetails(g[0]._id, g[0].name, g[0].admins as any as string[], openClosed._1.toArray(), openClosed._2.toArray(), doneAss.toArray()))
-            }, fail)
-        }, fail)
-    }
-
-    function groupsToOverview(g: Tables.PopulatedGroup[]): GroupOverview[] {
-        return List.apply(g).map(groupToOverview).toArray()
-    }
-
-    function groupToOverview(g: Tables.PopulatedGroup): GroupOverview {
-        const data: OverviewData = List.apply((g.assignments as {}[]) as Tables.AssignmentTemplate[]).foldLeft(new Tuple3(0, "", null), foldAssignmentOverview)
-        return mkGroupOverview(g._id, g.name, data._1, data._2, data._3)
-    }
-
-    function foldAssignmentOverview(data: OverviewData, a: Tables.AssignmentTemplate): OverviewData {
-        if (a.due > new Date()) {
-            if (data._3 == null || a.due < data._3) return new Tuple3(data._1 + 1, a.project, a.due)
-            else return new Tuple3(data._1 + 1, data._2, data._3)
-        } else return data
-    }
-
-    function foldAssignmentDetails(data: DetailsData, a: Tables.PopulatedAssignment): DetailsData {
-        if (a.due > new Date()) return new Tuple(data._1.add(a), data._2)
-        else return new Tuple(data._1, data._2.add(a))
-    }
-
-    function mkGroupOverview(id: string, name: string, openAssignments: number, nextProject: string, nextDeadline: Date): GroupOverview {
-        return {
-            id: id,
-            name: name,
-            openAssignments: openAssignments,
-            nextProject: nextProject,
-            nextDeadline: nextDeadline
-        }
-    }
-
-    function mkGroupDetails(id: string, name: string, admins:string[], open: Open[], closed: Closed[], done: Tables.PopulatedAssignment[]): GroupDetails {
-        return {
-            id: id,
-            name: name,
-            admins: admins,
-            openAssignments: open,
-            closedAssignments: closed,
-            doneAssignments: done
-        }
+    export function getGroup(group: string): Future<Tables.Group> {
+        return instance.exec(instance.getByID(group))
     }
 }
