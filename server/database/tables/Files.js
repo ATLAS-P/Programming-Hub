@@ -2,92 +2,53 @@
 const Table_1 = require('../Table');
 const Assignments_1 = require('./Assignments');
 const Groups_1 = require('./Groups');
+const Users_1 = require('./Users');
 class File extends Table_1.Table {
-    create(a, done, fail) {
-        this.removeNonFinal(a.student, a.assignment);
-        Assignments_1.Assignments.instance.addFile(a.assignment, a._id, () => {
-            super.create(a, done, fail);
-        }, fail);
-    }
-    getAssignment(s, a, success, fail) {
-        super.getOne({ student: s, assignment: a }, {}, success, fail);
-    }
-    getDeepAssignment(s, a, success, fail) {
-        this.do(this.model.find({ student: s, assignment: a }).populate({
-            path: "assignment",
-            populate: {
-                path: "project"
-            }
-        }).populate({ path: "partners student" }), f => success(f[0]), fail);
-    }
-    getAssignmentsFinal(s, la, success, fail) {
-        this.model.find({ student: s, assignment: { $in: la }, final: true }, (err, res) => {
-            if (err)
-                fail(err);
-            else
-                success(res);
+    create(a) {
+        return super.create(a).flatMap(file => {
+            return Assignments_1.Assignments.instance.addFile(file.assignment, file._id).flatMap(a => Users_1.Users.instance.addFile(file.students, a.group, file._id).map(u => file));
         });
     }
-    getNonFinalFor(s, success, fail) {
-        this.do(this.model.find({ student: s, final: false }).populate({
-            path: "assignment",
-            populate: {
-                path: "project"
-            }
-        }), success, fail);
+    populateUsers(query) {
+        return query.populate("students");
     }
-    //add callbacks
-    removeNonFinal(s, ass) {
-        this.model.find({ student: s, assignment: ass, final: false }).remove().exec();
+    populateAssignment(query) {
+        return query.populate("assignment");
     }
-    mkFinal(s, ass) {
-        this.model.findOne({ student: s, assignment: ass, final: false }).update({ final: true }).exec();
+    populateAll(query) {
+        return this.populateUsers(this.populateAssignment(query));
     }
-    updateFeedback(id, feedback, success, fail) {
-        this.updateOne(id, (file) => {
-            file.feedback = feedback;
-        }, success, fail);
+    removeStudent(file, student) {
+        return this.updateOne(file, (file) => {
+            const index = file.students.indexOf(student);
+            if (index >= 0)
+                file.students.splice(index, 1);
+        });
+    }
+    updateFeedback(file, feedback) {
+        return this.updateOne(file, file => file.feedback = feedback);
+    }
+    updateNotes(file, notes) {
+        return this.updateOne(file, file => file.notes = notes);
     }
 }
 var Files;
 (function (Files) {
     Files.instance = new File(Table_1.Tables.File);
-    function getID(assignment, student) {
-        return assignment + "_" + student;
+    function forStudent(student) {
+        return Users_1.Users.instance.exec(Users_1.Users.instance.getByID(student)).flatMap(s => Users_1.Users.instance.populateAllFiles(s));
     }
-    Files.getID = getID;
-    function getForStudent(s, g, suc, error) {
-        getForGroup(g, { "student": s }, suc, error);
+    Files.forStudent = forStudent;
+    function forStudentInGroup(student, group) {
+        return Users_1.Users.instance.exec(Users_1.Users.instance.getByID(student)).flatMap(s => Users_1.Users.instance.populateGroupFiles(s, group));
     }
-    Files.getForStudent = getForStudent;
-    function getAllForGroup(g, suc, error) {
-        getForGroup(g, {}, suc, error);
+    Files.forStudentInGroup = forStudentInGroup;
+    function forAssignment(assignment) {
+        return Assignments_1.Assignments.instance.populateFiles(Assignments_1.Assignments.instance.getByID(assignment));
     }
-    Files.getAllForGroup = getAllForGroup;
-    function getForGroup(g, fileFileter, suc, error) {
-        Groups_1.Groups.instance.model.find({ _id: g }).populate({
-            path: "assignments",
-            populate: {
-                path: "files",
-                match: fileFileter,
-                populate: {
-                    path: "student partners"
-                }
-            }
-        }).populate({
-            path: "assignments",
-            populate: {
-                path: "project"
-            }
-        }).exec((err, g) => {
-            if (err)
-                error(err);
-            else if (g.length > 0)
-                suc(g[0]);
-            else
-                error("No group with id: " + g + " found!");
-        });
+    Files.forAssignment = forAssignment;
+    function forGroup(group) {
+        return Groups_1.Groups.instance.populateFiles(Groups_1.Groups.instance.getByID(group));
     }
-    Files.getForGroup = getForGroup;
+    Files.forGroup = forGroup;
 })(Files = exports.Files || (exports.Files = {}));
-//# sourceMappingURL=Files.js.map

@@ -1,0 +1,40 @@
+.dz-image {
+  background: rgba(0,0,0,0) !important;
+}
+.dz-progress {
+  height: 6px !important;
+  margin-top: 10px !important;
+  border-radius: 4px !important;
+}
+.dz-progress span {
+  background: #0081dd !important;
+}
+.dz-details {
+  margin-top: 20px !important;
+}
+.dz-size {
+  display: none;
+}
+.dz-filename:hover span {
+  border: none !important;
+}
+.dz-preview,
+.dz-file-preview,
+.dz-processing {
+  margin: 0px !important;
+}
+.dz-details {
+  margin-top: 6px;
+}
+.dz-message {
+  font-family: Open Sans;
+  font-size: 14px;
+  padding: 25px;
+}
+.dropzone {
+  border: 1px dashed #0081dd;
+  background-color: #fefefe;
+  text-align: center;
+  padding: 0px;
+  min-height: 128px;
+}

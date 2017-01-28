@@ -1,16 +1,17 @@
 ﻿import * as mongoose from 'mongoose'
 import * as mongodb from 'mongodb'
 import { Table, Tables } from '../Table'
+import { MkTables } from '../MkTables'
 import { Assignments } from './Assignments'
 import { Groups } from './Groups'
 import { Users } from './Users'
 import { Future } from '../../functional/Future'
 
 class File extends Table<Tables.File> {
-    create(a: Tables.FileTemplate): Future<Tables.File> {
+    create(a: MkTables.FileTemplate): Future<Tables.File> {
         return super.create(a).flatMap(file => {
-            return Assignments.instance.addFile(file.assignment, file._id).flatMap(a =>
-                Users.instance.addFile(file.students, a.group, file._id).map(u => file)
+            return Assignments.instance.addFile(file.assignment as string, file._id).flatMap(a =>
+                Users.instance.addFile(file.students as string[], a.group as string, file._id).map(u => file)
             )
         })
     }
@@ -29,8 +30,8 @@ class File extends Table<Tables.File> {
 
     removeStudent(file: string, student: string): Future<Tables.File> {
         return this.updateOne(file, (file: Tables.File) => {
-            const index = file.students.indexOf(student)
-            if(index >= 0) file.students.splice(index, 1)
+            const index = (file.students as string[]).indexOf(student)
+            if (index >= 0) (file.students as string[]).splice(index, 1)
         })
     }
 

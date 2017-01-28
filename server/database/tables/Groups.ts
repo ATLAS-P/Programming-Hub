@@ -1,5 +1,6 @@
 ﻿import * as mongoose from 'mongoose'
 import { Table, Tables } from '../Table'
+import { MkTables } from '../MkTables'
 import { Users } from './Users'
 import { Assignments } from './Assignments'
 import { Files } from './Files'
@@ -9,13 +10,13 @@ import { Future } from '../../functional/Future'
 import { IOMap } from '../../functional/IOMap'
 
 class Group extends Table<Tables.Group> {
-    create(g: Tables.GroupTemplate): Future<Tables.Group> {
+    create(g: MkTables.GroupTemplate): Future<Tables.Group> {
         return super.create(g).flatMap(group => {
             const addToGroup = (s: string) => Future.lift(Users.instance.addToGroup(s, group._id, false, false).then(user =>
                 List.mk<string>(), (err) =>
                     List.mk<string>(err)))
 
-            const users = List.apply(group.students).append(List.apply(group.admins))
+            const users = List.apply(group.students as string[]).append(List.apply(group.admins as string[]))
             const error = IOMap.traverse<string, List<string>, List<string>>(users, IOMap.apply).run(addToGroup).map(s => List.concat(s))
 
             return error.flatMap(errors => {
@@ -27,31 +28,64 @@ class Group extends Table<Tables.Group> {
 
     addUser(g: string, s: string, admin: boolean, updateStudent: boolean): Future<Tables.Group> {
         return this.updateOne(g, (a: Tables.Group) => {
-            if (admin) if (a.admins.indexOf(s) == -1) a.admins.push(s)
-            else if (a.students.indexOf(s) == -1) a.students.push(s)
+            if (admin) if ((a.admins as string[]).indexOf(s) == -1) (a.admins as string[]).push(s)
+            else if ((a.students as string[]).indexOf(s) == -1) (a.students as string[]).push(s)
         }).flatMap(a => {
             if (updateStudent) return Users.instance.addToGroup(s, g, admin, false).map(u => a)
             else return Future.unit(a)
         })
     }
 
-    mkAndAddAssignment(g: string, assignment: Tables.AssignmentTemplate): Future<Tables.Assignment> {
+    addUsers(g: string, users: string[], admin: boolean): Future<Tables.Group> {
+        const addToGroup = (s: string) => Future.lift(Users.instance.addToGroup(s, g, false, false).then(user =>
+            List.mk<string>(), (err) =>
+                List.mk<string>(err)))
+
+        const error = IOMap.traverse<string, List<string>, List<string>>(List.apply(users), IOMap.apply).run(addToGroup).map(s => List.concat(s))
+        return this.updateOne(g, group => {
+            users.forEach(u => {
+                const coll = admin ? group.admins as string[] : group.students as string[]
+                if (coll.indexOf(u) == -1) coll.push(u)
+            })
+        }).flatMap(group => error.flatMap(e => {
+            if (e.length() == 0) return Future.unit(group)
+            else return Future.reject(e.foldLeft('', (acc, next) => acc + next + ""))
+        }))
+    }
+
+    removeUser(g: string, s: string, admin: boolean, updateStudent: boolean): Future<Tables.Group> {
+        return this.updateOne(g, (a: Tables.Group) => {
+            const collection = (admin ? a.admins : a.students) as string[]
+            const index = collection.indexOf(s)
+            if (index >= 0) collection.splice(index, 1)
+        }).flatMap(a => {
+            if (updateStudent) return Users.instance.removeFromGroup(s, g, admin, false).map(u => a)
+            else return Future.unit(a)
+        })
+    }
+
+    removeAssignment(g: string, assignment: string, destrory:boolean = false): Future<Tables.Group> {
+        return this.updateOne(g, group => {
+            const index = (group.assignments as string[]).indexOf(assignment)
+            if (index >= 0) (group.assignments as string[]).splice(index, 1)
+        }).flatMap(group => {
+            if (destrory) return Assignments.instance.removeAssignment(assignment, false).map(a => group)
+            else return Future.unit(group)
+        })
+    }
+
+    mkAndAddAssignment(g: string, assignment: MkTables.AssignmentTemplate): Future<Tables.Assignment> {
         return Assignments.instance.create(assignment).flatMap(a => this.addAssignment(g, a._id).map(g => a))
     }
 
     addAssignment(g: string, ass: string): Future<Tables.Group> {
-        return this.updateOne(g, a => a.assignments.push(ass))
+        return this.updateOne(g, a => (a.assignments as string[]).push(ass))
     }
 
-    populateAssignments<B>(query: Groups.QueryA<B>, deep: boolean): Groups.QueryA<B> {
+    populateAssignments<B>(query: Groups.QueryA<B>): Groups.QueryA<B> {
         const pop = {
             path: "assignments",
-            options: deep ? {
-                populate: {
-                    path: "project"
-                },
-                sort: { due: 1 }
-            } : {
+            options: {
                 sort: { due: 1 }
             }
         }
@@ -60,19 +94,15 @@ class Group extends Table<Tables.Group> {
     }
 
     populateStudents<B>(query: Groups.QueryA<B>): Groups.QueryA<B> {
-        return this.populateUserType(query, "students.name students.surename")
+        return this.populateUserType(query, "students") //only return name and surename, not all
     }
 
     populateAdmins<B>(query: Groups.QueryA<B>): Groups.QueryA<B> {
-        return this.populateUserType(query, "admins.name admins.surename")
+        return this.populateUserType(query, "admins") //only return name and surename, not all
     }
 
     populateUsers<B>(query: Groups.QueryA<B>): Groups.QueryA<B> {
         return this.populateStudents(this.populateAdmins(query))
-    }
-
-    populateAll<B>(query: Groups.QueryA<B>, deep:boolean): Groups.QueryA<B> {
-        return this.populateAssignments(this.populateUsers(query), deep)
     }
 
     populateFiles<B>(query: Groups.QueryA<B>, fileFileter: {} = {}): Groups.QueryA<B> {
@@ -82,7 +112,7 @@ class Group extends Table<Tables.Group> {
                 path: "files",
                 match: fileFileter,
                 populate: {
-                    path: "students.name students.surename"
+                    path: "students" //only return name and surename, not all
                 }
             }
         })
@@ -98,15 +128,15 @@ class Group extends Table<Tables.Group> {
     }
 
     getStudents(g: string): Future<Tables.User[]> {
-        return this.map(this.populateStudents(this.getByID(g)), g => (g.students as any) as Tables.User[])
+        return this.map(this.populateStudents(this.getByID(g)), g => g.students as Tables.User[])
     }
 
     getAdmins(g: string): Future<Tables.User[]> {
-        return this.map(this.populateAdmins(this.getByID(g)), g => (g.admins as any) as Tables.User[])
+        return this.map(this.populateAdmins(this.getByID(g)), g => g.admins as Tables.User[])
     }
 
     isAdmin(g: string, user: string): Future<boolean> {
-        return this.map(this.getByID(g), g => g.admins.indexOf(user) >= 0)
+        return this.map(this.getByID(g), g => (g.admins as string[]).indexOf(user) >= 0)
     }
 }
 
@@ -122,6 +152,22 @@ export namespace Groups {
     }
 
     export function getGroup(group: string): Future<Tables.Group> {
-        return instance.exec(instance.getByID(group))
+        return instance.exec(instance.populateUsers(instance.populateAssignments(instance.getByID(group))))
+    }
+
+    export function removeGroup(group: string): Future<void> {
+        return instance.exec(instance.getByID(group), true).flatMap(g => {
+            const removeFromGroup = (s: string) => Future.lift(Users.instance.removeFromGroup(s, g._id, false, false).then(user =>
+                List.mk<string>(), (err) =>
+                    List.mk<string>(err)))
+
+            const users = List.apply(g.students as string[]).append(List.apply(g.admins as string[]))
+            const error = IOMap.traverse<string, List<string>, List<string>>(users, IOMap.apply).run(removeFromGroup).map(s => List.concat(s))
+
+            return Future.lift(g.remove()).flatMap(g => error).flatMap(errors => {
+                if (errors.length() == 0) return Future.unit(null)
+                else return Future.reject<void>(errors.foldLeft("", (acc, e) => acc + e + " "))
+            })
+        })
     }
 }

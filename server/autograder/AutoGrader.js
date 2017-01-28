@@ -1,7 +1,6 @@
 "use strict";
 const Result_1 = require("./Result");
 const IOMap_1 = require("../functional/IOMap");
-//just handy function for IOMap where final A instanceof Result and for some the input A is Either with output/error
 var AutoChecker;
 (function (AutoChecker) {
     function foldLeft(a, f) {
@@ -39,4 +38,3 @@ var AutoChecker;
     }
     AutoChecker.evaluateEitherWith = evaluateEitherWith;
 })(AutoChecker = exports.AutoChecker || (exports.AutoChecker = {}));
-//# sourceMappingURL=AutoGrader.js.map

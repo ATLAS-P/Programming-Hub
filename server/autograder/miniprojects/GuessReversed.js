@@ -48,4 +48,3 @@ var GuessReversed;
             return Number(match[1]);
     }
 })(GuessReversed = exports.GuessReversed || (exports.GuessReversed = {}));
-//# sourceMappingURL=GuessReversed.js.map

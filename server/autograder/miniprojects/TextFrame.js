@@ -28,4 +28,3 @@ var TextFrame;
     }
     TextFrame.frameCheck = frameCheck;
 })(TextFrame = exports.TextFrame || (exports.TextFrame = {}));
-//# sourceMappingURL=TextFrame.js.map

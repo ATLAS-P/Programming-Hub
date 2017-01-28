@@ -42,7 +42,6 @@ var Output;
         return out.add(data.replace(/\r?\n|\r/g, ""));
     }
     Output.listOut = listOut;
-    //NOTE output might need to be reversed, so List.apply ..... append out, also create a multiIOasList    
     function breakToList(out, data, stdin) {
         return out.append(List_1.List.apply(data.split(/\r?\n|\r/)));
     }
@@ -79,7 +78,6 @@ var Runners;
             py.stdin.on('error', function (err) {
                 inputError = err;
             });
-            //check if possible as inline
             function isRunning() {
                 return running;
             }
@@ -105,7 +103,6 @@ var Runners;
         PythonRunners.simpleIOasList = pythonSpawner(List_1.List.apply([]), Output.breakToList, Input.simpleIn);
         PythonRunners.sleepIO = pythonSpawner(List_1.List.apply([]), Output.listOut, Input.withDelay);
     })(PythonRunners = Runners.PythonRunners || (Runners.PythonRunners = {}));
-    //also in miniprojects, so put in some math module, or str module etc..
     function getFirstNumber(s, z) {
         const reg = /^\D*(\d+(?:\.\d+)?)/g;
         const match = reg.exec(s);
@@ -115,4 +112,3 @@ var Runners;
             return Number(match[1]);
     }
 })(Runners = exports.Runners || (exports.Runners = {}));
-//# sourceMappingURL=Runners.js.map

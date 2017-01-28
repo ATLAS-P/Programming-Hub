@@ -59,4 +59,3 @@ var Files;
     }
 })(Files || (Files = {}));
 $(document).ready(Files.init);
-//# sourceMappingURL=file.js.map

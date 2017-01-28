@@ -12,10 +12,15 @@ class Future extends Promise {
 exports.Future = Future;
 (function (Future) {
     function unit(a) {
-        return new Future(function (resolve, reject) {
-            resolve(a);
-        });
+        return new Future((res, rej) => res(a));
     }
     Future.unit = unit;
+    function reject(reason) {
+        return new Future((res, rej) => rej(reason));
+    }
+    Future.reject = reject;
+    function lift(future) {
+        return new Future((res, rej) => future.then(res, rej));
+    }
+    Future.lift = lift;
 })(Future = exports.Future || (exports.Future = {}));
-//# sourceMappingURL=Future.js.map

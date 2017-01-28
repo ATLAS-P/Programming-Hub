@@ -1,5 +1,6 @@
 ﻿import * as mongoose from 'mongoose'
 import { Table, Tables } from '../Table'
+import { MkTables } from '../MkTables'
 import { Groups } from './Groups'
 import { Future } from '../../functional/Future'
 import { List } from '../../functional/List'
@@ -7,16 +8,28 @@ import { List } from '../../functional/List'
 class User extends Table<Tables.User> {
     addToGroup(s: string, g: string, updateGroup: boolean, admin: boolean): Future<Tables.User> {
         return this.updateOne(s, (a: Tables.User) => {
-            if (Users.groupIDs(a).toArray().indexOf(g) == -1) a.groups.push({ group: g, files: [] })
+            const ids = Users.groupIDs(a)
+            if (ids.toArray().indexOf(g) == -1) a.groups.push({ group: g, files: [] })
         }).flatMap(a => {
             if (updateGroup) return Groups.instance.addUser(g, s, admin, false).map(u => a)
             else return Future.unit(a)
         })
     }
 
+    removeFromGroup(s: string, g: string, updateGroup: boolean, admin: boolean): Future<Tables.User> {
+        return this.updateOne(s, (a: Tables.User) => {
+            const ids = Users.groupIDs(a)
+            const index = ids.toArray().indexOf(g.toString())
+            if (index >= 0) a.groups.splice(index, 1)
+        }).flatMap(a => {
+            if (updateGroup) return Groups.instance.removeUser(g, s, admin, false).map(u => a)
+            else return Future.unit(a)
+        })
+    }
+
     getGroups(s: string): Future<Tables.Group[]> {
         return this.exec(this.getByID(s)).flatMap(u =>
-            Groups.instance.exec(Groups.instance.getByIDs(Users.groupIDs(u).toArray()), false))
+            Groups.instance.exec(Groups.instance.getByIDs(Users.groupIDs(u).toArray()).sort({ end: 1 }), false))
     }
 
     addFile(students: string[], group: string, file: string): Future<Tables.User[]> {
@@ -56,13 +69,14 @@ export namespace Users {
     export interface SimpleUser {
         id: string, 
         name: string,
-        surename: string
+        surename: string,
+        admin: boolean
     }
 
     export const instance = new User(Tables.User)
 
     export function groupIDs(user: Tables.User): List<string> {
-        return List.apply(user.groups).map(groupData => groupData.group)
+        return List.apply(user.groups).map(groupData => groupData.group as string)
     }
 
     export function sortByName(query: Users.Query): Users.Query {
@@ -74,12 +88,8 @@ export namespace Users {
         return instance.exec(instance.getByID(id), false).flatMap(u => returnOrCreate(id, p, u))
     }
 
-    export function simplify(u: Tables.UserTemplate): SimpleUser {
-        return mkSimpleUser(u._id, u.name, u.surename)
-    }
-
-    export function mkSimpleUser(id:string, name:string, surename: string) {
-        return { id: id, name: name, surename: surename }
+    export function simplify(u: MkTables.UserTemplate): SimpleUser {
+        return { id: u._id, name: u.name, surename: u.surename, admin: u.admin }
     }
 
     export function getIDByGProfile(p: GoogleProfile): string {
@@ -88,6 +98,6 @@ export namespace Users {
 
     export function returnOrCreate(id: string, p: GoogleProfile, user: Tables.User): Future<Tables.User> {
         if (user) return Future.unit(user)
-        else return instance.create(Tables.mkUser(id, p.name.givenName, p.name.familyName))
+        else return instance.create(MkTables.mkUser(id, p.name.givenName, p.name.familyName))
     }
 }

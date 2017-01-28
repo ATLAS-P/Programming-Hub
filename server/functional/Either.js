@@ -28,4 +28,3 @@ class Right extends Either {
     }
 }
 exports.Right = Right;
-//# sourceMappingURL=Either.js.map

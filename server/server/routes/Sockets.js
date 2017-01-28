@@ -1,104 +1,137 @@
 "use strict";
-const Render_1 = require('./Render');
 const Groups_1 = require('../../database/tables/Groups');
-const Files_1 = require('../../database/tables/Files');
+const Users_1 = require('../../database/tables/Users');
+const Assignments_1 = require('../../database/tables/Assignments');
+const MkTables_1 = require('../../database/MkTables');
+const Future_1 = require('../../functional/Future');
 var Sockets;
 (function (Sockets) {
-    //on or get is for receiving, others can be used to emit
     const ON_CONNECTION = "connection";
-    const GET_GROUPS = "getGroups";
-    const GET_GROUP_USERS = "getUsersIn";
-    const GET_RESULTS = "getResults";
-    const ON_UPDATE_FEEDBACK = "updateFeedback";
-    const GET_NON_FINAL = "getNonFinalHandIns";
-    const ON_HANDLE_NON_FINAL = "handleNonFinal";
-    const SEND_GROUPS = "setGroups";
-    const SEND_GROUP_USERS = "setUsersIn";
-    const SEND_NON_FINAL = "setNonFinalHandIns";
-    const SEND_RESULTS = "setResults";
-    const SEND_FEEDBACK = "feedbacked";
+    const ON_CREATE_COURSE = "createCourse";
+    const ON_REMOVE_COURSE = "removeCourse";
+    const ON_CREATE_ASSIGNMENT = "createAssignment";
+    const ON_REMOVE_ASSIGNMENT = "removeAssignment";
+    const ON_GET_USERS = "getUsers";
+    const ON_ADD_USERS = "addUsers";
+    const RESULT_CREATE_COURSE = "courseCreated";
+    const RESULT_CREATE_ASSIGNMENT = "assignmentCreated";
+    const RESULT_REMOVE_COURSE = "courseRemoved";
+    const RESULT_REMOVE_ASSIGNMENT = "assignmentRemoved";
+    const RESULT_GET_USERS = "usersGot";
+    const RESULT_ADD_USERS = "usersAdded";
     function bindHandlers(app, io) {
         io.on(ON_CONNECTION, connection(app));
     }
     Sockets.bindHandlers = bindHandlers;
     function connection(app) {
         return socket => {
-            socket.on(GET_GROUPS, getGroupsOverview(app, socket));
-            socket.on(GET_GROUP_USERS, getOtherUsersIn(app, socket));
-            socket.on(GET_NON_FINAL, getNonFinalFiles(app, socket));
-            socket.on(ON_HANDLE_NON_FINAL, handleNonFinal(app, socket));
-            socket.on(GET_RESULTS, buildResults(app, socket));
-            socket.on(ON_UPDATE_FEEDBACK, updateFeedback(app, socket));
+            socket.on(ON_CREATE_COURSE, createCourse(app, socket));
+            socket.on(ON_REMOVE_COURSE, removeCourse(app, socket));
+            socket.on(ON_CREATE_ASSIGNMENT, createAssignment(app, socket));
+            socket.on(ON_REMOVE_ASSIGNMENT, removeAssignment(app, socket));
+            socket.on(ON_GET_USERS, getUsers(app, socket));
+            socket.on(ON_ADD_USERS, addUsers(app, socket));
         };
     }
     Sockets.connection = connection;
-    //three below share too much, generalize
-    function getGroupsOverview(app, socket) {
-        const sendGroups = (success, data) => emitHtml(socket, SEND_GROUPS, success, data);
-        return () => {
+    function createCourse(app, socket) {
+        const emitResult = (success, error) => socket.emit(RESULT_CREATE_COURSE, success, error && error.message ? error.message : error);
+        return (name, start, end) => {
             if (socket.request.session.passport) {
-                const user = socket.request.session.passport.user.id;
-                Groups_1.Groups.getOverviewForUser(user, lg => {
-                    Render_1.Render.groupsOverview(app, "groups", lg, data => sendGroups(true, data), err => sendGroups(false, err));
-                }, e => sendGroups(false, e));
-            }
-        };
-    }
-    Sockets.getGroupsOverview = getGroupsOverview;
-    function getOtherUsersIn(app, socket) {
-        const sendUsers = (success, data) => emitHtml(socket, SEND_GROUP_USERS, success, data);
-        return g => {
-            if (socket.request.session.passport) {
-                const user = socket.request.session.passport.user.id;
-                Groups_1.Groups.instance.getStudents(g, lu => {
-                    Render_1.Render.users(app, "userList", lu.filter(v => v._id != user), html => sendUsers(true, html), err => sendUsers(false, err));
-                }, e => sendUsers(false, e));
-            }
-        };
-    }
-    Sockets.getOtherUsersIn = getOtherUsersIn;
-    function getNonFinalFiles(app, socket) {
-        const send = (success, data) => emitHtml(socket, SEND_NON_FINAL, success, data);
-        return () => {
-            if (socket.request.session.passport) {
-                const user = socket.request.session.passport.user.id;
-                Files_1.Files.instance.getNonFinalFor(user, fl => {
-                    Render_1.Render.files(app, "nonFinal", fl, html => send(true, html), err => send(false, err));
-                }, e => send(false, e));
-            }
-        };
-    }
-    Sockets.getNonFinalFiles = getNonFinalFiles;
-    function handleNonFinal(app, socket) {
-        return (accept, ass) => {
-            if (socket.request.session.passport) {
-                const user = socket.request.session.passport.user.id;
-                if (accept)
-                    Files_1.Files.instance.mkFinal(user, ass);
+                const user = socket.request.session.passport.user;
+                if (user.admin) {
+                    Groups_1.Groups.instance.create(MkTables_1.MkTables.mkGroup(name, start, end)).flatMap(g => Groups_1.Groups.instance.addUser(g._id, user.id, true, true)).then(g => emitResult(true), e => emitResult(false, e));
+                }
                 else
-                    Files_1.Files.instance.removeNonFinal(user, ass);
+                    emitResult(false, "You have insufficent rights to perform this action.");
+            }
+            else
+                emitResult(false, "The session was lost, please login again.");
+        };
+    }
+    Sockets.createCourse = createCourse;
+    function createAssignment(app, socket) {
+        const emitResult = (success, error) => socket.emit(RESULT_CREATE_ASSIGNMENT, success, error && error.message ? error.message : error);
+        return (group, name, type, due, link) => {
+            if (socket.request.session.passport) {
+                const user = socket.request.session.passport.user;
+                if (user.admin) {
+                    Groups_1.Groups.instance.isAdmin(group, user.id).flatMap(isAdmin => {
+                        if (isAdmin)
+                            return Groups_1.Groups.instance.mkAndAddAssignment(group, MkTables_1.MkTables.mkAssignment(name, group, due, type, link));
+                        else
+                            return Future_1.Future.reject("You have insufficent rights to perform this action.");
+                    }).then(a => emitResult(true), e => emitResult(false, e));
+                }
+                else
+                    emitResult(false, "You have insufficent rights to perform this action.");
+            }
+            else
+                emitResult(false, "The session was lost, please login again.");
+        };
+    }
+    Sockets.createAssignment = createAssignment;
+    function removeCourse(app, socket) {
+        const emitResult = (success, error) => socket.emit(RESULT_REMOVE_COURSE, success, error && error.message ? error.message : error);
+        return (course) => {
+            if (socket.request.session.passport) {
+                const user = socket.request.session.passport.user;
+                if (user.admin) {
+                    Groups_1.Groups.instance.isAdmin(course, user.id).flatMap(isAdmin => {
+                        if (isAdmin)
+                            return Groups_1.Groups.removeGroup(course);
+                        else
+                            Future_1.Future.reject("You have insufficent rights to perform this action.");
+                    }).then(v => emitResult(true), errors => emitResult(false, errors));
+                }
+                else
+                    emitResult(false, "You have insufficent rights to perform this action.");
+            }
+            else
+                emitResult(false, "The session was lost, please login again.");
+        };
+    }
+    Sockets.removeCourse = removeCourse;
+    function removeAssignment(app, socket) {
+        const emitResult = (success, error) => socket.emit(RESULT_REMOVE_ASSIGNMENT, success, error && error.message ? error.message : error);
+        return (assignment) => {
+            if (socket.request.session.passport) {
+                const user = socket.request.session.passport.user;
+                if (user.admin) {
+                    Assignments_1.Assignments.instance.removeAssignment(assignment, true).then(v => emitResult(true), errors => emitResult(false, errors));
+                }
+                else
+                    emitResult(false, "You have insufficent rights to perform this action.");
+            }
+            else
+                emitResult(false, "The session was lost, please login again.");
+        };
+    }
+    Sockets.removeAssignment = removeAssignment;
+    function getUsers(app, socket) {
+        const emitResult = (users) => socket.emit(RESULT_GET_USERS, users);
+        return (usersNot) => {
+            if (socket.request.session.passport) {
+                const user = socket.request.session.passport.user;
+                if (user.admin) {
+                    Users_1.Users.instance.exec(Users_1.Users.instance.model.find({ "_id": { $nin: usersNot } }).sort({ "name": 1, "surename": 1 }).select("-groups"), false).then(users => {
+                        emitResult(users), e => console.log(e);
+                    });
+                }
             }
         };
     }
-    Sockets.handleNonFinal = handleNonFinal;
-    function buildResults(app, socket) {
-        return (data, project) => {
-            Render_1.Render.results(app, "result", project, data, html => emitHtml(socket, SEND_RESULTS, true, html), err => emitHtml(socket, SEND_RESULTS, false, err));
+    Sockets.getUsers = getUsers;
+    function addUsers(app, socket) {
+        const emitResult = (success, error) => socket.emit(RESULT_ADD_USERS, success, error);
+        return (users, group, role) => {
+            if (socket.request.session.passport) {
+                const user = socket.request.session.passport.user;
+                if (user.admin) {
+                    Groups_1.Groups.instance.addUsers(group, users, role == "admin").then(g => emitResult(true), e => emitResult(false, e));
+                }
+            }
         };
     }
-    Sockets.buildResults = buildResults;
-    function updateFeedback(app, socket) {
-        return (file, feedback) => {
-            Files_1.Files.instance.updateFeedback(file, feedback, (file) => socket.emit(SEND_FEEDBACK, true), err => socket.emit(SEND_FEEDBACK, false, err));
-        };
-    }
-    Sockets.updateFeedback = updateFeedback;
-    function emitHtml(socket, to, success, data) {
-        if (success)
-            socket.emit(to, { success: true, html: data });
-        else
-            socket.emit(to, { success: false, err: (data instanceof Error ? data.message : data) });
-    }
-    Sockets.emitHtml = emitHtml;
+    Sockets.addUsers = addUsers;
 })(Sockets = exports.Sockets || (exports.Sockets = {}));
-//# sourceMappingURL=Sockets.js.map

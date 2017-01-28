@@ -94,17 +94,23 @@ class Cons extends List {
 exports.Cons = Cons;
 (function (List) {
     function apply(la) {
-        if (la.length == 0)
-            return new Empty();
-        else
-            return new Cons(la[0], apply(la.splice(1)));
+        const go = (array, n) => {
+            if (n < array.length)
+                return new Cons(array[n], go(array, n + 1));
+            else
+                return new Empty();
+        };
+        return go(la, 0);
     }
     List.apply = apply;
     function mk(...la) {
-        if (la.length == 0)
-            return new Empty();
-        else
-            return new Cons(la[0], apply(la.splice(1)));
+        const go = (array, n) => {
+            if (n < array.length)
+                return new Cons(array[n], go(array, n + 1));
+            else
+                return new Empty();
+        };
+        return go(la, 0);
     }
     List.mk = mk;
     function unit(a) {
@@ -115,7 +121,6 @@ exports.Cons = Cons;
         return l.foldLeft(0, (acc, a) => acc + a);
     }
     List.sum = sum;
-    //wrong, use below!
     function range(n, from = 0) {
         const go = (left, acc = new Empty) => {
             return left == 0 ? acc : go(left - 1, new Cons(from - n + left, acc));
@@ -134,10 +139,8 @@ exports.Cons = Cons;
         return lla.foldRight(apply([]), (la, acc_la) => acc_la.append(la));
     }
     List.concat = concat;
-    //reame to foreach
     function forall(la, f) {
         la.foldLeft(null, (none, a) => f(a));
     }
     List.forall = forall;
 })(List = exports.List || (exports.List = {}));
-//# sourceMappingURL=List.js.map

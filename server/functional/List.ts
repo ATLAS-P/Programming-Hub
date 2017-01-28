@@ -118,13 +118,21 @@ export class Cons<A> extends List<A> {
 
 export namespace List {
     export function apply<A>(la: A[]): List<A> {
-        if (la.length == 0) return new Empty()
-        else return new Cons<A>(la[0], apply(la.splice(1)))
+        const go = (array, n) => {
+            if (n < array.length) return new Cons<A>(array[n], go(array, n + 1))
+            else return new Empty()
+        }
+
+        return go(la, 0)
     }
 
     export function mk<A>(...la: A[]): List<A> {
-        if (la.length == 0) return new Empty()
-        else return new Cons<A>(la[0], apply(la.splice(1)))
+        const go = (array, n) => {
+            if (n < array.length) return new Cons<A>(array[n], go(array, n + 1))
+            else return new Empty()
+        }
+
+        return go(la, 0)
     }
 
     export function unit<A>(a: A): List<A> {

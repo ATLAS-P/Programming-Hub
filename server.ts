@@ -15,6 +15,7 @@ const GOOGLE_CLIENT_ID = Config.auth.id
 const GOOGLE_CLIENT_SECRET = Config.auth.key
 
 const db = Setup.setupDatabase(Config.db.address, Config.db.port, Config.db.db, Config.db.user.name, Config.db.user.password)
+const storage = Setup.connectFileService(Config.storage.name, Config.storage.key)
 
 Setup.setupAuthGoogle(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET)
 Setup.setupExpress(app, __dirname)
@@ -22,7 +23,7 @@ Setup.setupSession(app, io)
 Setup.addAuthMiddleware(app)
 Setup.addAsMiddleware(app, "db", db)
 
-Routes.addRoutes(app, __dirname)
+Routes.addRoutes(app, __dirname, storage)
 Sockets.bindHandlers(app, io)
 
 Setup.startServer(server)

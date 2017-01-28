@@ -2,11 +2,134 @@
 
 block append scripts
     script(src="/scripts/hub.js")
+    script
+        |$('.datepicker').datepicker();
+    script(src="/scripts/timeline.js")
+    script(src="/scripts/cardicons.js")
+
+block append styles
+    link(href="/styles/flip.css" rel="stylesheet")
 
 block content
     .container
         #nonFinalHandIns
-        .dashboardNode
+        if user.admin
+            h2 My Courses
+        else 
             h2 Enrolled Courses
-            #classes
-                p currently loading...
+        #classes
+            if groups.length == 0
+                if user.admin
+                    p You are not assigned to any course yet! You can create one with the button below.
+                else 
+                    p You are not yet enrolled in any courses!
+            .row.groups
+                for group in groups
+                    .col-lg-4.col-sm-6.card-holder
+                        .flip-container
+                            .flipper.group
+                                .front.card
+                                    .yAlign
+                                        h3.special= group.name
+                                        .timeline-container
+                                            .progress
+                                                .progress-bar.timeline(role="progressbar" min=group.start max=group.end)
+                                .back.card
+                                    .yAlign
+                                        .card-icons
+                                            if user.admin
+                                                .top-icons
+                                                    a(href="/group/"+group._id type="button" class="btn btn-card" data="Course Overview")
+                                                        span.glyphicon.glyphicon-home(aria-hidden="true")
+                                                    button(type="button" class="btn btn-card" data="Edit Course")
+                                                        span.glyphicon.glyphicon-cog(aria-hidden="true")
+                                                    button(type="button" class="btn btn-card" data="Remove Course" data-toggle="modal" data-target="#removeCourse" onclick="javascript:preRemoveCourse('#{group._id}', '#{group.name}')")
+                                                        span.glyphicon.glyphicon-trash(aria-hidden="true")
+                                                .bottom-icons
+                                                    button(type="button" class="btn btn-card" data="Mail all Users")
+                                                        span.glyphicon.glyphicon-envelope(aria-hidden="true")
+                                                    button(type="button" class="btn btn-card" data="To-Feedback List")
+                                                        span.glyphicon.glyphicon-pencil(aria-hidden="true")
+                                                    button(type="button" class="btn btn-card" data="Results Overview")
+                                                        span.glyphicon.glyphicon-list-alt(aria-hidden="true")
+                                            else
+                                                .bottom-icons
+                                                    a(href="/group/"+group._id type="button" class="btn btn-card" data="Course Overview")
+                                                        span.glyphicon.glyphicon-home(aria-hidden="true")
+                                                    button(type="button" class="btn btn-card" data="My Results")
+                                                        span.glyphicon.glyphicon-list-alt(aria-hidden="true")
+                                                    button(type="button" class="btn btn-card" data="Mail Instructors")
+                                                        span.glyphicon.glyphicon-envelope(aria-hidden="true")
+                                    .icons-text
+                                        p
+                                            
+        hr
+        .row
+            if user.admin
+                .col-lg-4.col-sm-6.card-holder
+                    .card.cardLink(type="button" data-toggle="modal" data-target="#addCourse")
+                        h3.special Create a New Course
+
+    .modal.fade#addCourse(tabindex="-1" role="dialog" aria-labelledby="courseLabel")
+        .modal-dialog(role="document")
+            .modal-content
+                .modal-header
+                    button(type="button" class="close" data-dismiss="modal" aria-label="Close")
+                        span(aria-hidden="true") &times;
+                    h4.modal-title#courseLabel Create a New Course
+                .modal-body
+                    #errorContainer.hidden
+                        .alert.alert-danger
+                            b Please review the following errors:
+                            ul#errors
+                        hr
+                    .input-group
+                        span.input-group-addon#addonName Course Name
+                        input.form-control#courseName(type="text" aria-describedby="addonName")
+                    hr
+                    .row
+                        .col-sm-6
+                            .input-group.date(data-provide="datepicker")
+                                span.input-group-addon#addonStart Start Date
+                                input.form-control#courseStart(type="text" aria-describedby="addonStart")
+                                .input-group-addon
+                                    span.glyphicon.glyphicon-calendar
+                        .col-sm-6
+                            .input-group.date(data-provide="datepicker")
+                                span.input-group-addon#addonEnd End Date
+                                input.form-control#courseEnd(type="text" aria-describedby="addonEnd")
+                                .input-group-addon
+                                    span.glyphicon.glyphicon-calendar
+                .modal-footer
+                    button(type="button" class="btn btn-default" data-dismiss="modal") Close
+                    button(type="button" class="btn btn-primary" onclick="javascript:createCourse()") Create Course
+
+    .modal.fade#removeCourse(tabindex="-1" role="dialog" aria-labelledby="courseDeleteLabel")
+        .modal-dialog(role="document")
+            .modal-content
+                .modal-header
+                    button(type="button" class="close" data-dismiss="modal" aria-label="Close")
+                        span(aria-hidden="true") &times;
+                    h4.modal-title#courseDeleteLabel Are you sure?
+                .modal-body
+                    #errorRemoveContainer.hidden
+                        .alert.alert-danger
+                            b Please review the following errors:
+                            ul#errorsRemove
+                        hr
+                    .alert.alert-warning
+                        p
+                            b Warning! 
+                            | Your are about to delete the course: '
+                            span#removeCourseName
+                            |'!
+                        p All students and admins will be removed from the course and the course set-up will be destroyed! This process is 
+                            b unrecoverable
+                            |!
+                    .alert.alert-info 
+                        p 
+                            b Note 
+                            | Hand-in data (files, feedback and reflections) will be kept but can only be accessed through direct links.
+                .modal-footer
+                    button(type="button" class="btn btn-default" data-dismiss="modal") Close
+                    button#removeCourse(type="button" class="btn btn-danger" onclick="javascript:removeCourse()" course="") Delete Course

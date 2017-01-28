@@ -47,4 +47,3 @@ function fileError(file, error) {
 function isPython(file) {
     return file.name.split(".").pop() == "py";
 }
-//# sourceMappingURL=dropzoneCustom.js.map

@@ -1,4 +1,3 @@
-//needs major cleanups splitting up etc..
 let project;
 let assignment;
 let projectType;
@@ -90,7 +89,6 @@ var Group;
         const sel = document.createElement("select");
         sel.classList.add("form-control");
         sel.id = "failedTests";
-        //res.failed.forEach((val: string) => addDataOf("option", val, sel))
         return sel;
     }
     function uploadFile(id, ass, name, submit, type) {
@@ -205,4 +203,3 @@ var Group;
     }
 })(Group || (Group = {}));
 $(document).ready(Group.init);
-//# sourceMappingURL=group.js.map

@@ -11,6 +11,11 @@ transform(n)
 .right-align
 	text-align right
 
+.yAlign
+	transform(translateY(-50%))
+	top 50%
+	position relative
+
 .hide
 	display none
 
@@ -123,25 +128,56 @@ textarea
 	border-radius 50px
 
 .group
+	height 175px
+
+.btn-card, .btn-card-table
+	border-radius 0px
+	background-color transparent
+	font-size 24px
+	color #333
+
+.btn-card-table
+	font-size 18px
+
+.icons-text
+	text-align left
+	bottom 0px
+	position absolute
+
+.btn-card:hover, .btn-card-table:hover
+	background-color rgba(0, 0, 0, .05)
+
+.top-icons
+	button
+		border-bottom 1px solid rgba(0, 0, 0, .05)
+
+.top-icons, .bottom-icons
+	:not(:last-child)
+		border-right 1px solid rgba(0, 0, 0, .05)
+
+.card
 	background-color white
 	padding 15px
-	height 175px
 	h3
-		margin-top 10px
+		margin-top 0px
 		margin-bottom 20px
 		text-align center
 	text-align center
-	margin-bottom 30px
-	border-radius 5px
-	-webkit-box-shadow: 5px 5px 10px 0px rgba(0,0,0,0.25)
-	box-shadow: 5px 5px 10px 0px rgba(0,0,0,0.25)
+	//border-radius 5px
+	box-shadow: 0 5px 15px rgba(0,0,0,.1);
+	-webkit-box-shadow: 0 5px 15px rgba(0,0,0,.1);
 	transition 0.2s
 
-.group:hover
-	cursor pointer
+.cardLink
+	h3
+		margin-top 10px
+		margin-bottom 10px
+
+.cardLink:hover
+	cursor: pointer
+	box-shadow: 0 5px 15px rgba(0,0,0,.15);
+	-webkit-box-shadow: 0 5px 15px rgba(0,0,0,.15);
 	transition 0.2s
-	-webkit-box-shadow: 5px 5px 10px 0px rgba(0,0,0,0.4)
-	box-shadow: 5px 5px 10px 0px rgba(0,0,0,0.4)
 
 #sendButtons
 	@extends .center
@@ -205,3 +241,71 @@ h1, h2, h3
 
 .overviewFile:not(:first-child)
 	page-break-before: always
+
+#errors
+	margin-top 10px
+
+.col-lg-4.card-holder, .col-sm-6.card-holder
+	padding 15px
+
+.mtop10
+	margin-top 10px
+
+.mtop5
+	margin-top 5px
+
+.mbottom10
+	margin-bottom 10px
+
+.mbottom5
+	margin-bottom 5px
+
+.card-table-container
+	width 50%
+	float left
+	height 60px
+	.flipper
+		height 60px
+
+.card-table-content
+	border-top 1px solid rgba(0,0,0,0.05)
+	background-color white
+	height 60px
+	h3
+		margin 0px
+		text-align center
+	text-align center
+	
+.card-table-header
+	.card-table-content
+		border-top none
+		border-bottom 3px solid #e3e3e3
+	.card-table-container
+		width 100%
+
+.card-table-body
+	:nth-child(even)
+		border-left 1px solid rgba(0,0,0,0.05)
+
+.back
+	border-left none !important
+	
+.card-table
+	overflow hidden
+	box-shadow: 0 5px 15px rgba(0,0,0,.05);
+	-webkit-box-shadow: 0 5px 15px rgba(0,0,0,.05);
+
+#userSelect
+	max-height 300px
+	overflow auto
+	margin-bottom 0px
+	
+.state-icon
+	left -5px
+
+.list-group-item-primary
+	color rgb(255, 255, 255)
+	background-color rgb(66, 139, 202)
+
+#allUserList
+	margin-bottom 0px

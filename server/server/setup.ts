@@ -12,6 +12,7 @@ import * as session from 'express-session'
 import * as passport from 'passport'
 import * as redis from "redis"
 import * as redisConnect from "connect-redis"
+import * as azure from 'azure-storage'
 
 const authGoogle = require('passport-google-oauth2')
 const busboy = require('connect-busboy')
@@ -79,14 +80,14 @@ export namespace Setup {
 
         const handleLogin = (request: express.Request, accessToken, refreshToken, profile: Users.GoogleProfile, done) => {
             process.nextTick(() => {
-                if (profile._json.domain == "student.utwente.nl" || profile.email == "ruudvandamme55@gmail.com") {
+                //if (profile._json.domain == "student.utwente.nl" || profile.email == "ruudvandamme55@gmail.com" || profile.email == "rikmuld@gmail.com") {
                     Users.getByGProfile(profile).then(u => done(null, Users.simplify(u)), e => done(null, null))
-                } else {
-                    done(null, null)
-                    process.nextTick(() => {
-                        request.logout()  
-                    })
-                }
+                //} else {
+                //    done(null, null)
+                //    process.nextTick(() => {
+                //        request.logout()  
+                //    })
+                //}
             })
         }
 
@@ -105,5 +106,9 @@ export namespace Setup {
             req[name] = data
             next()
         })
+    }
+
+    export function connectFileService(name:string, key:string): azure.FileService {
+        return azure.createFileService(name, key)
     }
 }

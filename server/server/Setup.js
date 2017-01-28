@@ -10,6 +10,7 @@ const session = require('express-session');
 const passport = require('passport');
 const redis = require("redis");
 const redisConnect = require("connect-redis");
+const azure = require('azure-storage');
 const authGoogle = require('passport-google-oauth2');
 const busboy = require('connect-busboy');
 const useRedis = Config_1.Config.session.redis;
@@ -71,15 +72,7 @@ var Setup;
         };
         const handleLogin = (request, accessToken, refreshToken, profile, done) => {
             process.nextTick(() => {
-                if (profile._json.domain == "student.utwente.nl" || profile.email == "ruudvandamme55@gmail.com") {
-                    Users_1.Users.getByGProfile(profile, u => done(null, Users_1.Users.simplify(u)), e => done(null, null));
-                }
-                else {
-                    done(null, null);
-                    process.nextTick(() => {
-                        request.logout();
-                    });
-                }
+                Users_1.Users.getByGProfile(profile).then(u => done(null, Users_1.Users.simplify(u)), e => done(null, null));
             });
         };
         passport.serializeUser((user, done) => done(null, user));
@@ -99,5 +92,8 @@ var Setup;
         });
     }
     Setup.addAsMiddleware = addAsMiddleware;
+    function connectFileService(name, key) {
+        return azure.createFileService(name, key);
+    }
+    Setup.connectFileService = connectFileService;
 })(Setup = exports.Setup || (exports.Setup = {}));
-//# sourceMappingURL=Setup.js.map

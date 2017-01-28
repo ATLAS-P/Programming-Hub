@@ -102,4 +102,3 @@ var DateHelper;
     }
     DateHelper.simpleDate = simpleDate;
 })(DateHelper || (DateHelper = {}));
-//# sourceMappingURL=main.js.map

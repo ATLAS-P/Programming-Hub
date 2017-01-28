@@ -27,4 +27,3 @@ var Fibonacci;
             return "";
     }
 })(Fibonacci = exports.Fibonacci || (exports.Fibonacci = {}));
-//# sourceMappingURL=Fibonacci.js.map

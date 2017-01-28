@@ -1,195 +1,120 @@
 "use strict";
 const mongoose = require('mongoose');
-//change all to use promise no callback
+const List_1 = require('../functional/List');
+const Future_1 = require('../functional/Future');
+const IOMap_1 = require('../functional/IOMap');
 class Table {
     constructor(m) {
         this.model = m;
     }
-    get(query, sort, success, fail) {
-        this.model.find(query).sort(sort).exec((err, res) => {
-            if (err)
-                fail(err);
-            else if (res.length == 0)
-                fail("No entries found");
+    exec(query, alwaysOne = true) {
+        const exists = res => {
+            if (!res)
+                return false;
+            else if (res.length) {
+                return res.length > 0;
+            }
             else
-                success(res);
-        });
-    }
-    getOne(query, sort, success, fail, safe = true) {
-        this.model.findOne(query).sort(sort).exec((err, res) => {
-            if (err)
-                fail(err);
-            else if (!res && safe)
-                fail("No entries found");
-            else
-                success(res);
-        });
-    }
-    updateOne(id, update, success, fail) {
-        this.getByID(id, a => {
-            update(a);
-            a.save((err, a, affect) => {
+                return true;
+        };
+        return new Future_1.Future((resolve, reject) => {
+            query.exec((err, res) => {
                 if (err)
-                    fail(err);
+                    reject(err);
+                else if (alwaysOne && !exists(res))
+                    reject("No entries found");
                 else
-                    success(a);
+                    resolve(res);
             });
-        }, fail);
-    }
-    do(query, success, fail) {
-        query.exec((err, res) => {
-            if (err)
-                fail(err);
-            else if (res.length == 0)
-                fail("No entries found");
-            else
-                success(res);
         });
     }
-    doOne(query, success, fail) {
-        query.exec((err, res) => {
-            if (err)
-                fail(err);
-            else if (!res)
-                fail("No entries found");
-            else
-                success(res);
+    get(query) {
+        return this.model.find(query);
+    }
+    getByIDs(ids) {
+        return this.get({ _id: { $in: ids } });
+    }
+    getAll() {
+        return this.get({});
+    }
+    getOne(query) {
+        return this.model.findOne(query);
+    }
+    getByID(id) {
+        return this.getOne({ _id: id });
+    }
+    updateOne(id, update) {
+        return this.exec(this.getByID(id)).flatMap(a => {
+            update(a);
+            return a.save();
         });
     }
-    getByID(id, success, fail, safe = true) {
-        this.getOne({ _id: id }, {}, success, fail, safe);
-    }
-    getByIDs(ids, success, fail) {
-        this.get({ _id: { $in: ids } }, {}, success, fail);
-    }
-    getAll(success, fail) {
-        this.get({}, {}, success, fail);
-    }
-    create(a, done, fail) {
-        this.model.create(a, (err, res) => {
-            if (err)
-                fail(err);
-            else
-                done();
+    update(ids, update) {
+        return this.exec(this.getByIDs(ids)).flatMap(a => {
+            return IOMap_1.IOMap.traverse(List_1.List.apply(a), IOMap_1.IOMap.apply).run(a2 => {
+                update(a2);
+                return Future_1.Future.lift(a2.save());
+            }).map(la => la.toArray());
         });
+    }
+    create(a) {
+        return Future_1.Future.lift(this.model.create(a));
+    }
+    map(query, f) {
+        return this.exec(query, true).map(f);
     }
 }
 exports.Table = Table;
-(function (Table) {
-    function error(err) {
-        console.log(err);
-    }
-    Table.error = error;
-    function done() {
-        console.log("done!");
-    }
-    Table.done = done;
-})(Table = exports.Table || (exports.Table = {}));
 var Tables;
 (function (Tables) {
-    function mkProject(id, name, level, info, type) {
-        return {
-            name: name,
-            _id: id,
-            level: level,
-            info: info,
-            type: type
-        };
-    }
-    Tables.mkProject = mkProject;
-    function mkUser(id, name, surename) {
-        return {
-            name: name,
-            _id: id,
-            surename: surename,
-            groups: []
-        };
-    }
-    Tables.mkUser = mkUser;
-    function mkAssignment(id, project, due) {
-        return {
-            _id: id,
-            project: project,
-            due: due,
-            files: []
-        };
-    }
-    Tables.mkAssignment = mkAssignment;
-    function mkGroup(id, name, students = [], admins = []) {
-        return {
-            _id: id,
-            name: name,
-            admins: admins,
-            students: students,
-            assignments: []
-        };
-    }
-    Tables.mkGroup = mkGroup;
-    function mkFile(student, assignment, timestamp, partners, json, final, extension, reflection, feedback = "") {
-        return {
-            _id: assignment + "_" + student,
-            student: student,
-            assignment: assignment,
-            timestamp: timestamp,
-            partners: partners,
-            json: json,
-            final: final,
-            reflection: reflection,
-            feedback: feedback,
-            extension: extension
-        };
-    }
-    Tables.mkFile = mkFile;
-    Tables.project = new mongoose.Schema({
-        _id: String,
-        name: String,
-        level: Number,
-        info: String,
-        type: String
-    });
     Tables.user = new mongoose.Schema({
         _id: String,
         name: String,
         surename: String,
-        groups: [refrence("Group")],
+        groups: [{
+                group: refrence("Group"),
+                files: [{
+                        final: Boolean,
+                        file: refrence("File")
+                    }]
+            }],
         admin: Boolean
     });
     Tables.assignment = new mongoose.Schema({
-        _id: String,
-        project: refrence("Project"),
         files: [refrence("File")],
-        due: Date
+        due: Date,
+        group: refrence("Group"),
+        name: String,
+        link: String,
+        typ: String,
+        project: String
     });
     Tables.group = new mongoose.Schema({
-        _id: String,
         name: String,
         assignments: [refrence("Assignment")],
         students: [refrence("User")],
-        admins: [refrence("User")]
+        admins: [refrence("User")],
+        start: Date,
+        end: Date
     });
     Tables.file = new mongoose.Schema({
-        _id: String,
-        student: refrence("User"),
         assignment: refrence("Assignment"),
         timestamp: Date,
-        partners: [refrence("User")],
-        json: [{
+        students: [refrence("User")],
+        autograder: [{
                 input: Object,
                 success: Boolean,
                 message: String
             }],
-        final: Boolean,
-        reflection: String,
+        notes: String,
         feedback: String,
-        extension: String
+        urls: [String]
     });
     function refrence(to) {
         return { type: String, ref: to };
     }
+    Tables.User = mongoose.model('User', Tables.user);
     Tables.Assignment = mongoose.model('Assignment', Tables.assignment);
     Tables.File = mongoose.model('File', Tables.file);
     Tables.Group = mongoose.model('Group', Tables.group);
-    Tables.User = mongoose.model('User', Tables.user);
-    Tables.Project = mongoose.model('Project', Tables.project);
 })(Tables = exports.Tables || (exports.Tables = {}));
-//# sourceMappingURL=Table.js.map

@@ -30,4 +30,3 @@ var Calculator;
     }
     Calculator.init = init;
 })(Calculator = exports.Calculator || (exports.Calculator = {}));
-//# sourceMappingURL=Calculator.js.map

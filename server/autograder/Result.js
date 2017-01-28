@@ -31,8 +31,8 @@ class Test {
 }
 exports.Test = Test;
 class Success extends Test {
-    constructor(...args) {
-        super(...args);
+    constructor() {
+        super(...arguments);
         this.success = true;
     }
     toJSON() {
@@ -83,4 +83,3 @@ class Fail extends Test {
     }
     Test.unit = unit;
 })(Test = exports.Test || (exports.Test = {}));
-//# sourceMappingURL=Result.js.map

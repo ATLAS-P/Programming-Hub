@@ -1,0 +1,272 @@
+﻿extends ../structure/default.jade
+
+block append scripts
+    script
+        |$('.datepicker').datepicker();
+    script(src="/scripts/timeline.js")
+    script(src="/scripts/cardicons.js")
+    script(src="/scripts/selectTrigger.js")
+    script(src="/scripts/overview.js")
+    script(src="/scripts/checkedListGroup.js")
+
+block append styles
+    link(href="/styles/flip.css" rel="stylesheet")
+
+block content
+    -var users = []
+    .container
+        h2 Assignments
+        if group.assignments.length == 0
+            p No assignments were made yet!
+        .row.groups
+            for ass in group.assignments
+                .col-lg-4.col-sm-6.card-holder
+                    .flip-container
+                        .flipper.group
+                            .front.card
+                                .yAlign
+                                    -var open = ass.typ == "open"
+                                    h3.special= ass.name
+                                    .timeline-container
+                                        if open
+                                            .progress.hidden#openExists
+                                                .progress-bar.timeline(role="progressbar" min=group.start max=group.end)
+                                        else 
+                                            .progress.hidden
+                                                .progress-bar.timeline(role="progressbar" min=group.start max=group.end now=ass.due)
+                            .back.card
+                                .yAlign
+                                    .card-icons
+                                        if user.admin
+                                            if ass.link.length > 0
+                                                .top-icons
+                                                    button(type="button" class="btn btn-card" data="Results")
+                                                        span.glyphicon.glyphicon-list-alt(aria-hidden="true")
+                                                    button(type="button" class="btn btn-card" data="Edit Assignment")
+                                                        span.glyphicon.glyphicon-cog(aria-hidden="true")
+                                                .bottom-icons
+                                                    button(type="button" class="btn btn-card" data="Remove Assignment" data-toggle="modal" data-target="#removeAssignment" onclick="javascript:preRemoveAssignment('#{ass._id}', '#{ass.name}')")
+                                                        span.glyphicon.glyphicon-trash(aria-hidden="true")
+                                                    a(href="http://" + ass.link type="button" target='_blank' class="btn btn-card" data="Additional Info")
+                                                        span.glyphicon.glyphicon-info-sign(aria-hidden="true")
+                                            else
+                                                .bottom-icons
+                                                    button(type="button" class="btn btn-card" data="Results")
+                                                        span.glyphicon.glyphicon-list-alt(aria-hidden="true")
+                                                    button(type="button" class="btn btn-card" data="Edit Assignment")
+                                                        span.glyphicon.glyphicon-cog(aria-hidden="true")
+                                                    button(type="button" class="btn btn-card" data="Remove Assignment" data-toggle="modal" data-target="#removeAssignment" onclick="javascript:preRemoveAssignment('#{ass._id}', '#{ass.name}')")
+                                                        span.glyphicon.glyphicon-trash(aria-hidden="true")
+                                        else
+                                            .bottom-icons
+                                                button(type="button" class="btn btn-card" data="Upload")
+                                                    span.glyphicon.glyphicon-upload(aria-hidden="true")
+                                                if ass.link.length > 0
+                                                    a(href="http://" + ass.link type="button" target='_blank' class="btn btn-card" data="Additional Info")
+                                                        span.glyphicon.glyphicon-info-sign(aria-hidden="true")
+                                                  
+                                .icons-text
+                                    p
+                                            
+        hr
+        .row
+            if user.admin
+                .col-lg-4.col-sm-6.card-holder
+                    .card.cardLink(type="button" data-toggle="modal" data-target="#addAssignment")
+                        h3.special Create a New Assignment
+                .col-lg-4.col-sm-6.card-holder
+                    .card.cardLink(type="button")
+                        h3.special To-Feedback List
+                .col-lg-4.col-sm-6.card-holder
+                    .card.cardLink(type="button")
+                        h3.special View all Results
+            else
+                .col-lg-4.col-sm-6.card-holder
+                    .card.cardLink(type="button")
+                        h3.special Generate Overview
+                .col-lg-4.col-sm-6.card-holder
+                    .card.cardLink(type="button")
+                        h3.special View Hand-ins
+                
+        hr
+        h2 Users
+        .row
+            .col-sm-6
+                .card-table
+                    .card-table-header
+                        .card-table-container
+                            .card-table-content
+                                .yAlign
+                                    h3 Students
+                    .card-table-body
+                        for usr in group.students
+                            -users.push('"' + usr._id + '"')
+                            .flip-container.card-table-container.vertical
+                                .flipper.vertical
+                                    .front
+                                        .card-table-content
+                                            .yAlign
+                                                p #{usr.name} #{usr.surename}
+                                    .back.vertical
+                                        .card-table-content
+                                            .yAlign
+                                                if usr._id == user.id
+                                                    p This is you :)
+                                                else
+                                                    .bottom-icons
+                                                        a(href="mailto:" + usr._id + "@student.utwente.nl" target="_blank" type="button" class="btn btn-card-table")
+                                                            span.glyphicon.glyphicon-envelope(aria-hidden="true")
+                                                        if user.admin
+                                                            button(type="button" class="btn btn-card-table")
+                                                                span.glyphicon.glyphicon-list-alt(aria-hidden="true")
+                                                            button(type="button" class="btn btn-card-table")
+                                                                span.glyphicon.glyphicon-trash(aria-hidden="true")
+            .col-sm-6
+                .card-table
+                    .card-table-header
+                        .card-table-content
+                            .yAlign
+                                h3 Instructors
+                    .card-table-body
+                        for usr in group.admins
+                            -users.push('"' + usr._id + '"')
+                            .flip-container.card-table-container.vertical
+                                .flipper.vertical
+                                    .front
+                                        .card-table-content
+                                            .yAlign
+                                                p #{usr.name} #{usr.surename}
+                                    .back.vertical
+                                        .card-table-content
+                                            .yAlign
+                                                if usr._id == user.id
+                                                    p This is you :)
+                                                else
+                                                    .bottom-icons
+                                                        button(type="button" class="btn btn-card-table")
+                                                            span.glyphicon.glyphicon-envelope(aria-hidden="true")
+                                                        if user.admin
+                                                            button(type="button" class="btn btn-card-table")
+                                                                span.glyphicon.glyphicon-trash(aria-hidden="true")
+        hr
+        .row
+            if user.admin
+                .col-lg-4.col-sm-6.card-holder
+                    .card.cardLink(type="button"  data-toggle="modal" data-target="#addUsers" onclick='javascript:getUsers(`[#{users}]`)')
+                        h3.special Add Users
+                .col-lg-4.col-sm-6.card-holder
+                    .card.cardLink(type="button")
+                        h3.special Mail Everyone
+                .col-lg-4.col-sm-6.card-holder
+                    .card.cardLink(type="button")
+                        h3.special Mail all Students
+            .col-lg-4.col-sm-6.card-holder
+                .card.cardLink(type="button")
+                    h3.special Mail all Instructors
+
+    if user.admin
+        .modal.fade#addAssignment(tabindex="-1" role="dialog" aria-labelledby="assignmentLabel")
+            .modal-dialog(role="document")
+                .modal-content
+                    .modal-header
+                        button(type="button" class="close" data-dismiss="modal" aria-label="Close")
+                            span(aria-hidden="true") &times;
+                        h4.modal-title#assignmentLabel Create a New Assignment
+                    .modal-body
+                        #errorContainer.hidden
+                            .alert.alert-danger
+                                b Please review the following errors:
+                                ul#errors
+                            hr
+                        .row
+                            .col-xs-8
+                                .input-group
+                                    span.input-group-addon#addonName Name
+                                    input.form-control#assignmentName(type="text" aria-describedby="addonName")
+                            .col-xs-4
+                                .input-group
+                                    span.input-group-addon#addonType Type
+                                    select.form-control.selectTrigger#assignmentType(name="assignmentType" container="#assignment-data" aria-describedby="addonType")
+                                        option(value="defined") Defined
+                                        option(value="open") Open
+                                        option(value="autograder") Autograder
+                        #assignment-data
+                            .selectActor(data="defined")
+                                .row.mtop10
+                                    .col-xs-8
+                                        .input-group.date(data-provide="datepicker")
+                                            span.input-group-addon#addonDue Due Date
+                                            input.form-control#dueDate(type="text" aria-describedby="addonDue")
+                                            .input-group-addon
+                                                span.glyphicon.glyphicon-calendar
+                                hr
+                                label(for="infoLink") Additional Information Link (optional)
+                                .input-group
+                                    span.input-group-addon#addonLink http://
+                                    input.form-control#infoLink(type="text" aria-describedby="addonName")
+                            .selectActor.hidden(data="autograder")
+                                hr
+                                .alert.alert-warning
+                                    p Sorry, the autograder option is disabled in this version!
+
+                    .modal-footer
+                        button(type="button" class="btn btn-default" data-dismiss="modal") Close
+                        button(type="button" class="btn btn-primary" onclick="javascript:createAssignment('#{group._id}', '#{group.start}', '#{group.end}')") Create Assignment
+
+        .modal.fade#removeAssignment(tabindex="-1" role="dialog" aria-labelledby="assignmentDeleteLabel")
+            .modal-dialog(role="document")
+                .modal-content
+                    .modal-header
+                        button(type="button" class="close" data-dismiss="modal" aria-label="Close")
+                            span(aria-hidden="true") &times;
+                        h4.modal-title#assignmentDeleteLabel Are you sure?
+                    .modal-body
+                        #assignmentRemoveContainer.hidden
+                            .alert.alert-danger
+                                b Please review the following errors:
+                                ul#assignmentRemove
+                            hr
+                        .alert.alert-warning
+                            p
+                                b Warning! 
+                                | Your are about to delete the assignment: '
+                                span#removeAssignmentName
+                                |'!
+                            p This assignment will dissappear for all users. This is 
+                                b unrecoverable
+                                |!
+                        .alert.alert-info 
+                            p 
+                                b Note 
+                                | Hand-in data (files, feedback and reflections) will be kept but can only be accessed through direct links.
+                    .modal-footer
+                        button(type="button" class="btn btn-default" data-dismiss="modal") Close
+                        button#removeAssignment(type="button" class="btn btn-danger" onclick="javascript:removeAssignment()" assignment="") Delete Assignment
+
+        .modal.fade#addUsers(tabindex="-1" role="dialog" aria-labelledby="usersLabel")
+            .modal-dialog(role="document")
+                .modal-content
+                    .modal-header
+                        button(type="button" class="close" data-dismiss="modal" aria-label="Close")
+                            span(aria-hidden="true") &times;
+                        h4.modal-title#usersLabel Add Users
+                    .modal-body
+                        #errorContainerUser.hidden
+                            .alert.alert-danger
+                                b Please review the following errors:
+                                ul#errorsUser
+                            hr
+                        .row
+                            .col-xs-8
+                                .well#userSelect
+                                    ul.list-group.checked-list-box#allUserList
+                            .col-xs-4
+                                .input-group
+                                    span.input-group-addon#addonRole Role
+                                    select.form-control#userRole(name="userRole" aria-describedby="addonRole")
+                                        option(value="student") Student
+                                        option(value="admin") Instructor
+
+                    .modal-footer
+                        button(type="button" class="btn btn-default" data-dismiss="modal") Close
+                        button(type="button" class="btn btn-primary" onclick="javascript:addUsers('#{group._id}')") Add Users

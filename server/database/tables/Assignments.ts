@@ -1,11 +1,12 @@
 ﻿import * as mongoose from 'mongoose'
 import { Table, Tables } from '../Table'
+import { Groups } from './Groups'
 import { Future } from '../../functional/Future'
 
 class Assignment extends Table<Tables.Assignment> {
     addFile(assignment: string, file: string): Future<Tables.Assignment> {
         return this.updateOne(assignment, s => {
-            if (s.files.indexOf(file) < 0) s.files.push(file)
+            if ((s.files as string[]).indexOf(file) < 0) (s.files as string[]).push(file)
         })
     }
 
@@ -15,6 +16,13 @@ class Assignment extends Table<Tables.Assignment> {
             populate: {
                 path: "students.name students.surename"
             }
+        })
+    }
+
+    removeAssignment(assignment: string, removeRef: boolean): Future<Tables.Assignment> {
+        return this.exec(this.getByID(assignment)).flatMap(a => a.remove()).flatMap(a => {
+            if (removeRef) return Groups.instance.removeAssignment(a.group as string, a._id).map(g => a)
+            else return Future.unit(a)
         })
     }
 }

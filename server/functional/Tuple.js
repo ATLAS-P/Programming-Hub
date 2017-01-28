@@ -22,4 +22,3 @@ class Tuple3 extends Tuple {
     }
 }
 exports.Tuple3 = Tuple3;
-//# sourceMappingURL=Tuple.js.map

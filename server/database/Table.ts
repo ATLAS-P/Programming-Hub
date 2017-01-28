@@ -1,8 +1,8 @@
 ﻿import * as mongoose from 'mongoose'
 import { List } from '../functional/List'
-import { TestJSON } from '../autograder/Result'
 import { Future } from '../functional/Future'
 import { IOMap } from '../functional/IOMap'
+import { MkTables } from './MkTables'
 
 //change all to use promise no callback
 export class Table<A extends mongoose.Document> {
@@ -75,101 +75,6 @@ export class Table<A extends mongoose.Document> {
 }
 
 export namespace Tables {
-    export interface UserTemplate {
-        _id: any,
-        name: string,
-        surename: string,
-        groups: {
-            group: string,
-            files: {
-                final: boolean,
-                file: string
-            }[]
-        }[],
-    }
-    export interface User extends mongoose.Document, UserTemplate { }
-    export function mkUser(id: string, name: string, surename: string): UserTemplate {
-        return {
-            name: name,
-            _id: id,
-            surename: surename,
-            groups: []
-        }
-    }
-
-    export interface AssignmentTemplate {
-        _id: any
-        due: Date
-        files: string[]
-        name: string
-        group: string
-        link: string
-        project: string
-        typ: string
-    }
-    export interface Assignment extends mongoose.Document, AssignmentTemplate { }
-    export function mkAssignment(id: string, name: string, group: string, due: Date, typ:string, link:string = "", project:string = ""): AssignmentTemplate {
-        return {
-            _id: id,
-            name: name,
-            due: due,
-            files: [],
-            typ: typ,
-            project: project,
-            link: link,
-            group: group
-        }
-    }
-
-    interface GenericGroup {
-        _id: any,
-        name: string
-    }
-    export interface GroupTemplate extends GenericGroup {
-        assignments: string[],
-        students: string[],
-        admins: string[],
-    }
-    export interface PopulatedGroup extends GenericGroup {
-        assignments: AssignmentTemplate[]
-        students: UserTemplate[],
-        admins: UserTemplate[]
-    }
-    export interface Group extends mongoose.Document, GroupTemplate { }
-    export function mkGroup(id: string, name: string, students: string[] = [], admins: string[] = []): GroupTemplate {
-        return {
-            _id: id,
-            name: name,
-            admins: admins,
-            students: students,
-            assignments: []
-        }
-    }
-
-    export interface FileTemplate {
-        students: string[],
-        assignment: string,
-        group: string,
-        timestamp: Date,
-        autograder: Object[],
-        notes: string,
-        feedback: string,
-        urls: string[]
-    }
-    export interface File extends mongoose.Document, FileTemplate { }
-    export function mkFile(assignment: string, group: string, timestamp: Date, students: string[], files: string[], notes: string, feedback: string = "", autograder: TestJSON<any>[]): FileTemplate {
-        return {
-            students: students,
-            assignment: assignment,
-            timestamp: timestamp,
-            autograder: autograder,
-            notes: notes,
-            feedback: feedback,
-            group: group,
-            urls: files
-        }
-    }
-
     export const user = new mongoose.Schema({
         _id: String,
         name: String,
@@ -185,10 +90,9 @@ export namespace Tables {
     })
 
     export const assignment = new mongoose.Schema({
-        _id: String,
         files: [refrence("File")],
         due: Date,
-        group: String,
+        group: refrence("Group"),
         name: String,
         link: String,
         typ: String,
@@ -196,11 +100,12 @@ export namespace Tables {
     })
 
     export const group = new mongoose.Schema({
-        _id: String,
         name: String,
         assignments: [refrence("Assignment")],
         students: [refrence("User")],
-        admins: [refrence("User")]
+        admins: [refrence("User")],
+        start: Date,
+        end: Date
     }) 
 
     export const file = new mongoose.Schema({
@@ -221,8 +126,13 @@ export namespace Tables {
         return { type: String, ref: to }
     }
 
-    export const Assignment = mongoose.model<Tables.Assignment>('Assignment', Tables.assignment)
-    export const File = mongoose.model<Tables.File>('File', Tables.file)
-    export const Group = mongoose.model<Group>('Group', Tables.group)
-    export const User = mongoose.model<User>('User', Tables.user)
+    export interface User extends mongoose.Document, MkTables.UserTemplate { }
+    export interface Assignment extends mongoose.Document, MkTables.AssignmentTemplate { }
+    export interface Group extends mongoose.Document, MkTables.GroupTemplate { }
+    export interface File extends mongoose.Document, MkTables.FileTemplate { }
+
+    export const User = mongoose.model<User>('User', user)
+    export const Assignment = mongoose.model<Assignment>('Assignment', assignment)
+    export const File = mongoose.model<File>('File', file)
+    export const Group = mongoose.model<Group>('Group', group)
 }
