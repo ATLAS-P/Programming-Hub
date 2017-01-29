@@ -138,7 +138,7 @@ function usersGot(users) {
         $("#allUserList").append(p);
     }
     else
-        initListGroup();
+        initListGroup($("#allUserList"));
 }
 function addUsers(group) {
     $("#errorContainerUser").addClass("hidden");
@@ -165,4 +165,11 @@ function addUsersDone(success, error) {
         li.innerText = error;
         $("#errorsUsers").append(li);
     }
+}
+function preUploadAssignment(id, name, group, student) {
+    const ass = $("#assignmentUploadId");
+    ass.text(name);
+    ass.attr("assignment", id);
+    ass.attr("group", group);
+    ass.attr("student", student);
 }

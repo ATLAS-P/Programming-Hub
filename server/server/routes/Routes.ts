@@ -36,7 +36,7 @@ export namespace Routes {
     const GROUP_ANY = GROUP + "/*"
     //const FILE = INDEX + "results/*/*"
     //const FILE_OF = FILE + "/*"
-    //const FILE_UPLOAD = GROUP + "/file-upload"
+    const FILE_UPLOAD = GROUP + "/file-upload"
     //const SUBMIT_RESULTS = GROUP + "/sendResults"
     //const DATABASE = GROUP_ANY + "database"
     //const FILES = DATABASE + "/files"
@@ -60,7 +60,7 @@ export namespace Routes {
         //app.get(FILE, showResult)
 
         //app.post(SUBMIT_RESULTS, submitResults)
-        //app.post(FILE_UPLOAD, fileUpload(app, root))
+        app.post(FILE_UPLOAD, fileUpload(app, root))
 
         app.get(AUTH, passport.authenticate('google', {
             scope: ['https://www.googleapis.com/auth/plus.profile.emails.read',
@@ -252,99 +252,34 @@ export namespace Routes {
     //    }, Table.error)
     //}
 
-    //function fileUpload(app: express.Express, root: string): Route {
-    //    //cleanups required below
-    //    return (req, res) => {
-    //        const sess = req.session as ResultSession
-    //        const busboy = (req as any).busboy
+    function fileUpload(app: express.Express, root: string): Route {
+        return (req, res) => {
+            const busboy = (req as any).busboy
+            const data = new Future<string>((res, rej) => busboy.on('field', (name, val, nameTrunc, valTrunc, enc, type) => res(val)))
 
-    //        let projectData = new Future<[string, string]>((resolve, reject) => {
-    //            let project = ""
-    //            let type = ""
+            busboy.on('file', function (fieldname, file, filename) {
+                const filepath = root + '/uploads/' + filename + "_" + req.user.id
+                const fstream = fs.createWriteStream(filepath);
 
-    //            busboy.on('field', function (fieldname, val, fieldnameTruncated, valTruncated, encoding, mimetype) {
-    //                if (fieldname == "project") project = val
-    //                else if (fieldname == "type") type = val
+                function upload(assignment: string, success: () => void) {
+                    storage.createDirectoryIfNotExists('handins', "pending", (error, result, response) => {
+                        storage.createDirectoryIfNotExists('handins', "pending" + "/" + req.user.id, (error, result, response) => {
+                            storage.createDirectoryIfNotExists('handins', "pending" + "/" + req.user.id + "/" + assignment, (error, result, response) => {
+                                storage.createFileFromLocalFile('handins', "pending" + "/" + req.user.id + "/" + assignment, filename, filepath, (error, result, response) => {
+                                    if (error) res.json({ success: false, err: error.message })
+                                    else success()
+                                    fs.unlink(filepath)
+                                })
+                            })
+                        })
+                    })
+                }
 
-    //                if (project.length > 0 && type.length > 0) resolve([project, type])
-    //            })
-    //        })
+                file.pipe(fstream);
+                fstream.on('close', () => data.then(assignment => upload(assignment, () => res.json({ success: true }))))
+            })
 
-    //        busboy.on('file', function (fieldname, file, filename) {
-    //            const newName = filename + "_" + req.user.id
-
-    //            let filepath = root + '/uploads/' + newName
-    //            let fstream = fs.createWriteStream(filepath);
-
-    //            function handleGrading(project: string) {
-    //                Projects.gradeProject(project, newName, r => {
-    //                    if (!sess.result || typeof sess.result == "undefined" || sess.result == null) sess.result = {}
-
-    //                    upload(project, () => {
-    //                        sess.result[project] = r.toJSONList().toArray()
-    //                        Render.results(app, "result", project, r.toJSONList().toArray(), html => {
-    //                            res.json({ success: true, html: html })
-    //                        }, fail => {
-    //                            res.json({ success: false, err: fail.message })
-    //                        })
-    //                    })
-    //                }, (err: string) => {
-    //                    res.json({ success: false, err: err })
-    //                    fs.unlink(filepath)
-    //                })
-    //            }
-
-    //            function handleFiles(project: string) {
-    //                upload(project, () => {
-    //                    Render.upload(app, "simpleUpload", project, filename, html => {
-    //                        res.json({ success: true, html: html })
-    //                    }, fail => {
-    //                        res.json({ success: false, err: fail.message })
-    //                    })
-    //                })
-    //            }
-
-    //            function upload(project: string, success:()=>void) {
-    //                const dir = "pending"
-    //                azureStorage.createDirectoryIfNotExists('handins', dir, (error, result, response) => {
-    //                    azureStorage.createDirectoryIfNotExists('handins', dir + "/" + req.user.id, (error, result, response) => {
-    //                        const extension = filename.split(".").pop()
-    //                        azureStorage.createFileFromLocalFile('handins', dir + "/" + req.user.id, project + "." + extension, filepath, (error, result, response) => {
-    //                            if (error) {
-    //                                res.json({ success: false, err: error.message })
-    //                                fs.unlink(filepath)
-    //                            } else {
-    //                                success()
-    //                                fs.unlink(filepath)
-    //                            }
-    //                        })
-    //                    })
-    //                })
-    //            }
-
-    //            file.pipe(fstream);
-    //            fstream.on('close', function () {
-
-    //                projectData.then((data: [string, string]) => {
-    //                    let project = data[0]
-    //                    let type = data[1]
-
-    //                    switch(type) {
-    //                        case "auto_code":
-    //                            handleGrading(project)
-    //                            break
-    //                        case "files":
-    //                            handleFiles(project)
-    //                            break
-    //                        default:
-    //                            res.json({ success: false, err: "No handler available for project with type: " + type })
-    //                            break
-    //                    }
-    //                }, () => console.log("the impossible happend"))
-    //            });
-    //        });
-
-    //        req.pipe(busboy);
-    //    }
-    //}
+            req.pipe(busboy);
+        }
+    }
 }

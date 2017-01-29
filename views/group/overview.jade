@@ -8,9 +8,15 @@ block append scripts
     script(src="/scripts/selectTrigger.js")
     script(src="/scripts/overview.js")
     script(src="/scripts/checkedListGroup.js")
+    script
+        |initListGroup($("#studentUserList"))
+    script(src="/scripts/dropzone.min.js")
+    script(src="/scripts/dropzoneCustom.js")
 
 block append styles
     link(href="/styles/flip.css" rel="stylesheet")
+    link(href="/styles/dropzone.min.css" rel="stylesheet")
+    link(href="/styles/dropzoneCustom.css" rel="stylesheet")
 
 block content
     -var users = []
@@ -59,7 +65,7 @@ block content
                                                         span.glyphicon.glyphicon-trash(aria-hidden="true")
                                         else
                                             .bottom-icons
-                                                button(type="button" class="btn btn-card" data="Upload")
+                                                button(type="button" class="btn btn-card" data="Upload" data-toggle="modal" data-target="#uploadAssignment" onclick="javascript:preUploadAssignment('#{ass._id}', '#{ass.name}', '#{user.id}', '#{group._id}')")
                                                     span.glyphicon.glyphicon-upload(aria-hidden="true")
                                                 if ass.link.length > 0
                                                     a(href="http://" + ass.link type="button" target='_blank' class="btn btn-card" data="Additional Info")
@@ -87,82 +93,77 @@ block content
                 .col-lg-4.col-sm-6.card-holder
                     .card.cardLink(type="button")
                         h3.special View Hand-ins
-                
-        hr
-        h2 Users
-        .row
-            .col-sm-6
-                .card-table
-                    .card-table-header
-                        .card-table-container
-                            .card-table-content
-                                .yAlign
-                                    h3 Students
-                    .card-table-body
-                        for usr in group.students
-                            -users.push('"' + usr._id + '"')
-                            .flip-container.card-table-container.vertical
-                                .flipper.vertical
-                                    .front
-                                        .card-table-content
-                                            .yAlign
-                                                p #{usr.name} #{usr.surename}
-                                    .back.vertical
-                                        .card-table-content
-                                            .yAlign
-                                                if usr._id == user.id
-                                                    p This is you :)
-                                                else
-                                                    .bottom-icons
-                                                        a(href="mailto:" + usr._id + "@student.utwente.nl" target="_blank" type="button" class="btn btn-card-table")
-                                                            span.glyphicon.glyphicon-envelope(aria-hidden="true")
-                                                        if user.admin
+                .col-lg-4.col-sm-6.card-holder
+                    .card.cardLink(type="button")
+                        h3.special Mail Users
+        if user.admin                
+            hr
+            h2 Users
+            .row
+                .col-sm-6
+                    .card-table
+                        .card-table-header
+                            .card-table-container
+                                .card-table-content
+                                    .yAlign
+                                        h3 Students
+                        .card-table-body
+                            for usr in group.students
+                                -users.push('"' + usr._id + '"')
+                                .flip-container.card-table-container.vertical
+                                    .flipper.vertical
+                                        .front
+                                            .card-table-content
+                                                .yAlign
+                                                    p #{usr.name} #{usr.surename}
+                                        .back.vertical
+                                            .card-table-content
+                                                .yAlign
+                                                    if usr._id == user.id
+                                                        p This is you :)
+                                                    else
+                                                        .bottom-icons
+                                                            a(href="mailto:" + usr._id + "@student.utwente.nl" target="_blank" type="button" class="btn btn-card-table")
+                                                                span.glyphicon.glyphicon-envelope(aria-hidden="true")
                                                             button(type="button" class="btn btn-card-table")
                                                                 span.glyphicon.glyphicon-list-alt(aria-hidden="true")
                                                             button(type="button" class="btn btn-card-table")
                                                                 span.glyphicon.glyphicon-trash(aria-hidden="true")
-            .col-sm-6
-                .card-table
-                    .card-table-header
-                        .card-table-content
-                            .yAlign
-                                h3 Instructors
-                    .card-table-body
-                        for usr in group.admins
-                            -users.push('"' + usr._id + '"')
-                            .flip-container.card-table-container.vertical
-                                .flipper.vertical
-                                    .front
-                                        .card-table-content
-                                            .yAlign
-                                                p #{usr.name} #{usr.surename}
-                                    .back.vertical
-                                        .card-table-content
-                                            .yAlign
-                                                if usr._id == user.id
-                                                    p This is you :)
-                                                else
-                                                    .bottom-icons
-                                                        button(type="button" class="btn btn-card-table")
-                                                            span.glyphicon.glyphicon-envelope(aria-hidden="true")
-                                                        if user.admin
+                .col-sm-6
+                    .card-table
+                        .card-table-header
+                            .card-table-content
+                                .yAlign
+                                    h3 Instructors
+                        .card-table-body
+                            for usr in group.admins
+                                -users.push('"' + usr._id + '"')
+                                .flip-container.card-table-container.vertical
+                                    .flipper.vertical
+                                        .front
+                                            .card-table-content
+                                                .yAlign
+                                                    p #{usr.name} #{usr.surename}
+                                        .back.vertical
+                                            .card-table-content
+                                                .yAlign
+                                                    if usr._id == user.id
+                                                        p This is you :)
+                                                    else
+                                                        .bottom-icons
+                                                            button(type="button" class="btn btn-card-table")
+                                                                span.glyphicon.glyphicon-envelope(aria-hidden="true")
                                                             button(type="button" class="btn btn-card-table")
                                                                 span.glyphicon.glyphicon-trash(aria-hidden="true")
-        hr
-        .row
-            if user.admin
-                .col-lg-4.col-sm-6.card-holder
-                    .card.cardLink(type="button"  data-toggle="modal" data-target="#addUsers" onclick='javascript:getUsers(`[#{users}]`)')
-                        h3.special Add Users
-                .col-lg-4.col-sm-6.card-holder
-                    .card.cardLink(type="button")
-                        h3.special Mail Everyone
-                .col-lg-4.col-sm-6.card-holder
-                    .card.cardLink(type="button")
-                        h3.special Mail all Students
-            .col-lg-4.col-sm-6.card-holder
-                .card.cardLink(type="button")
-                    h3.special Mail all Instructors
+            hr
+            .row
+                if user.admin
+                    .col-lg-4.col-sm-6.card-holder
+                        .card.cardLink(type="button"  data-toggle="modal" data-target="#addUsers" onclick='javascript:getUsers(`[#{users}]`)')
+                            h3.special Add Users
+                    .col-lg-4.col-sm-6.card-holder
+                        .card.cardLink(type="button")
+                            h3.special Mail Users
 
     if user.admin
         .modal.fade#addAssignment(tabindex="-1" role="dialog" aria-labelledby="assignmentLabel")
@@ -258,7 +259,7 @@ block content
                             hr
                         .row
                             .col-xs-8
-                                .well#userSelect
+                                .well.multiSelect#userSelect
                                     ul.list-group.checked-list-box#allUserList
                             .col-xs-4
                                 .input-group
@@ -270,3 +271,43 @@ block content
                     .modal-footer
                         button(type="button" class="btn btn-default" data-dismiss="modal") Close
                         button(type="button" class="btn btn-primary" onclick="javascript:addUsers('#{group._id}')") Add Users
+
+    .modal.fade#uploadAssignment(tabindex="-1" role="dialog" aria-labelledby="uploadLabel")
+        .modal-dialog(role="document")
+            .modal-content
+                .modal-header
+                    button(type="button" class="close" data-dismiss="modal" aria-label="Close")
+                        span(aria-hidden="true") &times;
+                    h4.modal-title#uploadLabel 
+                        |Upload Assignment: 
+                        span#assignmentUploadId
+                .modal-body
+                    #errorContainerUpload.hidden
+                        .alert.alert-danger
+                            b Please review the following errors:
+                            ul#errorsUpload
+                        hr
+                    form.dropzone.form-control#uploadedFiles(action="file-upload" method="post" enctype="multipart/form-data")
+                        input.hide(type="file" name="files")
+                        .dz-message.yAlign
+                            p Click or drag files to upload.
+                    label(for="uploadedFilesSelect") Uploaded Files
+                    .well#uploadedFilesSelect
+                        ul.list-group.checked-list-box#uploadedFilesList
+                    hr
+                    label(for="userSelect") Partners
+                    .well#studentSelect
+                        ul.list-group.checked-list-box#studentUserList
+                            for student in group.students
+                                li.list-group-item(value=student._id) #{student.name} #{student.surename} (#{student._id})
+                    .alert.alert-info
+                        span
+                            b Note
+                            |! Your partners to not need to hand in this assignment anymore, they do need to accept this hand-in however (from the dashboard).
+                    hr
+                    label(for="comments") Additional Comments (optional)
+                    textarea.form-control#comments(rows="5")
+
+                .modal-footer
+                    button(type="button" class="btn btn-default" data-dismiss="modal") Close
+                    button(type="button" class="btn btn-primary" onclick="javascript:upload()") Upload Assignment

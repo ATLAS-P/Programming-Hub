@@ -133,7 +133,7 @@ function getUsers(users: string) {
     if ($("#allUserList").html().length == 0) socket.emit("getUsers", JSON.parse(users))
 }
 
-declare function initListGroup()
+declare function initListGroup(container)
 declare function getSelected(container):string[]
 
 function usersGot(users: any[]) {
@@ -150,7 +150,7 @@ function usersGot(users: any[]) {
         const p = document.createElement("span")
         p.innerText = "There are no available users to add!"
         $("#allUserList").append(p)
-    } else initListGroup()
+    } else initListGroup($("#allUserList"))
 }
 
 function addUsers(group:string) {
@@ -177,4 +177,12 @@ function addUsersDone(success: boolean, error?: string) {
         li.innerText = error
         $("#errorsUsers").append(li)
     }
+}
+
+function preUploadAssignment(id, name, group, student) {
+    const ass = $("#assignmentUploadId")
+    ass.text(name)
+    ass.attr("assignment", id)
+    ass.attr("group", group)
+    ass.attr("student", student)
 }

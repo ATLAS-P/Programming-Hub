@@ -35,7 +35,7 @@ namespace Group {
     function finalizeResult() {
         $("#projectID").attr('value', project)
         $("#projectType").attr('value', projectType)
-        $("#extension").attr('value', lastExtension)
+        //$("#extension").attr('value', lastExtension)
         $("#assignmentID").attr('value', assignment)
         $("#groupID").attr('value', (window.location.pathname + window.location.search).split("/")[2])
 

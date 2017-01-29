@@ -297,6 +297,11 @@ h3 {
   overflow: auto;
   margin-bottom: 0px;
 }
+#studentSelect,
+#uploadedFilesSelect {
+  max-height: 300px;
+  overflow: auto;
+}
 .state-icon {
   left: -5px;
 }
@@ -304,6 +309,6 @@ h3 {
   color: #fff;
   background-color: #428bca;
 }
-#allUserList {
+.checked-list-box {
   margin-bottom: 0px;
 }

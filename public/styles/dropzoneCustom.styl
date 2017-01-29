@@ -29,19 +29,25 @@
 .dz-message
 	font-family Open Sans
 	font-size 14px
+	margin 0px
+
+.dropzone .dz-message
+	margin 0px
 
 .dropzone
-	background-color white
-	border none
-	border-radius 5px
-	text-align: center
-	min-height 128px
-	-webkit-box-shadow: 5px 5px 10px 0px rgba(0,0,0,0.25)
-	box-shadow: 5px 5px 10px 0px rgba(0,0,0,0.25)
+	color #555
+	background-color #fff
+	border 1px solid #ccc
+	border-radius 4px
 	transition 0.2s
-
+	margin-bottom 20px
+	overflow auto
+	min-height 175px
+	
 .dropzone:hover
 	cursor pointer
 	transition 0.2s
-	-webkit-box-shadow: 5px 5px 10px 0px rgba(0,0,0,0.4)
-	box-shadow: 5px 5px 10px 0px rgba(0,0,0,0.4)
+	border-color #66afe9
+	outline 0
+	-webkit-box-shadow inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(102,175,233,.6)
+	box-shadow inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(102,175,233,.6)

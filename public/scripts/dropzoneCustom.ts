@@ -1,58 +1,52 @@
 ﻿declare var Dropzone
 let zone
 
-const noPyhon = 'Please only use python files!'
-
-let lastExtension = ""
-
-Dropzone.options.zonemini = {
+Dropzone.options.uploadedFiles = {
     createImageThumbnails: false,
     parallelUploads: 1,
     maxFilesize: 1,
-    accept: (file, accept) => canAcceptFile(file, accept),
     init: dropzoneInit,
-    success: (file, response) => fileGraded(file, response),
+    success: fileUploaded,
     error: fileError
 }
 
 function dropzoneInit() {
     zone = this
-    zone.on("addedfile", fileAdded);
     zone.on("sending", sending);
 }
 
-function canAcceptFile(file, accept) {
-    if (!isPython(file) && projectType == "auto_code") {
-        zone.removeFile(file)
-        Group.showErrorNoPython(true, noPyhon)
-    } else accept()
-}
-
 function sending(file, xhr, formData) {
-    formData.append("project", project)
-    formData.append("type", projectType)
-
-    lastExtension = file.name.split(".").pop()
+    const ass = $("#assignmentUploadId")
+    formData.append("assignment", ass.attr("assignment"))
+    formData.append("group", ass.attr("group"))
 }
 
-function fileAdded(file) {
-    if (isPython(file) || projectType != "auto_code") Group.showErrorNoPython(false)
-    else {
-        zone.removeFile(file)
-        Group.showErrorNoPython(true, noPyhon)
-    }
-}
+declare function initListGroupItem(li)
 
-function fileGraded(file, response: Response) {
+function fileUploaded(file, response: Response) {
     zone.removeFile(file)
-    Group.addResult(file.name, response)
+    if (!response.success) showError(response.err)
+    else {
+        $("#errorContainerUpload").addClass("hidden")
+        $("#errorsUpload").html("")
+        const files = $("#uploadedFilesList")
+        const li = document.createElement("li")
+        li.innerText = file.name
+        li.classList.add("list-group-item")
+        files.append(li)
+        initListGroupItem($(li))
+        $(li).click()
+    }
 }
 
 function fileError(file, error) {
     zone.removeFile(file)
-    Group.showErrorNoPython(true, error)
+    showError(error)
 }
 
-function isPython(file): boolean {
-    return file.name.split(".").pop() == "py"
+function showError(error) {
+    $("#errorContainerUpload").removeClass("hidden")
+    const li = document.createElement("li")
+    li.innerText = error
+    $("#errorsUpload").append(li)
 }
