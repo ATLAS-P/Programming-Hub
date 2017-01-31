@@ -4,6 +4,11 @@ const Users_1 = require('../../database/tables/Users');
 const Assignments_1 = require('../../database/tables/Assignments');
 const MkTables_1 = require('../../database/MkTables');
 const Future_1 = require('../../functional/Future');
+const List_1 = require('../../functional/List');
+const IOMap_1 = require('../../functional/IOMap');
+const Tuple_1 = require('../../functional/Tuple');
+const Files_1 = require('../../database/tables/Files');
+const azure = require('azure-storage');
 var Sockets;
 (function (Sockets) {
     const ON_CONNECTION = "connection";
@@ -13,17 +18,19 @@ var Sockets;
     const ON_REMOVE_ASSIGNMENT = "removeAssignment";
     const ON_GET_USERS = "getUsers";
     const ON_ADD_USERS = "addUsers";
+    const ON_UPLOAD_FILES = "uploadFiles";
     const RESULT_CREATE_COURSE = "courseCreated";
     const RESULT_CREATE_ASSIGNMENT = "assignmentCreated";
     const RESULT_REMOVE_COURSE = "courseRemoved";
     const RESULT_REMOVE_ASSIGNMENT = "assignmentRemoved";
     const RESULT_GET_USERS = "usersGot";
     const RESULT_ADD_USERS = "usersAdded";
-    function bindHandlers(app, io) {
-        io.on(ON_CONNECTION, connection(app));
+    const RESULT_UPLOAD_FILES = "fileUplaoded";
+    function bindHandlers(app, io, storage) {
+        io.on(ON_CONNECTION, connection(app, storage));
     }
     Sockets.bindHandlers = bindHandlers;
-    function connection(app) {
+    function connection(app, storage) {
         return socket => {
             socket.on(ON_CREATE_COURSE, createCourse(app, socket));
             socket.on(ON_REMOVE_COURSE, removeCourse(app, socket));
@@ -31,6 +38,7 @@ var Sockets;
             socket.on(ON_REMOVE_ASSIGNMENT, removeAssignment(app, socket));
             socket.on(ON_GET_USERS, getUsers(app, socket));
             socket.on(ON_ADD_USERS, addUsers(app, socket));
+            socket.on(ON_UPLOAD_FILES, uploadFile(app, socket, storage));
         };
     }
     Sockets.connection = connection;
@@ -134,4 +142,64 @@ var Sockets;
         };
     }
     Sockets.addUsers = addUsers;
+    function uploadFile(app, socket, storage) {
+        const emitResult = (success, error) => socket.emit(RESULT_UPLOAD_FILES, success, error);
+        return (assignment, comments, students, files) => {
+            if (socket.request.session.passport) {
+                let groupId = "";
+                const user = socket.request.session.passport.user;
+                students.push(user.id);
+                const properHandin = Assignments_1.Assignments.instance.exec(Assignments_1.Assignments.instance.populateFiles(Assignments_1.Assignments.instance.getByID(assignment))).flatMap(ass => Groups_1.Groups.instance.exec(Groups_1.Groups.instance.getByID(ass.group)).map(g => new Tuple_1.Tuple(ass, g))).flatMap(data => {
+                    groupId = data._2._id;
+                    for (let s in students)
+                        if (data._2.students.indexOf(s) >= 0)
+                            return Future_1.Future.reject("Student: '" + s + "' is not part of the course!");
+                    if (data._1.typ == "open")
+                        return Future_1.Future.unit(true);
+                    else {
+                        for (let file of data._1.files) {
+                            for (let s of students)
+                                if (file.students.indexOf(s) >= 0)
+                                    return Future_1.Future.reject("Student: '" + s + "' already handed in this file!");
+                        }
+                        return Future_1.Future.unit(true);
+                    }
+                });
+                const upload = (success) => {
+                    if (!success)
+                        emitResult(false, "We were not able to validate your hand-in!");
+                    else {
+                        const root = "https://atlasprogramming.file.core.windows.net/handins/";
+                        const pending = root + "pending/" + user.id + "/" + assignment + "/";
+                        Files_1.Files.instance.create(MkTables_1.MkTables.mkFile(assignment, new Date(), students, [], comments)).then(file => {
+                            const id = file._id;
+                            storage.createDirectoryIfNotExists('handins', "files", (error, resu, response) => {
+                                storage.createDirectoryIfNotExists('handins', "files/" + id, (error, resu, response) => {
+                                    const fileToLink = (fileName) => new Future_1.Future((res, rej) => {
+                                        storage.startCopyFile(pending + fileName, "handins", "files/" + id, fileName, (error, resu, response) => {
+                                            if (error)
+                                                rej(error.message);
+                                            else
+                                                res(root + "files/" + id + "/" + fileName + "?" + storage.generateSharedAccessSignature("handins", "files/" + id, fileName, {
+                                                    AccessPolicy: {
+                                                        Permissions: "r",
+                                                        Expiry: azure.date.daysFromNow(1000)
+                                                    }
+                                                }));
+                                        });
+                                    });
+                                    IOMap_1.IOMap.traverse(List_1.List.apply(files), IOMap_1.IOMap.apply).run(fileToLink).flatMap(links => {
+                                        file.urls = links.toArray();
+                                        return file.save();
+                                    }).flatMap(file => Users_1.Users.instance.makeFinal(user.id, groupId, file._id)).then(() => emitResult(true), e => emitResult(false, e));
+                                });
+                            });
+                        }, e => emitResult(false, e));
+                    }
+                };
+                properHandin.then(upload, (err) => emitResult(false, err));
+            }
+        };
+    }
+    Sockets.uploadFile = uploadFile;
 })(Sockets = exports.Sockets || (exports.Sockets = {}));

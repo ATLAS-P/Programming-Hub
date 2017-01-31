@@ -34,7 +34,7 @@ var MkTables;
         };
     }
     MkTables.mkGroup = mkGroup;
-    function mkFile(assignment, timestamp, students, files, notes, feedback = "", autograder) {
+    function mkFile(assignment, timestamp, students, files, notes, feedback = "", autograder = []) {
         return {
             students: students,
             assignment: assignment,

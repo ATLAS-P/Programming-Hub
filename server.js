@@ -19,5 +19,5 @@ Setup_1.Setup.setupSession(app, io);
 Setup_1.Setup.addAuthMiddleware(app);
 Setup_1.Setup.addAsMiddleware(app, "db", db);
 Routes_1.Routes.addRoutes(app, __dirname, storage);
-Sockets_1.Sockets.bindHandlers(app, io);
+Sockets_1.Sockets.bindHandlers(app, io, storage);
 Setup_1.Setup.startServer(server);

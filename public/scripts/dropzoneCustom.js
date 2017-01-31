@@ -14,7 +14,6 @@ function dropzoneInit() {
 function sending(file, xhr, formData) {
     const ass = $("#assignmentUploadId");
     formData.append("assignment", ass.attr("assignment"));
-    formData.append("group", ass.attr("group"));
 }
 function fileUploaded(file, response) {
     zone.removeFile(file);
@@ -27,6 +26,7 @@ function fileUploaded(file, response) {
         const li = document.createElement("li");
         li.innerText = file.name;
         li.classList.add("list-group-item");
+        li.setAttribute("value", file.name);
         files.append(li);
         initListGroupItem($(li));
         $(li).click();

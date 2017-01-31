@@ -34,8 +34,8 @@ export namespace Routes {
     const AUTH_CALLBACK = AUTH + "/callback"
     const GROUP = INDEX + "group"
     const GROUP_ANY = GROUP + "/*"
-    //const FILE = INDEX + "results/*/*"
-    //const FILE_OF = FILE + "/*"
+    const FILE = INDEX + "file"
+    const FILE_ANY = FILE + "/*"
     const FILE_UPLOAD = GROUP + "/file-upload"
     //const SUBMIT_RESULTS = GROUP + "/sendResults"
     //const DATABASE = GROUP_ANY + "database"
@@ -56,6 +56,7 @@ export namespace Routes {
         //app.get(USER, showResults("user", 5, 2))
         //app.get(OVERVIEW, showResults("overview", 3, 2))
         app.get(GROUP_ANY, group)
+        app.get(FILE_ANY, file)
         //app.get(FILE_OF, showResultOf)
         //app.get(FILE, showResult)
 
@@ -95,7 +96,19 @@ export namespace Routes {
         const group = req.url.split("/")[2]
 
         if (!req.user) res.redirect("/")
-        else Groups.getGroup(group).then(g => Render.withUser(req, res, "group/overview", {group: g}), e => Render.error(req, res, e.toString()))
+        else Groups.getGroup(group).then(g => {
+            Files.forStudentInGroup(req.user.id, group).then(user => Render.withUser(req, res, "group/overview", { group: g, fullUser: user }),
+                e => Render.error(req, res, e.toString()))
+        }, e => Render.error(req, res, e.toString()))
+    }
+
+    function file(req: Req, res: Res) {
+        const file = req.url.split("/")[2]
+
+        if (!req.user) res.redirect("/")
+        else Files.instance.exec(Files.instance.populateAll(Files.instance.getByID(file))).then(file => {
+            Render.withUser(req, res, "group/file", { file: file })
+        }, e => Render.error(req, res, e.toString()))
     }
 
     //function users(req: Req, res: Res) {

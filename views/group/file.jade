@@ -1,0 +1,123 @@
+﻿extends ../structure/default.jade
+
+block append scripts
+    script(src="/scripts/cardicons.js")
+    script(src="/scripts/selectTrigger.js")
+
+block append styles
+    link(href="/styles/flip.css" rel="stylesheet")
+
+block content
+    .container
+        if file.assignment
+            h1= file.assignment.group.name
+            h2= file.assignment.name
+        else 
+            .alert.alert-warning
+                p
+                    b Alert! 
+                    span The associated assignment or course was removed!
+        hr
+        .row
+            .col-sm-6
+                .card-table
+                    .card-table-header
+                        .card-table-container
+                            .card-table-content
+                                .yAlign
+                                    h3 Students
+                    .card-table-body
+                        for usr in file.students
+                            .flip-container.card-table-container.vertical
+                                .flipper.vertical
+                                    .front
+                                        .card-table-content
+                                            .yAlign
+                                                p #{usr.name} #{usr.surename}
+                                    .back.vertical
+                                        .card-table-content
+                                            .yAlign
+                                                if usr._id == user.id
+                                                    p This is you :)
+                                                else
+                                                    .bottom-icons
+                                                        a(href="mailto:" + usr._id + "@student.utwente.nl" target="_blank" type="button" class="btn btn-card-table")
+                                                            span.glyphicon.glyphicon-envelope(aria-hidden="true")
+                                                        if user.admin
+                                                            button(type="button" class="btn btn-card-table")
+                                                                span.glyphicon.glyphicon-list-alt(aria-hidden="true")
+            .col-sm-6
+                .card-table
+                    .card-table-header
+                        .card-table-content
+                            .yAlign
+                                h3 Files
+                    .card-table-body
+                        for f in file.urls
+                            .flip-container.card-table-container.vertical
+                                .flipper.vertical
+                                    .front
+                                        .card-table-content
+                                            .yAlign
+                                                p= f.split("/")[6].split("?")[0]
+                                    .back.vertical
+                                        .card-table-content
+                                            .yAlign
+                                                .bottom-icons
+                                                    a(target="_blank" href=f type="button" class="btn btn-card-table")
+                                                        span.glyphicon.glyphicon-download(aria-hidden="true")
+                .alert.alert-info.mtop20
+                    p
+                        b Info! 
+                        span The file page will most likely give an error first, if so just reload the error page.
+        hr
+        .row
+            .col-sm-6
+                h3 Notes
+                if file.notes.length > 0
+                    p= file.notes
+                else
+                    p The students did not provide any additional comments.
+            .col-sm-6
+                h3 Feedback
+                if file.feedback.length > 0
+                    p= file.feedback
+                else
+                    p No feedback was given yet.
+        .row
+            if user.admin
+                hr
+                .col-lg-4.col-sm-6.card-holder
+                    .card.cardLink(type="button")
+                        h3.special Give Feedback
+                if file.assignment
+                    .col-lg-4.col-sm-6.card-holder
+                        .card.cardLink(type="button")
+                            h3.special Feedback Next Hand-in
+                .col-lg-4.col-sm-6.card-holder
+                    .card.cardLink(type="button")
+                        h3.special Download all Files
+                .col-lg-4.col-sm-6.card-holder
+                    .card.cardLink(type="button")
+                        h3.special Mail Students
+                .col-lg-4.col-sm-6.card-holder
+                    a(href="/group/" + file.assignment.group._id)
+                        .card.cardLink(type="button")
+                            h3.special Go to Course
+                .col-lg-4.col-sm-6.card-holder
+                    a
+                        .card.cardLink(type="button")
+                            h3.special Go to Assignment
+            else if file.students.map(s => s._id.toString()).indexOf(user.id) >= 0
+                hr
+                if file.assignment
+                    .col-lg-4.col-sm-6.card-holder
+                        a(href="/group/" + file.assignment.group._id)
+                            .card.cardLink(type="button")
+                                h3.special Go to Course
+                .col-lg-4.col-sm-6.card-holder
+                    .card.cardLink(type="button")
+                        h3.special Edit Comments
+                .col-lg-4.col-sm-6.card-holder
+                    .card.cardLink(type="button")
+                        h3.special Download all Files

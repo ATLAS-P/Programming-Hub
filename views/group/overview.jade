@@ -20,24 +20,45 @@ block append styles
 
 block content
     -var users = []
+    -var files = fullUser.groups[0].files.map(f => f.file)
     .container
+        h1= group.name
         h2 Assignments
         if group.assignments.length == 0
             p No assignments were made yet!
         .row.groups
             for ass in group.assignments
+                - var file = files.filter(f => f.assignment.toString() == ass._id.toString())
+                - var done = file.length > 0
+                - var open = ass.typ == "open"
                 .col-lg-4.col-sm-6.card-holder
                     .flip-container
                         .flipper.group
                             .front.card
+                                if !user.admin
+                                    if done && !open
+                                        if ass.due > file[0].timestamp
+                                            .assignmentStateBulb.back-done
+                                        else
+                                            .assignmentStateBulb.back-late
+                                        if file[0].feedback.length == 0
+                                            .assignmentStateFeedback.back-normal
+                                        else 
+                                            .assignmentStateFeedback.back-done
+                                    else if !done && !open
+                                        if ass.due > new Date()
+                                            .assignmentStateBulb.back-normal
+                                        else 
+                                            .assignmentStateBulb.back-due
+                                    else
+                                        .assignmentStateBulb.back-open
                                 .yAlign
-                                    -var open = ass.typ == "open"
                                     h3.special= ass.name
                                     .timeline-container
                                         if open
                                             .progress.hidden#openExists
                                                 .progress-bar.timeline(role="progressbar" min=group.start max=group.end)
-                                        else 
+                                        else
                                             .progress.hidden
                                                 .progress-bar.timeline(role="progressbar" min=group.start max=group.end now=ass.due)
                             .back.card
@@ -64,12 +85,33 @@ block content
                                                     button(type="button" class="btn btn-card" data="Remove Assignment" data-toggle="modal" data-target="#removeAssignment" onclick="javascript:preRemoveAssignment('#{ass._id}', '#{ass.name}')")
                                                         span.glyphicon.glyphicon-trash(aria-hidden="true")
                                         else
-                                            .bottom-icons
-                                                button(type="button" class="btn btn-card" data="Upload" data-toggle="modal" data-target="#uploadAssignment" onclick="javascript:preUploadAssignment('#{ass._id}', '#{ass.name}', '#{user.id}', '#{group._id}')")
-                                                    span.glyphicon.glyphicon-upload(aria-hidden="true")
+                                            if !done || open
+                                                .bottom-icons
+                                                    button(type="button" class="btn btn-card" data="Upload" data-toggle="modal" data-target="#uploadAssignment" onclick="javascript:preUploadAssignment('#{ass._id}', '#{ass.name}')")
+                                                        span.glyphicon.glyphicon-upload(aria-hidden="true")
+                                                    if ass.link.length > 0
+                                                        a(href="http://" + ass.link type="button" target='_blank' class="btn btn-card" data="Additional Info")
+                                                            span.glyphicon.glyphicon-info-sign(aria-hidden="true")
+                                            else if done
                                                 if ass.link.length > 0
-                                                    a(href="http://" + ass.link type="button" target='_blank' class="btn btn-card" data="Additional Info")
-                                                        span.glyphicon.glyphicon-info-sign(aria-hidden="true")
+                                                    .top-icons
+                                                        a(href="/file/" + file[0]._id type="button" class="btn btn-card" data="View Hand-in Page")
+                                                            span.glyphicon.glyphicon-list-alt(aria-hidden="true")
+                                                        button(type="button" class="btn btn-card" data="View Feedback")
+                                                            span.glyphicon.glyphicon-pencil(aria-hidden="true")
+                                                    .bottom-icons
+                                                        a(href="http://" + ass.link type="button" target='_blank' class="btn btn-card" data="Additional Info")
+                                                            span.glyphicon.glyphicon-info-sign(aria-hidden="true")
+                                                        button(type="button" class="btn btn-card" data="Edit Hand-in")
+                                                            span.glyphicon.glyphicon-cog(aria-hidden="true")
+                                                else 
+                                                    .bottom-icons
+                                                        a(href="/file/" + file[0]._id type="button" class="btn btn-card" data="View Hand-in Page")
+                                                            span.glyphicon.glyphicon-list-alt(aria-hidden="true")
+                                                        button(type="button" class="btn btn-card" data="View Feedback")
+                                                            span.glyphicon.glyphicon-pencil(aria-hidden="true")
+                                                        button(type="button" class="btn btn-card" data="Edit Hand-in")
+                                                            span.glyphicon.glyphicon-cog(aria-hidden="true")
                                                   
                                 .icons-text
                                     p
@@ -299,7 +341,8 @@ block content
                     .well#studentSelect
                         ul.list-group.checked-list-box#studentUserList
                             for student in group.students
-                                li.list-group-item(value=student._id) #{student.name} #{student.surename} (#{student._id})
+                                if student._id != user.id
+                                    li.list-group-item(value=student._id) #{student.name} #{student.surename} (#{student._id})
                     .alert.alert-info
                         span
                             b Note

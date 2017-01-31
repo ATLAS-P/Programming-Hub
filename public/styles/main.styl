@@ -148,7 +148,7 @@ textarea
 	background-color rgba(0, 0, 0, .05)
 
 .top-icons
-	button
+	button, a
 		border-bottom 1px solid rgba(0, 0, 0, .05)
 
 .top-icons, .bottom-icons
@@ -248,6 +248,15 @@ h1, h2, h3
 .col-lg-4.card-holder, .col-sm-6.card-holder
 	padding 15px
 
+.mtop25
+	margin-top 25px
+
+.mtop20
+	margin-top 20px
+
+.mtop15
+	margin-top 15px
+
 .mtop10
 	margin-top 10px
 
@@ -313,3 +322,41 @@ h1, h2, h3
 
 .checked-list-box
 	margin-bottom 0px
+
+.assignmentBulb
+	width 10px
+	height 10px
+	position absolute
+	border-radius 10px
+
+.assignmentStateBulb
+	@extends .assignmentBulb
+	top 15px
+	right 15px
+
+.assignmentStateFeedback
+	@extends .assignmentBulb
+	top 30px
+	right 15px
+
+.back-normal	
+	background-color #333
+
+.back-done
+	background-color #5cb85c
+
+.back-late	
+	background-color #f0ad4e
+
+.back-due	
+	background-color #d9534f
+
+.back-open
+	background-color #337ab7
+
+h
+	a
+		color #333
+
+a:hover, a:focus
+	text-decoration none

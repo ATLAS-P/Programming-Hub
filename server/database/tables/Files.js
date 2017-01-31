@@ -13,7 +13,12 @@ class File extends Table_1.Table {
         return query.populate("students");
     }
     populateAssignment(query) {
-        return query.populate("assignment");
+        return query.populate({
+            path: "assignment",
+            options: {
+                populate: "group"
+            }
+        });
     }
     populateAll(query) {
         return this.populateUsers(this.populateAssignment(query));

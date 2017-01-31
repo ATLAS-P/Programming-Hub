@@ -77,7 +77,7 @@ export namespace MkTables {
         }
     }
 
-    export function mkFile(assignment: string, timestamp: Date, students: string[], files: string[], notes: string, feedback: string = "", autograder: TestJSON<any>[]): FileTemplate {
+    export function mkFile(assignment: string, timestamp: Date, students: string[], files: string[], notes: string, feedback: string = "", autograder: TestJSON<any>[] = []): FileTemplate {
         return {
             students: students,
             assignment: assignment,

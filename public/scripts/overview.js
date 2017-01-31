@@ -3,6 +3,7 @@ $(document).ready(() => {
     socket.on('usersGot', usersGot);
     socket.on('usersAdded', addUsersDone);
     socket.on('assignmentRemoved', removeAssignmentDone);
+    socket.on('fileUplaoded', uploadDone);
 });
 function assignmentCreated(success, error) {
     if (success)
@@ -166,10 +167,35 @@ function addUsersDone(success, error) {
         $("#errorsUsers").append(li);
     }
 }
-function preUploadAssignment(id, name, group, student) {
+function preUploadAssignment(id, name) {
     const ass = $("#assignmentUploadId");
     ass.text(name);
     ass.attr("assignment", id);
-    ass.attr("group", group);
-    ass.attr("student", student);
+}
+function upload() {
+    const ass = $("#assignmentUploadId").attr("assignment");
+    const comments = $("#comments").val();
+    const partners = getSelected($("#studentUserList"));
+    const files = getSelected($("#uploadedFilesList"));
+    $("#errorsUpload").html("");
+    $("#errorContainerUpload").addClass("hidden");
+    if (comments.length == 0 && files.length == 0) {
+        $("#errorContainerUpload").removeClass("hidden");
+        const li = document.createElement("li");
+        li.innerText = "Either add some comments, or upload and select at least one file!";
+        $("#errorsUpload").append(li);
+    }
+    else
+        socket.emit("uploadFiles", ass, comments, partners, files);
+}
+function uploadDone(success, error) {
+    if (success)
+        location.reload();
+    else {
+        $("#errorContainerUpload").removeClass("hidden");
+        $("#errorsUpload").html("");
+        const li = document.createElement("li");
+        li.innerText = error;
+        $("#errorsUpload").append(li);
+    }
 }

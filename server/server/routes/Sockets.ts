@@ -6,16 +6,21 @@ import { Users } from '../../database/tables/Users'
 import { Assignments } from '../../database/tables/Assignments'
 import { MkTables } from '../../database/MkTables'
 import { Future } from '../../functional/Future'
+import { List } from '../../functional/List'
+import { IOMap } from '../../functional/IOMap'
+import { Tuple } from '../../functional/Tuple'
 
 import { Files } from '../../database/tables/Files'
 
 import * as express from "express"
+import * as azure from 'azure-storage'
 
 export namespace Sockets {
     type Handler = (socket: SocketIO.Socket) => void
     type SimpleCall = () => void
     type StringCall = (data: string) => void
-    type AddUsersCall = (users: string[], group:string, role:string) => void
+    type AddUsersCall = (users: string[], group: string, role: string) => void
+    type UploadCall = (assignment:string, comments:string, partners: string[], files: string[]) => void
     type StringArrCall = (data: string[]) => void
     type GroupCall = (group: string) => void
     type CreateCourse = (name: string, start: Date, end: Date) => void
@@ -32,6 +37,7 @@ export namespace Sockets {
     const ON_REMOVE_ASSIGNMENT = "removeAssignment"
     const ON_GET_USERS = "getUsers"
     const ON_ADD_USERS = "addUsers"
+    const ON_UPLOAD_FILES = "uploadFiles"
 
     //const GET_GROUPS = "getGroups"
     //const GET_GROUP_USERS = "getUsersIn"
@@ -46,17 +52,18 @@ export namespace Sockets {
     const RESULT_REMOVE_ASSIGNMENT = "assignmentRemoved"
     const RESULT_GET_USERS = "usersGot"
     const RESULT_ADD_USERS = "usersAdded"
+    const RESULT_UPLOAD_FILES = "fileUplaoded"
     //const SEND_GROUPS = "setGroups"
     //const SEND_GROUP_USERS = "setUsersIn"
     //const SEND_NON_FINAL = "setNonFinalHandIns"
     //const SEND_RESULTS = "setResults"
     //const SEND_FEEDBACK = "feedbacked"
 
-    export function bindHandlers(app: express.Express, io: SocketIO.Server) {
-        io.on(ON_CONNECTION, connection(app))
+    export function bindHandlers(app: express.Express, io: SocketIO.Server, storage: azure.FileService) {
+        io.on(ON_CONNECTION, connection(app, storage))
     }
 
-    export function connection(app: express.Express): Handler {
+    export function connection(app: express.Express, storage: azure.FileService): Handler {
         return socket => {
             socket.on(ON_CREATE_COURSE, createCourse(app, socket))
             socket.on(ON_REMOVE_COURSE, removeCourse(app, socket))
@@ -64,6 +71,7 @@ export namespace Sockets {
             socket.on(ON_REMOVE_ASSIGNMENT, removeAssignment(app, socket))
             socket.on(ON_GET_USERS, getUsers(app, socket))
             socket.on(ON_ADD_USERS, addUsers(app, socket))
+            socket.on(ON_UPLOAD_FILES, uploadFile(app, socket, storage))
             //socket.on(GET_GROUPS, getGroupsOverview(app, socket))
             //socket.on(GET_GROUP_USERS, getOtherUsersIn(app, socket))
             //socket.on(GET_NON_FINAL, getNonFinalFiles(app, socket))
@@ -190,6 +198,65 @@ export namespace Sockets {
         }
     }
 
+    //still remove old pending
+    export function uploadFile(app: express.Express, socket: SocketIO.Socket, storage: azure.FileService): UploadCall {
+        const emitResult = (success: boolean, error?: string) => socket.emit(RESULT_UPLOAD_FILES, success, error)
+
+        return (assignment: string, comments: string, students: string[], files: string[]) => {
+            if (socket.request.session.passport) {
+                let groupId = ""
+                const user = socket.request.session.passport.user
+                students.push(user.id)
+                const properHandin = Assignments.instance.exec(Assignments.instance.populateFiles(Assignments.instance.getByID(assignment))).flatMap(ass => Groups.instance.exec(Groups.instance.getByID(ass.group as string)).map(g => new Tuple(ass, g))).flatMap(data => {
+                    groupId = data._2._id
+
+                    for (let s in students) if ((data._2.students as string[]).indexOf(s) >= 0) return Future.reject("Student: '" + s + "' is not part of the course!")
+                    if (data._1.typ == "open") return Future.unit(true)
+                    else {
+                        for (let file of data._1.files) {
+                            for (let s of students) if (((file as MkTables.FileTemplate).students as string[]).indexOf(s) >= 0) return Future.reject("Student: '" + s + "' already handed in this file!")
+                        }
+                        return Future.unit(true)
+                    }
+                })
+
+                const upload = (success) => {
+                    if (!success) emitResult(false, "We were not able to validate your hand-in!")
+                    else {
+                        const root = "https://atlasprogramming.file.core.windows.net/handins/"
+                        const pending = root + "pending/" + user.id + "/" + assignment + "/"
+                        Files.instance.create(MkTables.mkFile(assignment, new Date(), students, [], comments)).then(file => {
+                            const id = file._id
+
+                            storage.createDirectoryIfNotExists('handins', "files", (error, resu, response) => {
+                                storage.createDirectoryIfNotExists('handins', "files/" + id, (error, resu, response) => {
+
+                                    const fileToLink = (fileName: string) => new Future<string>((res, rej) => {
+                                        storage.startCopyFile(pending + fileName, "handins", "files/" + id, fileName, (error, resu, response) => {
+                                            if (error) rej(error.message)
+                                            else res(root + "files/" + id + "/" + fileName + "?" + storage.generateSharedAccessSignature("handins", "files/" + id, fileName, {
+                                                    AccessPolicy: {
+                                                        Permissions: "r",
+                                                        Expiry: azure.date.daysFromNow(1000)
+                                                    }
+                                                }))
+                                        })
+                                    }) 
+
+                                    IOMap.traverse<string, string, string>(List.apply(files), IOMap.apply).run(fileToLink).flatMap(links => {
+                                        file.urls = links.toArray()
+                                        return file.save()
+                                    }).flatMap(file => Users.instance.makeFinal(user.id, groupId, file._id)).then(() => emitResult(true), e => emitResult(false, e))
+                                })
+                            })
+                        }, e => emitResult(false, e))
+                    }
+                }
+
+                properHandin.then(upload, (err) => emitResult(false, err))
+            }
+        }
+    }
     //export function getNonFinalFiles(app: express.Express, socket: SocketIO.Socket): SimpleCall {
     //    const send = (success: boolean, data: string | Error) => emitHtml(socket, SEND_NON_FINAL, success, data)
 

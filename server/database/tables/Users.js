@@ -47,6 +47,9 @@ class User extends Table_1.Table {
         user.groups = user.groups.filter(g => g.group == group);
         return this.populateAllFiles(user);
     }
+    makeFinal(student, group, file) {
+        return this.updateOne(student, s => s.groups.find(g => g.group == group).files.find(f => f.file == file).final = true);
+    }
 }
 var Users;
 (function (Users) {

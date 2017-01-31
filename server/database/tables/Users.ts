@@ -48,6 +48,10 @@ class User extends Table<Tables.User> {
         user.groups = user.groups.filter(g => g.group == group)
         return this.populateAllFiles(user)
     }
+
+    makeFinal(student:string, group: string, file: string): Future<Tables.User> {
+        return this.updateOne(student, s => s.groups.find(g => g.group == group).files.find(f => f.file == file).final = true)
+    }
 }
 
 export namespace Users {

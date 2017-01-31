@@ -22,7 +22,7 @@ export class Table<A extends mongoose.Document> {
 
         return new Future<B>((resolve, reject) => {
             query.exec((err, res: B) => {
-                if (err) reject(err)
+                if (err) reject(err.message)
                 else if (alwaysOne && !exists(res)) reject("No entries found")
                 else resolve(res)
             })

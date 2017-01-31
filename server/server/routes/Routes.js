@@ -2,6 +2,7 @@
 const passport = require('passport');
 const fs = require('fs');
 const Groups_1 = require('../../database/tables/Groups');
+const Files_1 = require('../../database/tables/Files');
 const Future_1 = require('../../functional/Future');
 const Render_1 = require('./Render');
 var Routes;
@@ -13,6 +14,8 @@ var Routes;
     const AUTH_CALLBACK = AUTH + "/callback";
     const GROUP = INDEX + "group";
     const GROUP_ANY = GROUP + "/*";
+    const FILE = INDEX + "file";
+    const FILE_ANY = FILE + "/*";
     const FILE_UPLOAD = GROUP + "/file-upload";
     let storage;
     function addRoutes(app, root, fileService) {
@@ -20,6 +23,7 @@ var Routes;
         app.get(LOGOUT, logout);
         app.get(PRIVACY, showPrivacy);
         app.get(GROUP_ANY, group);
+        app.get(FILE_ANY, file);
         app.post(FILE_UPLOAD, fileUpload(app, root));
         app.get(AUTH, passport.authenticate('google', {
             scope: ['https://www.googleapis.com/auth/plus.profile.emails.read',
@@ -53,7 +57,18 @@ var Routes;
         if (!req.user)
             res.redirect("/");
         else
-            Groups_1.Groups.getGroup(group).then(g => Render_1.Render.withUser(req, res, "group/overview", { group: g }), e => Render_1.Render.error(req, res, e.toString()));
+            Groups_1.Groups.getGroup(group).then(g => {
+                Files_1.Files.forStudentInGroup(req.user.id, group).then(user => Render_1.Render.withUser(req, res, "group/overview", { group: g, fullUser: user }), e => Render_1.Render.error(req, res, e.toString()));
+            }, e => Render_1.Render.error(req, res, e.toString()));
+    }
+    function file(req, res) {
+        const file = req.url.split("/")[2];
+        if (!req.user)
+            res.redirect("/");
+        else
+            Files_1.Files.instance.exec(Files_1.Files.instance.populateAll(Files_1.Files.instance.getByID(file))).then(file => {
+                Render_1.Render.withUser(req, res, "group/file", { file: file });
+            }, e => Render_1.Render.error(req, res, e.toString()));
     }
     function fileUpload(app, root) {
         return (req, res) => {

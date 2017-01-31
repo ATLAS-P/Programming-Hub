@@ -21,7 +21,12 @@ class File extends Table<Tables.File> {
     }
 
     populateAssignment<B>(query: Files.QueryA<B>): Files.QueryA<B> {
-        return query.populate("assignment")
+        return query.populate({
+            path: "assignment",
+            options: {
+                populate: "group"
+            }
+        })
     }
 
     populateAll<B>(query: Files.QueryA<B>): Files.QueryA<B> {

@@ -20,7 +20,7 @@ class Table {
         return new Future_1.Future((resolve, reject) => {
             query.exec((err, res) => {
                 if (err)
-                    reject(err);
+                    reject(err.message);
                 else if (alwaysOne && !exists(res))
                     reject("No entries found");
                 else
