@@ -119,7 +119,8 @@ export namespace Tables {
         }],
         notes: String,
         feedback: String,
-        urls: [String]
+        urls: [String],
+        name: String
     })
 
     function refrence(to: string): {} {

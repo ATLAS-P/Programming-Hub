@@ -19,6 +19,9 @@ var Sockets;
     const ON_GET_USERS = "getUsers";
     const ON_ADD_USERS = "addUsers";
     const ON_UPLOAD_FILES = "uploadFiles";
+    const ON_FEEDBACK = "updateFeedback";
+    const ON_SET_FINAL = "manageFinal";
+    const ON_UPDATE_COURSE = "updateCourse";
     const RESULT_CREATE_COURSE = "courseCreated";
     const RESULT_CREATE_ASSIGNMENT = "assignmentCreated";
     const RESULT_REMOVE_COURSE = "courseRemoved";
@@ -26,6 +29,9 @@ var Sockets;
     const RESULT_GET_USERS = "usersGot";
     const RESULT_ADD_USERS = "usersAdded";
     const RESULT_UPLOAD_FILES = "fileUplaoded";
+    const RESULT_FEEDBACK = "feedbacked";
+    const RESULT_FINAL = "doneFinal";
+    const RESULT_UPDATE_COURSE = "courseUpdated";
     function bindHandlers(app, io, storage) {
         io.on(ON_CONNECTION, connection(app, storage));
     }
@@ -34,11 +40,14 @@ var Sockets;
         return socket => {
             socket.on(ON_CREATE_COURSE, createCourse(app, socket));
             socket.on(ON_REMOVE_COURSE, removeCourse(app, socket));
+            socket.on(ON_UPDATE_COURSE, updateCourse(app, socket));
             socket.on(ON_CREATE_ASSIGNMENT, createAssignment(app, socket));
             socket.on(ON_REMOVE_ASSIGNMENT, removeAssignment(app, socket));
             socket.on(ON_GET_USERS, getUsers(app, socket));
             socket.on(ON_ADD_USERS, addUsers(app, socket));
             socket.on(ON_UPLOAD_FILES, uploadFile(app, socket, storage));
+            socket.on(ON_FEEDBACK, updateFeedback(app, socket));
+            socket.on(ON_SET_FINAL, manageFinal(app, socket));
         };
     }
     Sockets.connection = connection;
@@ -58,6 +67,26 @@ var Sockets;
         };
     }
     Sockets.createCourse = createCourse;
+    function updateCourse(app, socket) {
+        const emitResult = (success, error) => socket.emit(RESULT_UPDATE_COURSE, success, error && error.message ? error.message : error);
+        return (course, name, start, end) => {
+            if (socket.request.session.passport) {
+                const user = socket.request.session.passport.user;
+                if (user.admin) {
+                    Groups_1.Groups.instance.updateOne(course, g => {
+                        g.name = name;
+                        g.start = start;
+                        g.end = end;
+                    }).then(g => emitResult(true), e => emitResult(false, e));
+                }
+                else
+                    emitResult(false, "You have insufficent rights to perform this action.");
+            }
+            else
+                emitResult(false, "The session was lost, please login again.");
+        };
+    }
+    Sockets.updateCourse = updateCourse;
     function createAssignment(app, socket) {
         const emitResult = (success, error) => socket.emit(RESULT_CREATE_ASSIGNMENT, success, error && error.message ? error.message : error);
         return (group, name, type, due, link) => {
@@ -130,6 +159,22 @@ var Sockets;
         };
     }
     Sockets.getUsers = getUsers;
+    function updateFeedback(app, socket) {
+        const emitResult = (success, error) => socket.emit(RESULT_FEEDBACK, success, error && error.message ? error.message : error);
+        return (file, feedback) => {
+            if (socket.request.session.passport) {
+                const user = socket.request.session.passport.user;
+                if (user.admin) {
+                    Files_1.Files.instance.updateFeedback(file, feedback).then(f => emitResult(true), e => emitResult(false, e));
+                }
+                else
+                    emitResult(false, "You have insufficent rights to perform this action.");
+            }
+            else
+                emitResult(false, "The session was lost, please login again.");
+        };
+    }
+    Sockets.updateFeedback = updateFeedback;
     function addUsers(app, socket) {
         const emitResult = (success, error) => socket.emit(RESULT_ADD_USERS, success, error);
         return (users, group, role) => {
@@ -138,13 +183,45 @@ var Sockets;
                 if (user.admin) {
                     Groups_1.Groups.instance.addUsers(group, users, role == "admin").then(g => emitResult(true), e => emitResult(false, e));
                 }
+                else
+                    emitResult(false, "You have insufficent rights to perform this action.");
             }
+            else
+                emitResult(false, "The session was lost, please login again.");
         };
     }
     Sockets.addUsers = addUsers;
+    function manageFinal(app, socket) {
+        const emitResult = () => socket.emit(RESULT_FINAL);
+        return (accept, group, file) => {
+            if (socket.request.session.passport) {
+                const user = socket.request.session.passport.user;
+                Users_1.Users.instance.updateOne(user.id, u => {
+                    const files = u.groups.find(g => g.group == group).files;
+                    const fileInst = files.find(f => f.file == file);
+                    if (accept)
+                        fileInst.final = true;
+                    else
+                        files.splice(files.indexOf(fileInst), 1);
+                }).then(u => {
+                    if (accept)
+                        emitResult();
+                    else
+                        Files_1.Files.instance.updateOne(file, f => {
+                            const students = f.students;
+                            const userIndex = students.indexOf(u._id);
+                            students.splice(userIndex, 1);
+                        }).then(f => emitResult(), e => emitResult());
+                }, e => emitResult());
+            }
+            else
+                emitResult();
+        };
+    }
+    Sockets.manageFinal = manageFinal;
     function uploadFile(app, socket, storage) {
         const emitResult = (success, error) => socket.emit(RESULT_UPLOAD_FILES, success, error);
-        return (assignment, comments, students, files) => {
+        return (assignment, handInName, comments, students, files) => {
             if (socket.request.session.passport) {
                 let groupId = "";
                 const user = socket.request.session.passport.user;
@@ -159,7 +236,7 @@ var Sockets;
                     else {
                         for (let file of data._1.files) {
                             for (let s of students)
-                                if (file.students.indexOf(s) >= 0)
+                                if (file.students.find(st => st._id == s))
                                     return Future_1.Future.reject("Student: '" + s + "' already handed in this file!");
                         }
                         return Future_1.Future.unit(true);
@@ -171,7 +248,7 @@ var Sockets;
                     else {
                         const root = "https://atlasprogramming.file.core.windows.net/handins/";
                         const pending = root + "pending/" + user.id + "/" + assignment + "/";
-                        Files_1.Files.instance.create(MkTables_1.MkTables.mkFile(assignment, new Date(), students, [], comments)).then(file => {
+                        Files_1.Files.instance.create(MkTables_1.MkTables.mkFile(assignment, handInName, students, [], comments)).then(file => {
                             const id = file._id;
                             storage.createDirectoryIfNotExists('handins', "files", (error, resu, response) => {
                                 storage.createDirectoryIfNotExists('handins', "files/" + id, (error, resu, response) => {

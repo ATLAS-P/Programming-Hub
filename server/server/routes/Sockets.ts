@@ -20,16 +20,15 @@ export namespace Sockets {
     type SimpleCall = () => void
     type StringCall = (data: string) => void
     type AddUsersCall = (users: string[], group: string, role: string) => void
-    type UploadCall = (assignment:string, comments:string, partners: string[], files: string[]) => void
+    type UploadCall = (assignment:string, handInName: string, comments:string, partners: string[], files: string[]) => void
     type StringArrCall = (data: string[]) => void
     type GroupCall = (group: string) => void
     type CreateCourse = (name: string, start: Date, end: Date) => void
+    type UpdateCourse = (course:string, name: string, start: Date, end: Date) => void
     type CreateAssignment = (group:string, name: string, type: string, due: Date, link:string) => void
-    type feedbackCall = (file:string, feedback: string) => void
-    type ResultsCall = (data: TestJSON<any>[], project:string) => void
-    type NonFinalCall = (accept: boolean, assignment: string) => void
+    type FeedbackCall = (file:string, feedback: string) => void
+    type FinalCall = (accept: boolean, group:string, file:string) => void
 
-    //on or get is for receiving, others can be used to emit
     const ON_CONNECTION = "connection"
     const ON_CREATE_COURSE = "createCourse"
     const ON_REMOVE_COURSE = "removeCourse"
@@ -38,13 +37,9 @@ export namespace Sockets {
     const ON_GET_USERS = "getUsers"
     const ON_ADD_USERS = "addUsers"
     const ON_UPLOAD_FILES = "uploadFiles"
-
-    //const GET_GROUPS = "getGroups"
-    //const GET_GROUP_USERS = "getUsersIn"
-    //const GET_RESULTS = "getResults"
-    //const ON_UPDATE_FEEDBACK = "updateFeedback"
-    //const GET_NON_FINAL = "getNonFinalHandIns"
-    //const ON_HANDLE_NON_FINAL = "handleNonFinal"
+    const ON_FEEDBACK = "updateFeedback"
+    const ON_SET_FINAL = "manageFinal"
+    const ON_UPDATE_COURSE = "updateCourse"
 
     const RESULT_CREATE_COURSE = "courseCreated"
     const RESULT_CREATE_ASSIGNMENT = "assignmentCreated"
@@ -53,11 +48,9 @@ export namespace Sockets {
     const RESULT_GET_USERS = "usersGot"
     const RESULT_ADD_USERS = "usersAdded"
     const RESULT_UPLOAD_FILES = "fileUplaoded"
-    //const SEND_GROUPS = "setGroups"
-    //const SEND_GROUP_USERS = "setUsersIn"
-    //const SEND_NON_FINAL = "setNonFinalHandIns"
-    //const SEND_RESULTS = "setResults"
-    //const SEND_FEEDBACK = "feedbacked"
+    const RESULT_FEEDBACK = "feedbacked"
+    const RESULT_FINAL = "doneFinal"
+    const RESULT_UPDATE_COURSE = "courseUpdated"
 
     export function bindHandlers(app: express.Express, io: SocketIO.Server, storage: azure.FileService) {
         io.on(ON_CONNECTION, connection(app, storage))
@@ -67,47 +60,16 @@ export namespace Sockets {
         return socket => {
             socket.on(ON_CREATE_COURSE, createCourse(app, socket))
             socket.on(ON_REMOVE_COURSE, removeCourse(app, socket))
+            socket.on(ON_UPDATE_COURSE, updateCourse(app, socket))
             socket.on(ON_CREATE_ASSIGNMENT, createAssignment(app, socket))
             socket.on(ON_REMOVE_ASSIGNMENT, removeAssignment(app, socket))
             socket.on(ON_GET_USERS, getUsers(app, socket))
             socket.on(ON_ADD_USERS, addUsers(app, socket))
             socket.on(ON_UPLOAD_FILES, uploadFile(app, socket, storage))
-            //socket.on(GET_GROUPS, getGroupsOverview(app, socket))
-            //socket.on(GET_GROUP_USERS, getOtherUsersIn(app, socket))
-            //socket.on(GET_NON_FINAL, getNonFinalFiles(app, socket))
-            //socket.on(ON_HANDLE_NON_FINAL, handleNonFinal(app, socket))
-            //socket.on(GET_RESULTS, buildResults(app, socket))
-            //socket.on(ON_UPDATE_FEEDBACK, updateFeedback(app, socket))
+            socket.on(ON_FEEDBACK, updateFeedback(app, socket))
+            socket.on(ON_SET_FINAL, manageFinal(app, socket))
         }
     }
-
-    //three below share too much, generalize
-    //export function getGroupsOverview(app: express.Express, socket: SocketIO.Socket): SimpleCall {
-    //    const sendGroups = (success: boolean, data: string | Error) => emitHtml(socket, SEND_GROUPS, success, data)
-
-    //    return () => {
-    //        if (socket.request.session.passport) {
-    //            const user = socket.request.session.passport.user.id
-
-    //            Groups.getOverviewForUser(user, lg => {
-    //                Render.groupsOverview(app, "groups", lg, data => sendGroups(true, data), err => sendGroups(false, err))
-    //            }, e => sendGroups(false, e))
-    //        }
-    //    }
-    //}
-
-    //export function getOtherUsersIn(app: express.Express, socket: SocketIO.Socket): GroupCall {
-    //    const sendUsers = (success: boolean, data: string | Error) => emitHtml(socket, SEND_GROUP_USERS, success, data)
-
-    //    return g => {
-    //        if (socket.request.session.passport) {
-    //            const user = socket.request.session.passport.user.id
-    //            Groups.instance.getStudents(g, lu => {
-    //                Render.users(app, "userList", lu.filter(v => v._id != user), html => sendUsers(true, html), err => sendUsers(false, err))
-    //            }, e => sendUsers(false, e))
-    //        }
-    //    }
-    //}
 
     export function createCourse(app: express.Express, socket: SocketIO.Socket): CreateCourse {
         const emitResult = (success: boolean, error?: string) => socket.emit(RESULT_CREATE_COURSE, success, error && (error as any).message ? (error as any).message : error)
@@ -118,6 +80,23 @@ export namespace Sockets {
                 if (user.admin) {
                     Groups.instance.create(MkTables.mkGroup(name, start, end)).flatMap(g =>
                         Groups.instance.addUser(g._id, user.id, true, true)).then(g => emitResult(true), e => emitResult(false, e))
+                } else emitResult(false, "You have insufficent rights to perform this action.")
+            } else emitResult(false, "The session was lost, please login again.")
+        }
+    }
+
+    export function updateCourse(app: express.Express, socket: SocketIO.Socket): UpdateCourse {
+        const emitResult = (success: boolean, error?: string) => socket.emit(RESULT_UPDATE_COURSE, success, error && (error as any).message ? (error as any).message : error)
+
+        return (course, name, start, end) => {
+            if (socket.request.session.passport) {
+                const user = socket.request.session.passport.user
+                if (user.admin) {
+                    Groups.instance.updateOne(course, g => {
+                        g.name = name
+                        g.start = start
+                        g.end = end
+                    }).then(g => emitResult(true), e => emitResult(false, e))
                 } else emitResult(false, "You have insufficent rights to perform this action.")
             } else emitResult(false, "The session was lost, please login again.")
         }
@@ -184,17 +163,55 @@ export namespace Sockets {
         }
     }
 
+    export function updateFeedback(app: express.Express, socket: SocketIO.Socket): FeedbackCall {
+        const emitResult = (success: boolean, error?: string) => socket.emit(RESULT_FEEDBACK, success, error && (error as any).message ? (error as any).message : error)
+
+        return (file: string, feedback: string) => {
+            if (socket.request.session.passport) {
+                const user = socket.request.session.passport.user
+
+                if (user.admin) {
+                    Files.instance.updateFeedback(file, feedback).then(f => emitResult(true), e => emitResult(false, e))
+                } else emitResult(false, "You have insufficent rights to perform this action.")
+            } else emitResult(false, "The session was lost, please login again.")
+        }
+    }
+
     //TODO still needs an isAdmin check!!!
     export function addUsers(app: express.Express, socket: SocketIO.Socket): AddUsersCall {
         const emitResult = (success: boolean, error?: string) => socket.emit(RESULT_ADD_USERS, success, error)
 
-        return (users: string[], group:string, role:string) => {
+        return (users: string[], group: string, role: string) => {
             if (socket.request.session.passport) {
                 const user = socket.request.session.passport.user
                 if (user.admin) {
                     Groups.instance.addUsers(group, users, role == "admin").then(g => emitResult(true), e => emitResult(false, e))
-                }
-            }
+                } else emitResult(false, "You have insufficent rights to perform this action.")
+            } else emitResult(false, "The session was lost, please login again.")
+        }
+    }
+
+    export function manageFinal(app: express.Express, socket: SocketIO.Socket): FinalCall {
+        const emitResult = () => socket.emit(RESULT_FINAL)
+
+        return (accept: boolean, group: string, file: string) => {
+            if (socket.request.session.passport) {
+                const user = socket.request.session.passport.user
+                Users.instance.updateOne(user.id, u => {
+                    const files = u.groups.find(g => g.group == group).files
+                    const fileInst = files.find(f => f.file == file)
+
+                    if (accept) fileInst.final = true
+                    else files.splice(files.indexOf(fileInst), 1)
+                }).then(u => {
+                    if (accept) emitResult()
+                    else Files.instance.updateOne(file, f => {
+                        const students = f.students as string[]
+                        const userIndex = students.indexOf(u._id)
+                        students.splice(userIndex, 1)
+                    }).then(f => emitResult(), e => emitResult())
+                }, e => emitResult())
+            } else emitResult()
         }
     }
 
@@ -202,7 +219,7 @@ export namespace Sockets {
     export function uploadFile(app: express.Express, socket: SocketIO.Socket, storage: azure.FileService): UploadCall {
         const emitResult = (success: boolean, error?: string) => socket.emit(RESULT_UPLOAD_FILES, success, error)
 
-        return (assignment: string, comments: string, students: string[], files: string[]) => {
+        return (assignment: string, handInName:string, comments: string, students: string[], files: string[]) => {
             if (socket.request.session.passport) {
                 let groupId = ""
                 const user = socket.request.session.passport.user
@@ -214,7 +231,7 @@ export namespace Sockets {
                     if (data._1.typ == "open") return Future.unit(true)
                     else {
                         for (let file of data._1.files) {
-                            for (let s of students) if (((file as MkTables.FileTemplate).students as string[]).indexOf(s) >= 0) return Future.reject("Student: '" + s + "' already handed in this file!")
+                            for (let s of students) if (((file as MkTables.FileTemplate).students as MkTables.UserTemplate[]).find(st => st._id == s)) return Future.reject("Student: '" + s + "' already handed in this file!")
                         }
                         return Future.unit(true)
                     }
@@ -225,7 +242,7 @@ export namespace Sockets {
                     else {
                         const root = "https://atlasprogramming.file.core.windows.net/handins/"
                         const pending = root + "pending/" + user.id + "/" + assignment + "/"
-                        Files.instance.create(MkTables.mkFile(assignment, new Date(), students, [], comments)).then(file => {
+                        Files.instance.create(MkTables.mkFile(assignment, handInName, students, [], comments)).then(file => {
                             const id = file._id
 
                             storage.createDirectoryIfNotExists('handins', "files", (error, resu, response) => {
@@ -279,21 +296,5 @@ export namespace Sockets {
     //            else Files.instance.removeNonFinal(user, ass)
     //        }
     //    }
-    //}
-
-    //export function buildResults(app: express.Express, socket: SocketIO.Socket): ResultsCall {
-    //    return (data, project) => {
-    //        Render.results(app, "result", project, data, html => emitHtml(socket, SEND_RESULTS, true, html), err => emitHtml(socket, SEND_RESULTS, false, err))
-    //    }
-    //}
-
-    //export function updateFeedback(app: express.Express, socket: SocketIO.Socket): feedbackCall {
-    //    return (file, feedback) => {
-    //        Files.instance.updateFeedback(file, feedback, (file) => socket.emit(SEND_FEEDBACK, true), err => socket.emit(SEND_FEEDBACK, false, err))
-    //    }
-    //}
-    //export function emitHtml(socket: SocketIO.Socket, to: string, success: boolean, data: string | Error) {
-    //    if (success) socket.emit(to, { success: true, html: data as string })
-    //    else socket.emit(to, { success: false, err: (data instanceof Error ? data.message : data) })
     //}
 }

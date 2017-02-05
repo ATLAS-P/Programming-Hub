@@ -106,7 +106,8 @@ class Group extends Table_1.Table {
                 path: "files",
                 match: fileFileter,
                 populate: {
-                    path: "students"
+                    path: "students",
+                    select: "name surename"
                 }
             }
         });

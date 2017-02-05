@@ -1,17 +1,20 @@
 ﻿extends ../structure/default.jade
 
+include ../includes/modalHelper.jade
+include ../includes/basic.jade
+
 block append scripts
     script
         |$('.datepicker').datepicker();
-    script(src="/scripts/timeline.js")
-    script(src="/scripts/cardicons.js")
-    script(src="/scripts/selectTrigger.js")
+    script(src="/scripts/includes/timeline.js")
+    script(src="/scripts/includes/cardicons.js")
+    script(src="/scripts/includes/selectTrigger.js")
     script(src="/scripts/overview.js")
-    script(src="/scripts/checkedListGroup.js")
+    script(src="/scripts/includes/checkedListGroup.js")
     script
         |initListGroup($("#studentUserList"))
-    script(src="/scripts/dropzone.min.js")
-    script(src="/scripts/dropzoneCustom.js")
+    script(src="/scripts/includes/dropzone.min.js")
+    script(src="/scripts/includes/dropzoneCustom.js")
 
 block append styles
     link(href="/styles/flip.css" rel="stylesheet")
@@ -20,192 +23,168 @@ block append styles
 
 block content
     -var users = []
-    -var files = fullUser.groups[0].files.map(f => f.file)
+    -var files = fullUser.groups[0].files
     .container
+        #finalWarning.hidden
+            .alert.alert-info
+                p
+                    b There are non final assignments! 
+                p 
+                    |Make sure to either accept or decline all non final assignments (assignments handed in for you by someone else). 
+                    br
+                    |You can recognize these handins by the light blue dot.
+            hr
         h1= group.name
-        h2 Assignments
-        if group.assignments.length == 0
-            p No assignments were made yet!
-        .row.groups
-            for ass in group.assignments
-                - var file = files.filter(f => f.assignment.toString() == ass._id.toString())
-                - var done = file.length > 0
-                - var open = ass.typ == "open"
-                .col-lg-4.col-sm-6.card-holder
-                    .flip-container
-                        .flipper.group
-                            .front.card
+        
+        if group.assignments.length > 0 && group.assignments[0].typ == "open" && !user.admin
+            h2 Open Assignment
+            .row.groups
+                - var ass = group.assignments[0]
+                - var handins = files.filter(f => f.file.assignment.toString() == ass._id.toString())
+                +flipper()(class="group")
+                    +front-card() 
+                        .assignmentStateBulb.back-open
+                        .yAlign
+                            h3.special= ass.name
+                            +timeline(group.start, group.end)(class="hidden" id="openExists")
+                    +back-card()
+                        +card-icons()
+                            .bottom-icons
+                                +card-icon("Upload", 'upload')(data-toggle="modal" data-target="#uploadAssignment" onclick="javascript:preUploadAssignment('#{ass._id}', '#{ass.name}')")
+                for handin in handins
+                    +flipper()(class="group")
+                        +front-card() 
+                            if !handin.final
+                                .assignmentStateBulb.back-final
+                            else
+                                .assignmentStateBulb.back-done
+                            if handin.file.feedback.length == 0
+                                .assignmentStateFeedback.back-normal
+                            else 
+                                .assignmentStateFeedback.back-done
+                            .yAlign
+                                h3.special= handin.file.name
+                                +timeline(group.start, group.end, group.now)(class="hidden")
+                        +back-card()
+                            +card-icons() 
+                                .bottom-icons
+                                    +card-icon-a("/file/" + handin.file._id, 'View Hand-in Page', 'list-alt')
+                                    if !handin.final
+                                        +card-icon("Accept Hand-in", 'ok')(data-toggle="modal" data-target="#acceptAssignment" onclick="javascript:preAccept('#{handin.file._id}', '#{handin.file.name}')")
+                                        +card-icon("Decline Hand-in", 'remove')(data-toggle="modal" data-target="#declineAssignment" onclick="javascript:preDecline('#{handin.file._id}', '#{handin.file.name}')")
+            hr
+
+        if group.assignments.length > 0 && (user.admin || group.assignments.length > 1 || group.assignments[0].typ != "open")
+            h2 Assignments
+            .row.groups
+                for ass in group.assignments
+                    - var file = files.filter(f => f.file.assignment.toString() == ass._id.toString())
+                    - var done = file.length > 0
+                    - var open = ass.typ == "open"
+                    if !open || user.admin
+                        +flipper()(class="group")
+                            +front-card()
                                 if !user.admin
-                                    if done && !open
-                                        if ass.due > file[0].timestamp
-                                            .assignmentStateBulb.back-done
+                                    if done
+                                        if !file[0].final
+                                            .assignmentStateBulb.back-final
                                         else
-                                            .assignmentStateBulb.back-late
-                                        if file[0].feedback.length == 0
+                                            if ass.due > file[0].file.timestamp
+                                                .assignmentStateBulb.back-done
+                                            else
+                                                .assignmentStateBulb.back-late
+                                        if file[0].file.feedback.length == 0
                                             .assignmentStateFeedback.back-normal
                                         else 
                                             .assignmentStateFeedback.back-done
-                                    else if !done && !open
+                                    else
                                         if ass.due > new Date()
                                             .assignmentStateBulb.back-normal
                                         else 
                                             .assignmentStateBulb.back-due
-                                    else
-                                        .assignmentStateBulb.back-open
                                 .yAlign
                                     h3.special= ass.name
+                                    if !user.admin && done
+                                        h4#subheadersmall= file[0].file.name
                                     .timeline-container
                                         if open
-                                            .progress.hidden#openExists
-                                                .progress-bar.timeline(role="progressbar" min=group.start max=group.end)
+                                            +timeline(group.start, group.end)(class="hidden" id="openExists")
                                         else
-                                            .progress.hidden
-                                                .progress-bar.timeline(role="progressbar" min=group.start max=group.end now=ass.due)
-                            .back.card
-                                .yAlign
-                                    .card-icons
-                                        if user.admin
-                                            if ass.link.length > 0
-                                                .top-icons
-                                                    button(type="button" class="btn btn-card" data="Results")
-                                                        span.glyphicon.glyphicon-list-alt(aria-hidden="true")
-                                                    button(type="button" class="btn btn-card" data="Edit Assignment")
-                                                        span.glyphicon.glyphicon-cog(aria-hidden="true")
-                                                .bottom-icons
-                                                    button(type="button" class="btn btn-card" data="Remove Assignment" data-toggle="modal" data-target="#removeAssignment" onclick="javascript:preRemoveAssignment('#{ass._id}', '#{ass.name}')")
-                                                        span.glyphicon.glyphicon-trash(aria-hidden="true")
-                                                    a(href="http://" + ass.link type="button" target='_blank' class="btn btn-card" data="Additional Info")
-                                                        span.glyphicon.glyphicon-info-sign(aria-hidden="true")
-                                            else
-                                                .bottom-icons
-                                                    button(type="button" class="btn btn-card" data="Results")
-                                                        span.glyphicon.glyphicon-list-alt(aria-hidden="true")
-                                                    button(type="button" class="btn btn-card" data="Edit Assignment")
-                                                        span.glyphicon.glyphicon-cog(aria-hidden="true")
-                                                    button(type="button" class="btn btn-card" data="Remove Assignment" data-toggle="modal" data-target="#removeAssignment" onclick="javascript:preRemoveAssignment('#{ass._id}', '#{ass.name}')")
-                                                        span.glyphicon.glyphicon-trash(aria-hidden="true")
+                                            +timeline(group.start, group.end, ass.due)(class="hidden")
+                            +back-card()
+                                +card-icons()
+                                    if user.admin
+                                        if ass.link.length > 0
+                                            .top-icons
+                                                +card-icon-a("/file/" + file[0].file._id, 'Results', 'list-alt')
+                                                +card-icon('Edit Assignment', 'cog')
+                                            .bottom-icons
+                                                +card-icon('Remove Assignment', 'trash')(data-toggle="modal" data-target="#removeAssignment" onclick="javascript:preRemoveAssignment('#{ass._id}', '#{ass.name}')")
+                                                +card-icon-a("http://" + ass.link, 'Additional Info', 'info-sign')(target='_blank')
                                         else
-                                            if !done || open
-                                                .bottom-icons
-                                                    button(type="button" class="btn btn-card" data="Upload" data-toggle="modal" data-target="#uploadAssignment" onclick="javascript:preUploadAssignment('#{ass._id}', '#{ass.name}')")
-                                                        span.glyphicon.glyphicon-upload(aria-hidden="true")
-                                                    if ass.link.length > 0
-                                                        a(href="http://" + ass.link type="button" target='_blank' class="btn btn-card" data="Additional Info")
-                                                            span.glyphicon.glyphicon-info-sign(aria-hidden="true")
-                                            else if done
+                                            .bottom-icons
+                                                +card-icon-a(group._id + "/assignment/" + ass._id, 'Results', 'list-alt')
+                                                +card-icon('Edit Assignment', 'cog')
+                                                +card-icon('Remove Assignment', 'trash')(data-toggle="modal" data-target="#removeAssignment" onclick="javascript:preRemoveAssignment('#{ass._id}', '#{ass.name}')")
+                                    else
+                                        if !done
+                                            .bottom-icons
+                                                +card-icon("Upload", 'upload')(data-toggle="modal" data-target="#uploadAssignment" onclick="javascript:preUploadAssignment('#{ass._id}', '#{ass.name}')")
                                                 if ass.link.length > 0
-                                                    .top-icons
-                                                        a(href="/file/" + file[0]._id type="button" class="btn btn-card" data="View Hand-in Page")
-                                                            span.glyphicon.glyphicon-list-alt(aria-hidden="true")
-                                                        button(type="button" class="btn btn-card" data="View Feedback")
-                                                            span.glyphicon.glyphicon-pencil(aria-hidden="true")
-                                                    .bottom-icons
-                                                        a(href="http://" + ass.link type="button" target='_blank' class="btn btn-card" data="Additional Info")
-                                                            span.glyphicon.glyphicon-info-sign(aria-hidden="true")
-                                                        button(type="button" class="btn btn-card" data="Edit Hand-in")
-                                                            span.glyphicon.glyphicon-cog(aria-hidden="true")
-                                                else 
-                                                    .bottom-icons
-                                                        a(href="/file/" + file[0]._id type="button" class="btn btn-card" data="View Hand-in Page")
-                                                            span.glyphicon.glyphicon-list-alt(aria-hidden="true")
-                                                        button(type="button" class="btn btn-card" data="View Feedback")
-                                                            span.glyphicon.glyphicon-pencil(aria-hidden="true")
-                                                        button(type="button" class="btn btn-card" data="Edit Hand-in")
-                                                            span.glyphicon.glyphicon-cog(aria-hidden="true")
-                                                  
-                                .icons-text
-                                    p
-                                            
+                                                    +card-icon-a("http://" + ass.link, 'Additional Info', 'info-sign')(target='_blank')
+                                        else
+                                            .bottom-icons
+                                                +card-icon-a("/file/" + file[0].file._id, 'View Hand-in Page', 'list-alt')
+                                                if !file[0].final
+                                                    +card-icon("Accept Hand-in", 'ok')(data-toggle="modal" data-target="#acceptAssignment" onclick="javascript:preAccept('#{file[0].file._id}', '#{file[0].file.name}')")
+                                                    +card-icon("Decline Hand-in", 'remove')(data-toggle="modal" data-target="#declineAssignment" onclick="javascript:preDecline('#{file[0].file._id}', '#{file[0].file.name}')")
+                                                if ass.link.length > 0
+                                                    +card-icon-a("http://" + ass.link, 'Additional Info', 'info-sign')(target='_blank')
+        else
+            h2 Assignments
+            p No assignments were made yet!
         hr
         .row
             if user.admin
-                .col-lg-4.col-sm-6.card-holder
-                    .card.cardLink(type="button" data-toggle="modal" data-target="#addAssignment")
-                        h3.special Create a New Assignment
-                .col-lg-4.col-sm-6.card-holder
-                    .card.cardLink(type="button")
-                        h3.special To-Feedback List
-                .col-lg-4.col-sm-6.card-holder
-                    .card.cardLink(type="button")
-                        h3.special View all Results
+                +cardLink("Create a New Assignment")(data-toggle="modal" data-target="#addAssignment")
+                +cardLink("To-Feedback List")
+                +cardLink("View all Results")
             else
-                .col-lg-4.col-sm-6.card-holder
-                    .card.cardLink(type="button")
-                        h3.special Generate Overview
-                .col-lg-4.col-sm-6.card-holder
-                    .card.cardLink(type="button")
-                        h3.special View Hand-ins
-                .col-lg-4.col-sm-6.card-holder
-                    .card.cardLink(type="button")
-                        h3.special Mail Users
+                +cardLink("Generate Overview")
+                +cardLink("Mail Users")
         if user.admin                
             hr
             h2 Users
             .row
                 .col-sm-6
-                    .card-table
-                        .card-table-header
-                            .card-table-container
-                                .card-table-content
-                                    .yAlign
-                                        h3 Students
-                        .card-table-body
-                            for usr in group.students
-                                -users.push('"' + usr._id + '"')
-                                .flip-container.card-table-container.vertical
-                                    .flipper.vertical
-                                        .front
-                                            .card-table-content
-                                                .yAlign
-                                                    p #{usr.name} #{usr.surename}
-                                        .back.vertical
-                                            .card-table-content
-                                                .yAlign
-                                                    if usr._id == user.id
-                                                        p This is you :)
-                                                    else
-                                                        .bottom-icons
-                                                            a(href="mailto:" + usr._id + "@student.utwente.nl" target="_blank" type="button" class="btn btn-card-table")
-                                                                span.glyphicon.glyphicon-envelope(aria-hidden="true")
-                                                            button(type="button" class="btn btn-card-table")
-                                                                span.glyphicon.glyphicon-list-alt(aria-hidden="true")
-                                                            button(type="button" class="btn btn-card-table")
-                                                                span.glyphicon.glyphicon-trash(aria-hidden="true")
+                    +cardTable("Students")
+                        for usr in group.students
+                            -users.push('"' + usr._id + '"')
+                            +cardTableFlip(usr.name + " " + usr.surename)
+                                if usr._id == user.id
+                                    p This is you :)
+                                else
+                                    .bottom-icons
+                                        +flip-table-a("mailto:" + usr._id + "@student.utwente.nl", "envelope")(target="_blank")
+                                        +flip-table-a(group._id + "/user/" + usr._id, "list-alt")(target="_blank")
+                                        +flip-table-icon("trash")
+
                 .col-sm-6
-                    .card-table
-                        .card-table-header
-                            .card-table-content
-                                .yAlign
-                                    h3 Instructors
-                        .card-table-body
-                            for usr in group.admins
-                                -users.push('"' + usr._id + '"')
-                                .flip-container.card-table-container.vertical
-                                    .flipper.vertical
-                                        .front
-                                            .card-table-content
-                                                .yAlign
-                                                    p #{usr.name} #{usr.surename}
-                                        .back.vertical
-                                            .card-table-content
-                                                .yAlign
-                                                    if usr._id == user.id
-                                                        p This is you :)
-                                                    else
-                                                        .bottom-icons
-                                                            button(type="button" class="btn btn-card-table")
-                                                                span.glyphicon.glyphicon-envelope(aria-hidden="true")
-                                                            button(type="button" class="btn btn-card-table")
-                                                                span.glyphicon.glyphicon-trash(aria-hidden="true")
+                    +cardTable("Instructors")
+                        for usr in group.admins
+                            -users.push('"' + usr._id + '"')
+                            +cardTableFlip(usr.name + " " + usr.surename)
+                                if usr._id == user.id
+                                    p This is you :)
+                                else
+                                    .bottom-icons
+                                        +flip-table-icon("envelope")
+                                        +flip-table-icon("trash")
             hr
             .row
                 if user.admin
-                    .col-lg-4.col-sm-6.card-holder
-                        .card.cardLink(type="button"  data-toggle="modal" data-target="#addUsers" onclick='javascript:getUsers(`[#{users}]`)')
-                            h3.special Add Users
-                    .col-lg-4.col-sm-6.card-holder
-                        .card.cardLink(type="button")
-                            h3.special Mail Users
+                    +cardLink("Add Users")(data-toggle="modal" data-target="#addUsers" onclick='javascript:getUsers(`[#{users}]`)')
+                    +cardLink("Mail Users")
 
     if user.admin
         .modal.fade#addAssignment(tabindex="-1" role="dialog" aria-labelledby="assignmentLabel")
@@ -329,10 +308,15 @@ block content
                             b Please review the following errors:
                             ul#errorsUpload
                         hr
-                    form.dropzone.form-control#uploadedFiles(action="file-upload" method="post" enctype="multipart/form-data")
-                        input.hide(type="file" name="files")
-                        .dz-message.yAlign
-                            p Click or drag files to upload.
+                    .input-group
+                        span.input-group-addon#addonHName Hand-in Name
+                        input.form-control#handInName(type="text" aria-describedby="addonHName")
+                    hr
+                    .form-group
+                        form.dropzone.form-control#uploadedFiles(action="file-upload" method="post" enctype="multipart/form-data")
+                            input.hide(type="file" name="files")
+                            .dz-message.yAlign
+                                p Click or drag files to upload.
                     label(for="uploadedFilesSelect") Uploaded Files
                     .well#uploadedFilesSelect
                         ul.list-group.checked-list-box#uploadedFilesList
@@ -348,9 +332,42 @@ block content
                             b Note
                             |! Your partners to not need to hand in this assignment anymore, they do need to accept this hand-in however (from the dashboard).
                     hr
-                    label(for="comments") Additional Comments (optional)
-                    textarea.form-control#comments(rows="5")
+                    .form-group
+                        label.control-label(for="comments") Additional Comments (optional)
+                        textarea.form-control#comments(rows="5")
 
                 .modal-footer
                     button(type="button" class="btn btn-default" data-dismiss="modal") Close
                     button(type="button" class="btn btn-primary" onclick="javascript:upload()") Upload Assignment
+
+    .modal.fade#acceptAssignment(tabindex="-1" role="dialog" aria-labelledby="acceptLabel")
+        .modal-dialog(role="document")
+            .modal-content
+                .modal-header
+                    button(type="button" class="close" data-dismiss="modal" aria-label="Close")
+                        span(aria-hidden="true") &times;
+                    h4.modal-title#acceptLabel 
+                        |Accept Assignment:  
+                        span#assignmentAccept
+                .modal-body
+                    .alert.alert-info
+                        span Are you sure you want to accept this assignment?
+                .modal-footer
+                    button(type="button" class="btn btn-default" data-dismiss="modal") Close
+                    button(type="button" class="btn btn-primary" onclick="javascript:acceptAssignment('#{group._id}')") I'm Completely Sure
+
+    .modal.fade#declineAssignment(tabindex="-1" role="dialog" aria-labelledby="declineLabel")
+        .modal-dialog(role="document")
+            .modal-content
+                .modal-header
+                    button(type="button" class="close" data-dismiss="modal" aria-label="Close")
+                        span(aria-hidden="true") &times;
+                    h4.modal-title#declineLabel 
+                        |Decline Assignment:  
+                        span#assignmentDecline
+                .modal-body
+                    .alert.alert-warning
+                        span Are you sure you want to decline this assignment?
+                .modal-footer
+                    button(type="button" class="btn btn-default" data-dismiss="modal") Close
+                    button(type="button" class="btn btn-primary" onclick="javascript:declineAssignment('#{group._id}')") I'm Completely Sure

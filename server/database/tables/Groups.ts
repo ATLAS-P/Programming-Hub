@@ -112,7 +112,8 @@ class Group extends Table<Tables.Group> {
                 path: "files",
                 match: fileFileter,
                 populate: {
-                    path: "students" //only return name and surename, not all
+                    path: "students",
+                    select: "name surename"
                 }
             }
         })

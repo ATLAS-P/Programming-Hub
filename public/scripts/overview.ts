@@ -6,6 +6,11 @@ $(document).ready(() => {
     socket.on('usersAdded', addUsersDone)
     socket.on('assignmentRemoved', removeAssignmentDone)
     socket.on('fileUplaoded', uploadDone)
+    socket.on('doneFinal', () => location.reload())
+
+    if ($(".back-final").size() > 0) {
+        $("#finalWarning").removeClass("hidden")
+    }
 })
 
 function assignmentCreated(success: boolean, error?: string) {
@@ -187,20 +192,41 @@ function preUploadAssignment(id, name) {
 }
 
 function upload() {
+    const errors: string[] = []
+
     const ass = $("#assignmentUploadId").attr("assignment")
-    const comments: string = $("#comments").val()
+    const commentsContainer = $("#comments")
+    const comments:string = commentsContainer.val()
+    const handInName = $("#handInName")
     const partners = getSelected($("#studentUserList"))
     const files = getSelected($("#uploadedFilesList"))
 
     $("#errorsUpload").html("")
     $("#errorContainerUpload").addClass("hidden")
+    $("#uploadedFiles").parent().removeClass("has-error")
+    handInName.parent().removeClass("has-error")
+    commentsContainer.parent().removeClass("has-error")
+
+    if (handInName.val().length < 8) {
+        errors.push("The hand-in name should be at least 8 characters long!")
+        handInName.parent().addClass("has-error")
+    }
 
     if (comments.length == 0 && files.length == 0) {
+        errors.push("Either add some comments, or upload and select at least one file!")
+        commentsContainer.parent().addClass("has-error")
+        $("#uploadedFiles").parent().addClass("has-error")
+    } 
+
+    if (errors.length == 0) socket.emit("uploadFiles", ass, handInName.val(), comments, partners, files)
+    else {
         $("#errorContainerUpload").removeClass("hidden")
-        const li = document.createElement("li")
-        li.innerText = "Either add some comments, or upload and select at least one file!"
-        $("#errorsUpload").append(li)
-    } else socket.emit("uploadFiles", ass, comments, partners, files)
+        errors.forEach(e => {
+            const li = document.createElement("li")
+            li.innerText = e
+            $("#errorsUpload").append(li)
+        })
+    }
 }
 
 function uploadDone(success: boolean, error?: string) {
@@ -212,4 +238,24 @@ function uploadDone(success: boolean, error?: string) {
         li.innerText = error
         $("#errorsUpload").append(li)
     }
+}
+
+function preAccept(file: string, name:string) {
+    $("#assignmentAccept").attr("file", file)
+    $("#assignmentAccept").text(name)
+}
+
+function preDecline(file: string, name:string) {
+    $("#assignmentDecline").attr("file", file)
+    $("#assignmentDecline").text(name)
+}
+
+function acceptAssignment(group: string) {
+    const file = $("#assignmentAccept").attr("file")
+    socket.emit("manageFinal", true, group, file)
+}
+
+function declineAssignment(group: string) {
+    const file = $("#assignmentDecline").attr("file")
+    socket.emit("manageFinal", false, group, file)
 }

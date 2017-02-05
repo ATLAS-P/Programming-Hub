@@ -34,15 +34,16 @@ var MkTables;
         };
     }
     MkTables.mkGroup = mkGroup;
-    function mkFile(assignment, timestamp, students, files, notes, feedback = "", autograder = []) {
+    function mkFile(assignment, name, students, files, notes, feedback = "", autograder = []) {
         return {
             students: students,
             assignment: assignment,
-            timestamp: timestamp,
+            timestamp: new Date(),
             autograder: autograder,
             notes: notes,
             feedback: feedback,
-            urls: files
+            urls: files,
+            name: name
         };
     }
     MkTables.mkFile = mkFile;

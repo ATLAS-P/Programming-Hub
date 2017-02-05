@@ -3,6 +3,7 @@ const passport = require('passport');
 const fs = require('fs');
 const Groups_1 = require('../../database/tables/Groups');
 const Files_1 = require('../../database/tables/Files');
+const Assignments_1 = require('../../database/tables/Assignments');
 const Future_1 = require('../../functional/Future');
 const Render_1 = require('./Render');
 var Routes;
@@ -14,6 +15,8 @@ var Routes;
     const AUTH_CALLBACK = AUTH + "/callback";
     const GROUP = INDEX + "group";
     const GROUP_ANY = GROUP + "/*";
+    const GROUP_USER = GROUP_ANY + "/user/*";
+    const GROUP_ASSIGNMENT = GROUP_ANY + "/assignment/*";
     const FILE = INDEX + "file";
     const FILE_ANY = FILE + "/*";
     const FILE_UPLOAD = GROUP + "/file-upload";
@@ -22,6 +25,8 @@ var Routes;
         app.get(INDEX, index);
         app.get(LOGOUT, logout);
         app.get(PRIVACY, showPrivacy);
+        app.get(GROUP_ASSIGNMENT, assignment);
+        app.get(GROUP_USER, user);
         app.get(GROUP_ANY, group);
         app.get(FILE_ANY, file);
         app.post(FILE_UPLOAD, fileUpload(app, root));
@@ -60,6 +65,21 @@ var Routes;
             Groups_1.Groups.getGroup(group).then(g => {
                 Files_1.Files.forStudentInGroup(req.user.id, group).then(user => Render_1.Render.withUser(req, res, "group/overview", { group: g, fullUser: user }), e => Render_1.Render.error(req, res, e.toString()));
             }, e => Render_1.Render.error(req, res, e.toString()));
+    }
+    function user(req, res) {
+        const group = req.url.split("/")[2];
+        const usr = req.url.split("/")[4];
+        if (!req.user)
+            res.redirect("/");
+        else
+            Groups_1.Groups.getGroup(group).flatMap(g => Files_1.Files.forStudentInGroup2(usr, group).map(f => [g, f])).then(data => Render_1.Render.withUser(req, res, "group/overviews/user", { files: data[1][0], group: data[0], student: data[1][1] }), err => Render_1.Render.error(req, res, err));
+    }
+    function assignment(req, res) {
+        const assignment = req.url.split("/")[4];
+        if (!req.user)
+            res.redirect("/");
+        else
+            Assignments_1.Assignments.instance.exec(Files_1.Files.forAssignment(assignment)).then(ass => Render_1.Render.withUser(req, res, "group/overviews/assignment", { assignment: ass }), err => Render_1.Render.error(req, res, err));
     }
     function file(req, res) {
         const file = req.url.split("/")[2];

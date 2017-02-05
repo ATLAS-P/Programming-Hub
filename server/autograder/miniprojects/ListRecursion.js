@@ -20,8 +20,7 @@ var ListRecursion;
             [2, 7, 2],
             [5, 8, 2],
             [2, 10, 1],
-            [2, 9, -10],
-            [4, 14, 1],
+            [2, 9, -10], +[4, 14, 1],
             [5, 9, -12],
         ]);
         const input = Projects_1.TestHelper.buildTest(data);

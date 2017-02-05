@@ -1,22 +1,38 @@
 ﻿extends ../structure/default.jade
 
 block append scripts
-    script(src="/scripts/cardicons.js")
-    script(src="/scripts/selectTrigger.js")
+    script(src="/scripts/includes/cardicons.js")
+    script(src="/scripts/includes/selectTrigger.js")
+    script(src="/scripts/handin.js")
 
 block append styles
     link(href="/styles/flip.css" rel="stylesheet")
 
+if file.assignment
+    block headerTitle
+        h1
+            if file.assignment && file.assignment.group
+                a(href="/group/" + file.assignment.group._id)= file.assignment.group.name
+            else
+                | Unknown Course
+        h2#subheader Hand-in
+
 block content
     .container
-        if file.assignment
-            h1= file.assignment.group.name
-            h2= file.assignment.name
-        else 
+        if !file.assignment                 
             .alert.alert-warning
                 p
                     b Alert! 
-                    span The associated assignment or course was removed!
+                    span The associated assignment was removed!
+        else
+            h2= file.assignment.name
+        h3= file.name
+        if file.assignment.typ != "open" && file.due > file.assignment.deadline
+            hr
+            .alert.alert-warning
+                p
+                    b Late Handin! 
+                    span Assignment was handed in on , but was due for
         hr
         .row
             .col-sm-6
@@ -44,7 +60,7 @@ block content
                                                         a(href="mailto:" + usr._id + "@student.utwente.nl" target="_blank" type="button" class="btn btn-card-table")
                                                             span.glyphicon.glyphicon-envelope(aria-hidden="true")
                                                         if user.admin
-                                                            button(type="button" class="btn btn-card-table")
+                                                            a(href="/group/" + file.assignment.group._id + "/user/" + usr._id type="button" class="btn btn-card-table")
                                                                 span.glyphicon.glyphicon-list-alt(aria-hidden="true")
             .col-sm-6
                 .card-table
@@ -69,27 +85,35 @@ block content
                 .alert.alert-info.mtop20
                     p
                         b Info! 
-                        span The file page will most likely give an error first, if so just reload the error page.
+                        span The file page might give an error first, if so just reload the error page.
         hr
         .row
             .col-sm-6
-                h3 Notes
+                .card-table
+                    .card-table-header
+                        .card-table-content
+                            .yAlign
+                                h3 Notes
                 if file.notes.length > 0
-                    p= file.notes
+                    p.whiteContainer!= file.notes.replace(new RegExp("\n", 'g'), "<br>").replace(new RegExp("  ", 'g'), " &nbsp")
                 else
-                    p The students did not provide any additional comments.
+                    p.whiteContainer The students did not provide any additional comments.
             .col-sm-6
-                h3 Feedback
+                .card-table
+                    .card-table-header
+                        .card-table-content
+                            .yAlign
+                                h3 Feedback
                 if file.feedback.length > 0
-                    p= file.feedback
+                    p.whiteContainer!= file.feedback.replace(new RegExp("\n", 'g'), "<br>").replace(new RegExp("  ", 'g'), " &nbsp")
                 else
-                    p No feedback was given yet.
+                    p.whiteContainer No feedback was given yet.
         .row
             if user.admin
                 hr
                 .col-lg-4.col-sm-6.card-holder
-                    .card.cardLink(type="button")
-                        h3.special Give Feedback
+                    .card.cardLink(type="button" data-toggle="modal" data-target="#feedbackModal")
+                        h3.special Update Feedback
                 if file.assignment
                     .col-lg-4.col-sm-6.card-holder
                         .card.cardLink(type="button")
@@ -100,17 +124,19 @@ block content
                 .col-lg-4.col-sm-6.card-holder
                     .card.cardLink(type="button")
                         h3.special Mail Students
-                .col-lg-4.col-sm-6.card-holder
-                    a(href="/group/" + file.assignment.group._id)
-                        .card.cardLink(type="button")
-                            h3.special Go to Course
-                .col-lg-4.col-sm-6.card-holder
-                    a
-                        .card.cardLink(type="button")
-                            h3.special Go to Assignment
+                if file.assignment
+                    if file.assignment.group
+                        .col-lg-4.col-sm-6.card-holder
+                            a(href="/group/" + file.assignment.group._id)
+                                .card.cardLink(type="button")
+                                    h3.special Go to Course
+                    .col-lg-4.col-sm-6.card-holder
+                        a(href=href="/group/" + file.assignment.group._id + "/assignment/" + file.assignment._id)
+                            .card.cardLink(type="button")
+                                h3.special Go to Assignment
             else if file.students.map(s => s._id.toString()).indexOf(user.id) >= 0
                 hr
-                if file.assignment
+                if file.assignment && file.assignment.group
                     .col-lg-4.col-sm-6.card-holder
                         a(href="/group/" + file.assignment.group._id)
                             .card.cardLink(type="button")
@@ -121,3 +147,24 @@ block content
                 .col-lg-4.col-sm-6.card-holder
                     .card.cardLink(type="button")
                         h3.special Download all Files
+
+    .modal.fade#feedbackModal(tabindex="-1" role="dialog" aria-labelledby="feedbackLabel")
+        .modal-dialog(role="document")
+            .modal-content
+                .modal-header
+                    button(type="button" class="close" data-dismiss="modal" aria-label="Close")
+                        span(aria-hidden="true") &times;
+                    h4.modal-title#feedbackLabel Feedback Hand-in
+                .modal-body
+                    #errorContainer.hidden
+                        .alert.alert-danger
+                            b Please review the following errors:
+                            ul#errors
+                        hr
+                    .form-group
+                        label.control-label(for="feedback") Feedback
+                        textarea.form-control#feedback(rows="5")= file.feedback
+
+                .modal-footer
+                    button(type="button" class="btn btn-default" data-dismiss="modal") Close
+                    button(type="button" class="btn btn-primary" onclick="javascript:handin('#{file._id}')") Update Feedback

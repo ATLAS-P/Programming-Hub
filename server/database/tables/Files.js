@@ -10,13 +10,21 @@ class File extends Table_1.Table {
         });
     }
     populateUsers(query) {
-        return query.populate("students");
+        return query.populate({
+            path: "students",
+            options: {
+                select: "name surename"
+            }
+        });
     }
     populateAssignment(query) {
         return query.populate({
             path: "assignment",
             options: {
-                populate: "group"
+                populate: "group",
+                options: {
+                    select: "name"
+                }
             }
         });
     }
@@ -44,6 +52,10 @@ var Files;
         return Users_1.Users.instance.exec(Users_1.Users.instance.getByID(student)).flatMap(s => Users_1.Users.instance.populateAllFiles(s));
     }
     Files.forStudent = forStudent;
+    function forStudentInGroup2(student, group) {
+        return Users_1.Users.instance.exec(Users_1.Users.instance.getByID(student)).flatMap(s => Users_1.Users.instance.populateGroupFiles2(s, group).map(f => [f, s]));
+    }
+    Files.forStudentInGroup2 = forStudentInGroup2;
     function forStudentInGroup(student, group) {
         return Users_1.Users.instance.exec(Users_1.Users.instance.getByID(student)).flatMap(s => Users_1.Users.instance.populateGroupFiles(s, group));
     }

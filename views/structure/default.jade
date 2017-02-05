@@ -4,8 +4,9 @@ block header
     .container
         .row
             .col-xs-10#title_header
-                h1
-                    a(href="/") Programming Hub
+                block headerTitle
+                    h1
+                        a(href="/") ATLAS Hub
             .col-xs-2
                 #profileImage
                     if user

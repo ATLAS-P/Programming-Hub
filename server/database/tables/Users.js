@@ -2,6 +2,7 @@
 const Table_1 = require('../Table');
 const MkTables_1 = require('../MkTables');
 const Groups_1 = require('./Groups');
+const Files_1 = require('./Files');
 const Future_1 = require('../../functional/Future');
 const List_1 = require('../../functional/List');
 class User extends Table_1.Table {
@@ -40,8 +41,11 @@ class User extends Table_1.Table {
     }
     populateAllFiles(user) {
         return Future_1.Future.lift(this.model.populate(user, {
-            path: "groups.files.file"
+            path: "groups.files.file groups.group"
         }));
+    }
+    populateGroupFiles2(user, group) {
+        return Files_1.Files.instance.exec(Files_1.Files.instance.populateAssignment(Files_1.Files.instance.getByIDs(user.groups.filter(g => g.group == group)[0].files.map(f => f.file))), false);
     }
     populateGroupFiles(user, group) {
         user.groups = user.groups.filter(g => g.group == group);

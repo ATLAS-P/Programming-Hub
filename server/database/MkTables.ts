@@ -41,7 +41,8 @@ export namespace MkTables {
         autograder: Object[],
         notes: string,
         feedback: string,
-        urls: string[]
+        urls: string[],
+        name: string
     }
 
     export function mkUser(id: string, name: string, surename: string): UserTemplate {
@@ -77,15 +78,16 @@ export namespace MkTables {
         }
     }
 
-    export function mkFile(assignment: string, timestamp: Date, students: string[], files: string[], notes: string, feedback: string = "", autograder: TestJSON<any>[] = []): FileTemplate {
+    export function mkFile(assignment: string, name:string, students: string[], files: string[], notes: string, feedback: string = "", autograder: TestJSON<any>[] = []): FileTemplate {
         return {
             students: students,
             assignment: assignment,
-            timestamp: timestamp,
+            timestamp: new Date(),
             autograder: autograder,
             notes: notes,
             feedback: feedback,
-            urls: files
+            urls: files,
+            name: name
         }
     }
 }

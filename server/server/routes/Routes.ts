@@ -8,6 +8,7 @@ import {Projects} from '../../autograder/Projects'
 import {Groups} from '../../database/tables/Groups'
 import {Users} from '../../database/tables/Users'
 import {Files} from '../../database/tables/Files'
+import {Assignments} from '../../database/tables/Assignments'
 import {Future} from '../../functional/Future'
 import {IOMap} from '../../functional/IOMap'
 import {List} from '../../functional/List'
@@ -34,6 +35,8 @@ export namespace Routes {
     const AUTH_CALLBACK = AUTH + "/callback"
     const GROUP = INDEX + "group"
     const GROUP_ANY = GROUP + "/*"
+    const GROUP_USER = GROUP_ANY + "/user/*"
+    const GROUP_ASSIGNMENT = GROUP_ANY + "/assignment/*"
     const FILE = INDEX + "file"
     const FILE_ANY = FILE + "/*"
     const FILE_UPLOAD = GROUP + "/file-upload"
@@ -55,6 +58,8 @@ export namespace Routes {
         //app.get(USERS, users)
         //app.get(USER, showResults("user", 5, 2))
         //app.get(OVERVIEW, showResults("overview", 3, 2))
+        app.get(GROUP_ASSIGNMENT, assignment)
+        app.get(GROUP_USER, user)
         app.get(GROUP_ANY, group)
         app.get(FILE_ANY, file)
         //app.get(FILE_OF, showResultOf)
@@ -100,6 +105,25 @@ export namespace Routes {
             Files.forStudentInGroup(req.user.id, group).then(user => Render.withUser(req, res, "group/overview", { group: g, fullUser: user }),
                 e => Render.error(req, res, e.toString()))
         }, e => Render.error(req, res, e.toString()))
+    }
+
+    function user(req: Req, res: Res) {
+        const group = req.url.split("/")[2]
+        const usr = req.url.split("/")[4]
+
+        if (!req.user) res.redirect("/")
+        else Groups.getGroup(group).flatMap(g => Files.forStudentInGroup2(usr, group).map(f => [g, f])).then(data =>
+            Render.withUser(req, res, "group/overviews/user", { files: data[1][0], group:data[0], student: data[1][1] }), err =>
+                Render.error(req, res, err))
+    }
+
+    function assignment(req: Req, res: Res) {
+        const assignment = req.url.split("/")[4]
+
+        if (!req.user) res.redirect("/")
+        else Assignments.instance.exec(Files.forAssignment(assignment)).then(ass =>
+            Render.withUser(req, res, "group/overviews/assignment", { assignment: ass }), err =>
+                Render.error(req, res, err))
     }
 
     function file(req: Req, res: Res) {

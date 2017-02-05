@@ -2,6 +2,7 @@
 import { Table, Tables } from '../Table'
 import { MkTables } from '../MkTables'
 import { Groups } from './Groups'
+import { Files } from './Files'
 import { Future } from '../../functional/Future'
 import { List } from '../../functional/List'
 
@@ -40,8 +41,12 @@ class User extends Table<Tables.User> {
 
     populateAllFiles<B>(user: Tables.User): Future<Tables.User> {
         return Future.lift(this.model.populate(user, {
-            path: "groups.files.file"
+            path: "groups.files.file groups.group"
         }))
+    }
+
+    populateGroupFiles2<B>(user: Tables.User, group: string): Future<Tables.File[]> {
+        return Files.instance.exec(Files.instance.populateAssignment(Files.instance.getByIDs(user.groups.filter(g => g.group == group)[0].files.map(f => f.file as string))), false)
     }
 
     populateGroupFiles<B>(user: Tables.User, group: string): Future<Tables.User> {

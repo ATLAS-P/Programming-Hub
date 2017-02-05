@@ -17,14 +17,22 @@ class File extends Table<Tables.File> {
     }
 
     populateUsers<B>(query: Files.QueryA<B>): Files.QueryA<B> {
-        return query.populate("students")
+        return query.populate({
+            path: "students",
+            options: {
+                select: "name surename"
+            }
+        })
     }
 
     populateAssignment<B>(query: Files.QueryA<B>): Files.QueryA<B> {
         return query.populate({
             path: "assignment",
             options: {
-                populate: "group"
+                populate: "group",
+                options: {
+                    select: "name"
+                }
             }
         })
     }
@@ -58,6 +66,10 @@ export namespace Files {
 
     export function forStudent(student: string): Future<Tables.User> {
         return Users.instance.exec(Users.instance.getByID(student)).flatMap(s => Users.instance.populateAllFiles(s))
+    }
+
+    export function forStudentInGroup2(student: string, group: string): Future<[Tables.File[], Tables.User]> {
+        return Users.instance.exec(Users.instance.getByID(student)).flatMap(s => Users.instance.populateGroupFiles2(s, group).map(f => [f, s]))
     }
 
     export function forStudentInGroup(student: string, group: string): Future<Tables.User> {

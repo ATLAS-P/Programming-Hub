@@ -64,6 +64,14 @@ body {
   font-size: 20px;
   text-align: left;
 }
+#subheadersmall {
+  margin-top: -12px;
+  margin-bottom: 20px;
+  font-family: Open Sans;
+  font-weight: 100;
+  font-size: 18px;
+  text-align: center;
+}
 h3.special {
   font-family: Open Sans;
   font-weight: 100;
@@ -347,6 +355,9 @@ h3 {
 .back-late {
   background-color: #f0ad4e;
 }
+.back-final {
+  background-color: #5bc0de;
+}
 .back-due {
   background-color: #d9534f;
 }
@@ -359,4 +370,10 @@ h a {
 a:hover,
 a:focus {
   text-decoration: none;
+}
+.whiteContainer {
+  background-color: #fff;
+  padding: 15px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+  -webkit-box-shadow: 0 5px 15px rgba(0,0,0,0.05);
 }

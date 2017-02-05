@@ -14,8 +14,12 @@ class Assignment extends Table<Tables.Assignment> {
         return query.populate({
             path: "files",
             populate: {
-                path: "students.name students.surename"
+                path: "students",
+                select: "name surename"
             }
+        }).populate({
+            path: "group",
+            select: "name"
         })
     }
 
