@@ -1,0 +1,70 @@
+﻿extends ../../structure/default.jade
+
+block append scripts
+    script(src="/scripts/includes/cardicons.js")
+    script(src="/scripts/includes/selectTrigger.js")
+    script(src="/scripts/includes/timeline.js")
+
+block append styles
+    link(href="/styles/flip.css" rel="stylesheet")
+
+block headerTitle
+    h1
+        a(href="/group/" + group._id )= group.name
+    h2#subheader Student
+
+block content
+    .container
+        if !user.admin
+            p You do not have sufficient rights to view this page!
+        else
+            h2 #{student.name} #{student.surename} (#{student._id})
+            
+        if group.assignments.length == 0
+            h2 Assignments
+            p The student did not hand in any assignments yet!
+        
+        else
+            h3 Assignments
+            .row
+                for file in files
+                    - var ass = file.assignment
+                    if ass
+                        - var open = ass.typ == "open"
+                        .col-lg-4.col-sm-6.card-holder
+                            .flip-container
+                                .flipper.group
+                                    .front.card
+                                        if open || ass.due > file.timestamp
+                                            .assignmentStateBulb.back-done
+                                        else
+                                            .assignmentStateBulb.back-late
+                                        if file.feedback.length == 0
+                                            .assignmentStateFeedback.back-normal
+                                        else 
+                                            .assignmentStateFeedback.back-done
+                                        .yAlign
+                                            h3.special= ass.name
+                                            h4#subheadersmall= file.name
+                                            .timeline-container
+                                                .progress.hidden
+                                                    .progress-bar.timeline(role="progressbar" min=group.start max=group.end now=file.timestamp)
+                                    .back.card
+                                        .yAlign
+                                            .card-icons
+                                                .bottom-icons
+                                                    a(href="/file/" + file._id type="button" class="btn btn-card" data="Feedback")
+                                                        span.glyphicon.glyphicon-pencil(aria-hidden="true")
+                                                    a(href="../assignment/" + ass._id  type="button" class="btn btn-card" data="View all Results")
+                                                        span.glyphicon.glyphicon-list-alt(aria-hidden="true")
+                                                    if ass.link.length > 0
+                                                        a(href="http://" + ass.link type="button" target='_blank' class="btn btn-card" data="Additional Info")
+                                                            span.glyphicon.glyphicon-info-sign(aria-hidden="true")
+                                        .icons-text
+                                            p
+        hr
+        .row
+            .col-lg-4.col-sm-6.card-holder
+                a(href="../../" + group.id)
+                    .card.cardLink(type="button")
+                        h3.special Back to Course

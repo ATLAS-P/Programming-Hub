@@ -1,0 +1,77 @@
+﻿mixin cardHolder()
+    .col-lg-4.col-sm-6.card-holder
+        block
+
+mixin flipper()
+    +cardHolder()
+        .flip-container
+            .flipper&attributes(attributes)
+                block
+
+mixin front-card()
+    .front.card
+        block
+
+mixin back-card()
+    .back.card
+        block
+
+mixin card-icons()
+    .yAlign
+        .card-icons
+            block
+    .icons-text
+        p
+
+mixin card-icon(name, icon)
+    button(type="button" class="btn btn-card" data=name)&attributes(attributes)
+        span(class="glyphicon glyphicon-" + icon aria-hidden="true")
+
+mixin card-icon-a(href, name, icon)
+    a(href=href type="button" class="btn btn-card" data=name)&attributes(attributes)
+        span(class="glyphicon glyphicon-" + icon aria-hidden="true")
+
+mixin cardLink(name)
+    +cardHolder()
+        .card.cardLink(type="button")&attributes(attributes)
+            h3.special= name
+
+mixin cardLink-a(href, name)
+    +cardHolder()
+        a(href=href)
+            .card.cardLink(type="button")
+                h3.special= name
+
+mixin timeline(min, max, now)
+    .timeline-container
+        .progress&attributes(attributes)
+            .progress-bar.timeline(role="progressbar" min=min max=max now=now)
+
+mixin cardTable(title)
+    .card-table
+        .card-table-header
+            .card-table-content
+                    .yAlign
+                        h3= title
+        .card-table-body
+            block
+
+mixin cardTableFlip(title)
+    .flip-container.card-table-container.vertical
+        .flipper.vertical
+            .front
+                .card-table-content
+                    .yAlign
+                        p= title
+            .back.vertical
+                .card-table-content
+                    .yAlign
+                        block
+
+mixin flip-table-icon(icon)
+    button(type="button" class="btn btn-card-table")&attributes(attributes)
+        span(class="glyphicon glyphicon-" + icon aria-hidden="true")
+
+mixin flip-table-a(href, icon)
+    a(href=href type="button" class="btn btn-card-table")&attributes(attributes)
+        span(class="glyphicon glyphicon-" + icon aria-hidden="true")
