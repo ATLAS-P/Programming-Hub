@@ -43,7 +43,7 @@ block content
                                         +card-icon("Remove Course", 'trash')(class="manipulate" data-toggle="modal" data-target="#removeCourse" target="#removeCourseName" text-data="#{group.name}" attr-data='{"course": "#{group._id}"}')
                                     .bottom-icons
                                         +card-icon("Mail all Users", 'envelope')
-                                        +card-icon("To-Feedback List", 'pencil')
+                                        +card-icon-a("/group/"+group._id + "/feedback", 'To-Feedback List', 'pencil')
                                         +card-icon("Results Overview", 'list-alt')
                                 else
                                     .bottom-icons
