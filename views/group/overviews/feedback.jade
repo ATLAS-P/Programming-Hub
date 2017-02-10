@@ -1,0 +1,65 @@
+﻿extends ../../structure/default.jade
+
+block append scripts
+    script(src="/scripts/includes/cardicons.js")
+    script(src="/scripts/includes/selectTrigger.js")
+    script(src="/scripts/includes/timeline.js")
+
+block append styles
+    link(href="/styles/flip.css" rel="stylesheet")
+
+block headerTitle
+    h1
+        a(href="/group/" + group._id)= group.name
+    h2#subheader Feedback List
+
+block content
+    .container
+        .alert.alert-info
+            p
+                b Note! 
+                | The handins are not sorted on hand in date yet, this will be the case in the future!
+        h1 Hand-ins
+        for assignment in group.assignments
+            - var files = assignment.files.filter(f => f.feedback.length == 0)
+            if files.length > 0
+                h2= assignment.name
+                .row
+                    for file in assignment.files
+                        .col-lg-4.col-sm-6.card-holder
+                            .flip-container
+                                .flipper.group
+                                    .front.card
+                                        if assignment.typ == "open" || assignment.due > file.timestamp
+                                            .assignmentStateBulb.back-done
+                                        else
+                                            .assignmentStateBulb.back-late
+                                        if file.feedback.length == 0
+                                            .assignmentStateFeedback.back-normal
+                                        else 
+                                            .assignmentStateFeedback.back-done
+                                        .yAlign
+                                            h3.special= file.name
+                                            h4#subheadersmall
+                                                span #{file.students[0].name} #{file.students[0].surename} 
+                                                - var done = file.students[0]._id
+                                                for student in file.students
+                                                    if student._id != done
+                                                        span / #{student.name} #{student.surename} 
+                                            .timeline-container
+                                                .progress.hidden
+                                                    .progress-bar.timeline(role="progressbar" min=assignment.group.start max=assignment.group.end now=file.timestamp)
+                                    .back.card
+                                        .yAlign
+                                            .card-icons
+                                                .bottom-icons
+                                                    a(href="/file/" + file._id type="button" class="btn btn-card" data="Feedback")
+                                                        span.glyphicon.glyphicon-pencil(aria-hidden="true")
+                                        .icons-text
+                                            p
+                hr
+        .row
+            .col-lg-4.col-sm-6.card-holder
+                a(href="../" + group.id)
+                    .card.cardLink(type="button")
+                        h3.special Back to Course
