@@ -76,19 +76,49 @@ class Field {
     }
 }
 
-type Validator = {
-    targets: string[],
-    f: (...Field: any[]) => string
+class Validator {
+    targets: string[]
+    f: (modal: ModalFormValidator, ...Field: any[]) => string[]
+    error:boolean = true
+
+    constructor(f: (modal: ModalFormValidator, ...Field: any[]) => string[], ...targets: string[]) {
+        this.targets = targets
+        this.f = f
+    }
+
+    disableErrors(): Validator {
+        this.error = false
+        return this
+    }
+
+    exec(modal: ModalFormValidator): string[] {
+        const targets = this.targets.map(t => modal.fields.get(t))
+        const error = this.f(modal, ...targets)
+
+        if (error.length > 0 && this.error) targets.forEach(t => t.jq.parent().addClass("has-error"))
+
+        return error
+    }
+
+    static validate(modal: ModalFormValidator, ...vals: Validator[]): string[] {
+        const errors = []
+        for (let val of vals) {
+            const error = val.exec(modal)
+            if (error.length > 0) errors.push(...error)
+        }
+        return errors
+    }
 }
 
 class ModalFormValidator {
     private sendId: string
 
     private validators: Validator[] = []
-    private fields: Dict<Field> = new Dict<Field>()
+    private values: any[] = []
+    fields: Dict<Field> = new Dict<Field>()
     private openListners: ((m: ModalFormValidator) => void)[] = []
 
-    private modal: any
+    modal: any
     private errorMessage: any
     private errorContainer: any
 
@@ -118,6 +148,10 @@ class ModalFormValidator {
         if (multiUse) {
             this.clearError()
             this.hideError()
+
+            loop(this.fields.objs, (key, value: Field) => {
+                value.jq.parent().removeClass("has-error")
+            })
         }
 
         const instance = this
@@ -128,27 +162,26 @@ class ModalFormValidator {
         this.openListners.push(f)
     }
 
-    copyFrom(other: ModalFormValidator, id: string) {
+    copyFrom(other: ModalFormValidator, id: string, validators:boolean = true) {
         loop(other.fields.objs, (key, value: Field) => {
             this.registerField(key, value.name, "#" + id + value.id.substr(1), value.value_raw)
         })
 
-        for (let val of other.validators) {
-            this.addValidation(val.f, ...val.targets)
-        }
+        this.addValues(...other.values)
+
+        if (validators) for (let val of other.validators) this.addValidation(val)
     }
 
     run() {
         const errors = []
 
         loop(this.fields.objs, (key, value: Field) => {
-            console.log(key, value)
             value.jq.parent().removeClass("has-error")
         })
 
         for (let val of this.validators) {
-            const error = this.validate(val)
-            if (error.length > 0) errors.push(error)
+            const error = val.exec(this)
+            if (error.length > 0) errors.push(...error)
         }
 
         if (errors.length > 0) {
@@ -158,7 +191,7 @@ class ModalFormValidator {
             errors.forEach((e) => this.addError(e))
         } else {
             this.hideError()
-            socket.emit(this.sendId, ...this.fields.values().map(f => f.value()))
+            socket.emit(this.sendId, ...this.values, ...this.fields.values().map(f => f.value()))
         }
     }
 
@@ -207,20 +240,17 @@ class ModalFormValidator {
         else ""
     }
 
-    private validate(val: Validator): string {
-        const targets = val.targets.map(t => this.fields.get(t))
-        const error = val.f(...targets)
-
-        if (error.length > 0) targets.forEach(t => t.jq.parent().addClass("has-error"))
-        return error
+    registerField(shortHand: string, name: string, id: string, value: (jq) => any, insideModal: boolean = true) {
+        const jq = insideModal ? this.modal.find(id) : $(id)
+        this.fields.put(shortHand, new Field(id, name, jq, value))
     }
 
-    registerField(shortHand:string, name: string, id: string, value: (jq) => any) {
-        this.fields.put(shortHand, new Field(id, name, this.modal.find(id), value))
+    addValues(...values: any[]) {
+        this.values.push(...values)
     }
 
-    addValidation(f: (...fields: Field[]) => string, ...ids: string[]) {
-        this.validators.push({ targets: ids, f: f})
+    addValidation(valid: Validator) {
+        this.validators.push(valid)
     }
 }
 
@@ -239,32 +269,132 @@ namespace ModalValues {
 }
 
 namespace ModalValidators {
-    export function atLeast(length: number): (...field: Field[]) => string {
-        return field => {
+    export function atLeast(length: number): (modal: ModalFormValidator, ...field: Field[]) => string[] {
+        return (modal, field) => {
             const value = field.value()
 
-            if (value.length >= length) return ""
-            else return "The " + field.name + " must be at least " + length.toString() + " characters long!"
+            if (value.length >= length) return []
+            else return ["The " + field.name + " must be at least " + length.toString() + " characters long!"]
         }
     }
 
-    export function exists(): (...field: Field[]) => string {
-        return field => {
-            if (!field.value()) return "The " + field.name + " format is incorrect!"
-            else return ""
+    export function minSize(length: number): (modal: ModalFormValidator, ...field: Field[]) => string[] {
+        return (modal, field) => {
+            const value = field.value()
+
+            console.log(value)
+            if (value.length >= length) return []
+            else return ["At least " + length + " should be selected from " + field.name + "!"]
         }
     }
 
-    export function dateOrder(): (...field: Field[]) => string {
-        return (start, end) => {
+    export function equals(...list: string[]): (modal: ModalFormValidator, ...field: Field[]) => string[] {
+        return (modal, field) => {
+            const value = field.value()
+
+            for (let val of list) {
+                if(value == val) return []
+            }
+
+            return ["Field " + field.name + " has an invalid value!"]
+        }
+    }
+
+    export function or(pred: (any) => boolean, error: string): (modal: ModalFormValidator, ...field: Field[]) => string[] {
+        return (modal, ...fields) => {
+            for (let field of fields) {
+                if (pred(field.value())) return []
+            }
+            return [error]
+        }
+    }
+
+    export function exists(): (modal: ModalFormValidator, ...field: Field[]) => string[] {
+        return (modal, field) => {
+            if (!field.value()) return ["The " + field.name + " format is incorrect!"]
+            else return []
+        }
+    }
+
+    export function not(data: string, error: string): (modal: ModalFormValidator, ...field: Field[]) => string[] {
+        return (modal, field) => {
+            if (field.value() == data) return [error]
+            else return []
+        }
+    }
+
+    export function ifthen(pred: (string: string) => boolean, ...then: Validator[]): (modal: ModalFormValidator, ...field: Field[]) => string[] {
+        return (modal, field) => {
+            if (pred(field.value())) return Validator.validate(modal, ...then)
+            else return []
+        }
+    }
+
+    export function ifValid(pred: Validator, ...then: Validator[]): (modal: ModalFormValidator, ...field: Field[]) => string[] {
+        return (modal, field) => {
+            const error = pred.exec(modal)
+
+            if (error.length == 0) return Validator.validate(modal, ...then)
+            else return error
+        }
+    }
+
+    export function dateOrder(): (modal: ModalFormValidator, ...field: Field[]) => string[] {
+        return (modal, start, end) => {
             const startDate = start.value()
             const endDate = end.value()
 
             if (!!startDate && !!endDate && startDate >= endDate)
-                return "The " + start.name + " has to be before the " + end.name + "!"
-            else return ""
+                return ["The " + start.name + " has to be before the " + end.name + "!"]
+            else return []
         }
     }
+
+    export function inbetweenDates(start:Date, end:Date): (modal: ModalFormValidator, ...field: Field[]) => string[] {
+        return (modal, date) => {
+            const dateDate = date.value() as Date
+            if (dateDiff(start, dateDate) < 0) return ["The " + date.name + " has to be after " + dateString(start, start.getFullYear() != dateDate.getFullYear()) + "!"]
+            else if (dateDiff(dateDate, end) < 0) return ["The " + date.name + " has to be before " + dateString(end, end.getFullYear() != dateDate.getFullYear()) + "!"]
+            else return []
+        }
+    }
+
+    export function validURL(): (modal: ModalFormValidator, ...field: Field[]) => string[] {
+        return (modal, field) => {
+            if (!URLValid(field.value())) return ["The url of " + field.name + " is not valid!"]
+            else return []
+        }
+    }
+
+    export function idNotExists(id:string, error:string): (modal: ModalFormValidator, ...field: Field[]) => string[] {
+        return (field) => {
+            if ($("#" + id).size() > 0) return [error]
+            else return []
+        }
+    }
+
+    function dateDiff(begin: Date, end: Date): number {
+        const diff = end.getTime() - begin.getTime()
+        return Math.floor(diff / (1000 * 3600 * 24))
+    }
+
+    function dateString(date: Date, year: boolean): string {
+        const str = (date.getDate()) + " " + months[date.getMonth()]
+
+        if (year) return str + " " + date.getFullYear().toString().substr(2, 2)
+        else return str
+    }
+}
+
+function URLValid(str: string) {
+    var pattern = new RegExp('^(https?:\\/\\/)?' +
+        '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|' +
+        '((\\d{1,3}\\.){3}\\d{1,3}))' +
+        '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' +
+        '(\\?[;&a-z\\d%_.~+=-]*)?' +
+        '(\\#[-a-z\\d_]*)?$', 'i')
+    if (!pattern.test(str)) return false
+    else return true
 }
 
 $(".date").datepicker().on('show.bs.modal', (event) => event.stopPropagation())

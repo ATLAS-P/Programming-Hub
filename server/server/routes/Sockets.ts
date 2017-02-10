@@ -19,13 +19,14 @@ export namespace Sockets {
     type Handler = (socket: SocketIO.Socket) => void
     type SimpleCall = () => void
     type StringCall = (data: string) => void
-    type AddUsersCall = (users: string[], group: string, role: string) => void
+    type AddUsersCall = (group: string, users: string[], role: string) => void
     type UploadCall = (assignment:string, handInName: string, comments:string, partners: string[], files: string[]) => void
     type StringArrCall = (data: string[]) => void
     type GroupCall = (group: string) => void
     type CreateCourse = (name: string, start: Date, end: Date) => void
     type UpdateCourse = (course:string, name: string, start: Date, end: Date) => void
-    type CreateAssignment = (group:string, name: string, type: string, due: Date, link:string) => void
+    type CreateAssignment = (group: string, name: string, type: string, due: Date, link: string) => void
+    type UpdateAssignment = (assignment: string, group: string, name: string, type: string, due: Date, link: string) => void
     type FeedbackCall = (file:string, feedback: string) => void
     type FinalCall = (accept: boolean, group:string, file:string) => void
 
@@ -33,6 +34,7 @@ export namespace Sockets {
     const ON_CREATE_COURSE = "createCourse"
     const ON_REMOVE_COURSE = "removeCourse"
     const ON_CREATE_ASSIGNMENT = "createAssignment"
+    const ON_UPDATE_ASSIGNMENT = "updateAssignment"
     const ON_REMOVE_ASSIGNMENT = "removeAssignment"
     const ON_GET_USERS = "getUsers"
     const ON_ADD_USERS = "addUsers"
@@ -45,6 +47,7 @@ export namespace Sockets {
     const RESULT_CREATE_ASSIGNMENT = "assignmentCreated"
     const RESULT_REMOVE_COURSE = "courseRemoved"
     const RESULT_REMOVE_ASSIGNMENT = "assignmentRemoved"
+    const RESULT_UPDATE_ASSIGNMENT = "assignmentUpdated"
     const RESULT_GET_USERS = "usersGot"
     const RESULT_ADD_USERS = "usersAdded"
     const RESULT_UPLOAD_FILES = "fileUplaoded"
@@ -63,6 +66,7 @@ export namespace Sockets {
             socket.on(ON_UPDATE_COURSE, updateCourse(app, socket))
             socket.on(ON_CREATE_ASSIGNMENT, createAssignment(app, socket))
             socket.on(ON_REMOVE_ASSIGNMENT, removeAssignment(app, socket))
+            socket.on(ON_UPDATE_ASSIGNMENT, updateAssignment(app, socket))
             socket.on(ON_GET_USERS, getUsers(app, socket))
             socket.on(ON_ADD_USERS, addUsers(app, socket))
             socket.on(ON_UPLOAD_FILES, uploadFile(app, socket, storage))
@@ -97,6 +101,33 @@ export namespace Sockets {
                         g.start = start
                         g.end = end
                     }).then(g => emitResult(true), e => emitResult(false, e))
+                } else emitResult(false, "You have insufficent rights to perform this action.")
+            } else emitResult(false, "The session was lost, please login again.")
+        }
+    }
+
+    export function updateAssignment(app: express.Express, socket: SocketIO.Socket): UpdateAssignment {
+        const emitResult = (success: boolean, error?: string) => socket.emit(RESULT_UPDATE_ASSIGNMENT, success, error && (error as any).message ? (error as any).message : error)
+
+        return (group, ass, name, type, due, link) => {
+            console.log(group, ass, name, type, due, link)
+            if (socket.request.session.passport) {
+                const user = socket.request.session.passport.user
+                if (user.admin) {
+                    Groups.instance.isAdmin(group, user.id).flatMap(isAdmin => {
+                        if (isAdmin) {
+                            return Assignments.instance.updateOne(ass, a => {
+                                if (type == a.typ) {
+                                    a.name = name
+                                    a.due = due
+                                    a.link = link
+                                }
+                            }).flatMap(a => {
+                                if (a.typ == type) return Future.unit(a)
+                                else return Future.reject("You cannot change the type of an assignment!")
+                            })
+                        } else return Future.reject("You have insufficent rights to perform this action.")
+                    }).then(a => emitResult(true), e => emitResult(false, e))
                 } else emitResult(false, "You have insufficent rights to perform this action.")
             } else emitResult(false, "The session was lost, please login again.")
         }
@@ -181,7 +212,9 @@ export namespace Sockets {
     export function addUsers(app: express.Express, socket: SocketIO.Socket): AddUsersCall {
         const emitResult = (success: boolean, error?: string) => socket.emit(RESULT_ADD_USERS, success, error)
 
-        return (users: string[], group: string, role: string) => {
+        return (group: string, users: string[], role: string) => {
+            console.log(group, users, role)
+
             if (socket.request.session.passport) {
                 const user = socket.request.session.passport.user
                 if (user.admin) {
@@ -192,9 +225,10 @@ export namespace Sockets {
     }
 
     export function manageFinal(app: express.Express, socket: SocketIO.Socket): FinalCall {
-        const emitResult = () => socket.emit(RESULT_FINAL)
+        const emitResult = (success: boolean, error?:string) => socket.emit(RESULT_FINAL, success, error)
 
         return (accept: boolean, group: string, file: string) => {
+            console.log(accept, group, file)
             if (socket.request.session.passport) {
                 const user = socket.request.session.passport.user
                 Users.instance.updateOne(user.id, u => {
@@ -204,14 +238,14 @@ export namespace Sockets {
                     if (accept) fileInst.final = true
                     else files.splice(files.indexOf(fileInst), 1)
                 }).then(u => {
-                    if (accept) emitResult()
+                    if (accept) emitResult(true)
                     else Files.instance.updateOne(file, f => {
                         const students = f.students as string[]
                         const userIndex = students.indexOf(u._id)
                         students.splice(userIndex, 1)
-                    }).then(f => emitResult(), e => emitResult())
-                }, e => emitResult())
-            } else emitResult()
+                    }).then(f => emitResult(true), e => emitResult(false, e))
+                }, e => emitResult(false, e))
+            } else emitResult(false, "The session was lost, please login again.")
         }
     }
 
@@ -220,6 +254,7 @@ export namespace Sockets {
         const emitResult = (success: boolean, error?: string) => socket.emit(RESULT_UPLOAD_FILES, success, error)
 
         return (assignment: string, handInName:string, comments: string, students: string[], files: string[]) => {
+            console.log(assignment, handInName, comments, students, files)
             if (socket.request.session.passport) {
                 let groupId = ""
                 const user = socket.request.session.passport.user

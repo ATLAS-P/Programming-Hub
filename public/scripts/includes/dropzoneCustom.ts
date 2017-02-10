@@ -16,18 +16,24 @@ function dropzoneInit() {
 }
 
 function sending(file, xhr, formData) {
-    const ass = $("#assignmentUploadId")
+    const ass = $("#uploadAssignment_title")
     formData.append("assignment", ass.attr("assignment"))
 }
 
 declare function initListGroupItem(li)
 
+interface Response {
+    success: boolean
+    err?: string
+    html: string
+}
+
 function fileUploaded(file, response: Response) {
     zone.removeFile(file)
     if (!response.success) showError(response.err)
     else {
-        $("#errorContainerUpload").addClass("hidden")
-        $("#errorsUpload").html("")
+        $("#uploadAssignment .errorContainer").addClass("hidden")
+        $("#uploadAssignment .errors").html("")
         const files = $("#uploadedFilesList")
         const li = document.createElement("li")
         li.innerText = file.name
@@ -45,8 +51,8 @@ function fileError(file, error) {
 }
 
 function showError(error) {
-    $("#errorContainerUpload").removeClass("hidden")
+    $("#uploadAssignment .errorContainer").removeClass("hidden")
     const li = document.createElement("li")
     li.innerText = error
-    $("#errorsUpload").append(li)
+    $("#uploadAssignment .errors").append(li)
 }

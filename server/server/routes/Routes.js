@@ -16,6 +16,7 @@ var Routes;
     const GROUP = INDEX + "group";
     const GROUP_ANY = GROUP + "/*";
     const GROUP_USER = GROUP_ANY + "/user/*";
+    const FEEDBACK_LIST = GROUP_ANY + "/feedback";
     const GROUP_ASSIGNMENT = GROUP_ANY + "/assignment/*";
     const FILE = INDEX + "file";
     const FILE_ANY = FILE + "/*";
@@ -27,6 +28,7 @@ var Routes;
         app.get(PRIVACY, showPrivacy);
         app.get(GROUP_ASSIGNMENT, assignment);
         app.get(GROUP_USER, user);
+        app.get(FEEDBACK_LIST, feedbackList);
         app.get(GROUP_ANY, group);
         app.get(FILE_ANY, file);
         app.post(FILE_UPLOAD, fileUpload(app, root));
@@ -80,6 +82,13 @@ var Routes;
             res.redirect("/");
         else
             Assignments_1.Assignments.instance.exec(Files_1.Files.forAssignment(assignment)).then(ass => Render_1.Render.withUser(req, res, "group/overviews/assignment", { assignment: ass }), err => Render_1.Render.error(req, res, err));
+    }
+    function feedbackList(req, res) {
+        const group = req.url.split("/")[2];
+        if (!req.user)
+            res.redirect("/");
+        else
+            Groups_1.Groups.instance.exec(Files_1.Files.forGroup(group)).then(group => Render_1.Render.withUser(req, res, "group/overviews/feedback", { group: group }), err => Render_1.Render.error(req, res, err));
     }
     function file(req, res) {
         const file = req.url.split("/")[2];

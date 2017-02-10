@@ -15,6 +15,7 @@ var Sockets;
     const ON_CREATE_COURSE = "createCourse";
     const ON_REMOVE_COURSE = "removeCourse";
     const ON_CREATE_ASSIGNMENT = "createAssignment";
+    const ON_UPDATE_ASSIGNMENT = "updateAssignment";
     const ON_REMOVE_ASSIGNMENT = "removeAssignment";
     const ON_GET_USERS = "getUsers";
     const ON_ADD_USERS = "addUsers";
@@ -26,6 +27,7 @@ var Sockets;
     const RESULT_CREATE_ASSIGNMENT = "assignmentCreated";
     const RESULT_REMOVE_COURSE = "courseRemoved";
     const RESULT_REMOVE_ASSIGNMENT = "assignmentRemoved";
+    const RESULT_UPDATE_ASSIGNMENT = "assignmentUpdated";
     const RESULT_GET_USERS = "usersGot";
     const RESULT_ADD_USERS = "usersAdded";
     const RESULT_UPLOAD_FILES = "fileUplaoded";
@@ -43,6 +45,7 @@ var Sockets;
             socket.on(ON_UPDATE_COURSE, updateCourse(app, socket));
             socket.on(ON_CREATE_ASSIGNMENT, createAssignment(app, socket));
             socket.on(ON_REMOVE_ASSIGNMENT, removeAssignment(app, socket));
+            socket.on(ON_UPDATE_ASSIGNMENT, updateAssignment(app, socket));
             socket.on(ON_GET_USERS, getUsers(app, socket));
             socket.on(ON_ADD_USERS, addUsers(app, socket));
             socket.on(ON_UPLOAD_FILES, uploadFile(app, socket, storage));
@@ -87,6 +90,40 @@ var Sockets;
         };
     }
     Sockets.updateCourse = updateCourse;
+    function updateAssignment(app, socket) {
+        const emitResult = (success, error) => socket.emit(RESULT_UPDATE_ASSIGNMENT, success, error && error.message ? error.message : error);
+        return (group, ass, name, type, due, link) => {
+            console.log(group, ass, name, type, due, link);
+            if (socket.request.session.passport) {
+                const user = socket.request.session.passport.user;
+                if (user.admin) {
+                    Groups_1.Groups.instance.isAdmin(group, user.id).flatMap(isAdmin => {
+                        if (isAdmin) {
+                            return Assignments_1.Assignments.instance.updateOne(ass, a => {
+                                if (type == a.typ) {
+                                    a.name = name;
+                                    a.due = due;
+                                    a.link = link;
+                                }
+                            }).flatMap(a => {
+                                if (a.typ == type)
+                                    return Future_1.Future.unit(a);
+                                else
+                                    return Future_1.Future.reject("You cannot change the type of an assignment!");
+                            });
+                        }
+                        else
+                            return Future_1.Future.reject("You have insufficent rights to perform this action.");
+                    }).then(a => emitResult(true), e => emitResult(false, e));
+                }
+                else
+                    emitResult(false, "You have insufficent rights to perform this action.");
+            }
+            else
+                emitResult(false, "The session was lost, please login again.");
+        };
+    }
+    Sockets.updateAssignment = updateAssignment;
     function createAssignment(app, socket) {
         const emitResult = (success, error) => socket.emit(RESULT_CREATE_ASSIGNMENT, success, error && error.message ? error.message : error);
         return (group, name, type, due, link) => {
@@ -177,7 +214,8 @@ var Sockets;
     Sockets.updateFeedback = updateFeedback;
     function addUsers(app, socket) {
         const emitResult = (success, error) => socket.emit(RESULT_ADD_USERS, success, error);
-        return (users, group, role) => {
+        return (group, users, role) => {
+            console.log(group, users, role);
             if (socket.request.session.passport) {
                 const user = socket.request.session.passport.user;
                 if (user.admin) {
@@ -192,8 +230,9 @@ var Sockets;
     }
     Sockets.addUsers = addUsers;
     function manageFinal(app, socket) {
-        const emitResult = () => socket.emit(RESULT_FINAL);
+        const emitResult = (success, error) => socket.emit(RESULT_FINAL, success, error);
         return (accept, group, file) => {
+            console.log(accept, group, file);
             if (socket.request.session.passport) {
                 const user = socket.request.session.passport.user;
                 Users_1.Users.instance.updateOne(user.id, u => {
@@ -205,23 +244,24 @@ var Sockets;
                         files.splice(files.indexOf(fileInst), 1);
                 }).then(u => {
                     if (accept)
-                        emitResult();
+                        emitResult(true);
                     else
                         Files_1.Files.instance.updateOne(file, f => {
                             const students = f.students;
                             const userIndex = students.indexOf(u._id);
                             students.splice(userIndex, 1);
-                        }).then(f => emitResult(), e => emitResult());
-                }, e => emitResult());
+                        }).then(f => emitResult(true), e => emitResult(false, e));
+                }, e => emitResult(false, e));
             }
             else
-                emitResult();
+                emitResult(false, "The session was lost, please login again.");
         };
     }
     Sockets.manageFinal = manageFinal;
     function uploadFile(app, socket, storage) {
         const emitResult = (success, error) => socket.emit(RESULT_UPLOAD_FILES, success, error);
         return (assignment, handInName, comments, students, files) => {
+            console.log(assignment, handInName, comments, students, files);
             if (socket.request.session.passport) {
                 let groupId = "";
                 const user = socket.request.session.passport.user;

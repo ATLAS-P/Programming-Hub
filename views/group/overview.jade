@@ -4,6 +4,7 @@ include ../includes/modalHelper.jade
 include ../includes/basic.jade
 
 block append scripts
+    script(src="/scripts/includes/modalHelper.js")
     script
         |$('.datepicker').datepicker();
     script(src="/scripts/includes/timeline.js")
@@ -34,7 +35,7 @@ block content
                     br
                     |You can recognize these handins by the light blue dot.
             hr
-        h1= group.name
+        h1#group_data(start=group.start end=group.end group=group._id)= group.name
         
         if group.assignments.length > 0 && group.assignments[0].typ == "open" && !user.admin
             h2 Open Assignment
@@ -50,7 +51,7 @@ block content
                     +back-card()
                         +card-icons()
                             .bottom-icons
-                                +card-icon("Upload", 'upload')(data-toggle="modal" data-target="#uploadAssignment" onclick="javascript:preUploadAssignment('#{ass._id}', '#{ass.name}')")
+                                +card-icon("Upload", 'upload')(class="manipulate" data-toggle="modal" data-target="#uploadAssignment" target="#uploadAssignment_title" text-data="#{ass.name}" attr-data='{"assignment": "#{ass._id}"}')
                 for handin in handins
                     +flipper()(class="group")
                         +front-card() 
@@ -70,8 +71,8 @@ block content
                                 .bottom-icons
                                     +card-icon-a("/file/" + handin.file._id, 'View Hand-in Page', 'list-alt')
                                     if !handin.final
-                                        +card-icon("Accept Hand-in", 'ok')(data-toggle="modal" data-target="#acceptAssignment" onclick="javascript:preAccept('#{handin.file._id}', '#{handin.file.name}')")
-                                        +card-icon("Decline Hand-in", 'remove')(data-toggle="modal" data-target="#declineAssignment" onclick="javascript:preDecline('#{handin.file._id}', '#{handin.file.name}')")
+                                        +card-icon("Accept Hand-in", 'ok')(class="manipulate" data-toggle="modal" data-target="#acceptAssignment" target="#acceptAssignment_title" text-data="#{handin.file.name}" attr-data='{"file": "#{handin.file._id}"}')
+                                        +card-icon("Decline Hand-in", 'remove')(class="manipulate" data-toggle="modal" data-target="#declineAssignment" target="#declineAssignment_title" text-data="#{handin.file.name}" attr-data='{"file": "#{handin.file._id}"}')
             hr
 
         if group.assignments.length > 0 && (user.admin || group.assignments.length > 1 || group.assignments[0].typ != "open")
@@ -116,28 +117,28 @@ block content
                                     if user.admin
                                         if ass.link.length > 0
                                             .top-icons
-                                                +card-icon-a("/file/" + file[0].file._id, 'Results', 'list-alt')
-                                                +card-icon('Edit Assignment', 'cog')
+                                                +card-icon-a(group._id + "/assignment/" + ass._id, 'Results', 'list-alt')
+                                                +card-icon('Edit Assignment', 'cog')(class="manipulate" data-toggle="modal" data-target="#editAssignment" target="#editAssignment" attr-data='{"assignment": "#{ass._id}", "name": "#{ass.name}", "link": "#{ass.link}", "type": "#{ass.typ}", "due": "#{ass.due}"}')
                                             .bottom-icons
-                                                +card-icon('Remove Assignment', 'trash')(data-toggle="modal" data-target="#removeAssignment" onclick="javascript:preRemoveAssignment('#{ass._id}', '#{ass.name}')")
+                                                +card-icon('Remove Assignment', 'trash')(class="manipulate" data-toggle="modal" data-target="#removeAssignment" target="#removeAssignmentName" text-data="#{ass.name}" attr-data='{"assignment": "#{ass._id}"}')
                                                 +card-icon-a("http://" + ass.link, 'Additional Info', 'info-sign')(target='_blank')
                                         else
                                             .bottom-icons
                                                 +card-icon-a(group._id + "/assignment/" + ass._id, 'Results', 'list-alt')
-                                                +card-icon('Edit Assignment', 'cog')
-                                                +card-icon('Remove Assignment', 'trash')(data-toggle="modal" data-target="#removeAssignment" onclick="javascript:preRemoveAssignment('#{ass._id}', '#{ass.name}')")
+                                                +card-icon('Edit Assignment', 'cog')(class="manipulate" data-toggle="modal" data-target="#editAssignment" target="#editAssignment" attr-data='{"assignment": "#{ass._id}", "name": "#{ass.name}", "link": "#{ass.link}", "type": "#{ass.typ}", "due": "#{ass.due}"}')
+                                                +card-icon('Remove Assignment', 'trash')(class="manipulate" data-toggle="modal" data-target="#removeAssignment" target="#removeAssignmentName" text-data="#{ass.name}" attr-data='{"assignment": "#{ass._id}"}')
                                     else
                                         if !done
                                             .bottom-icons
-                                                +card-icon("Upload", 'upload')(data-toggle="modal" data-target="#uploadAssignment" onclick="javascript:preUploadAssignment('#{ass._id}', '#{ass.name}')")
+                                                +card-icon("Upload", 'upload')(class="manipulate" data-toggle="modal" data-target="#uploadAssignment" target="#uploadAssignment_title" text-data="#{ass.name}" attr-data='{"assignment": "#{ass._id}"}')
                                                 if ass.link.length > 0
                                                     +card-icon-a("http://" + ass.link, 'Additional Info', 'info-sign')(target='_blank')
                                         else
                                             .bottom-icons
                                                 +card-icon-a("/file/" + file[0].file._id, 'View Hand-in Page', 'list-alt')
                                                 if !file[0].final
-                                                    +card-icon("Accept Hand-in", 'ok')(data-toggle="modal" data-target="#acceptAssignment" onclick="javascript:preAccept('#{file[0].file._id}', '#{file[0].file.name}')")
-                                                    +card-icon("Decline Hand-in", 'remove')(data-toggle="modal" data-target="#declineAssignment" onclick="javascript:preDecline('#{file[0].file._id}', '#{file[0].file.name}')")
+                                                    +card-icon("Accept Hand-in", 'ok')(class="manipulate" data-toggle="modal" data-target="#acceptAssignment" target="#acceptAssignment_title" text-data="#{file[0].file.name}" attr-data='{"file": "#{file[0].file._id}"}')
+                                                    +card-icon("Decline Hand-in", 'remove')(class="manipulate" data-toggle="modal" data-target="#declineAssignment" target="#declineAssignment_title" text-data="#{file[0].file.name}" attr-data='{"file": "#{file[0].file._id}"}')
                                                 if ass.link.length > 0
                                                     +card-icon-a("http://" + ass.link, 'Additional Info', 'info-sign')(target='_blank')
         else
@@ -187,187 +188,93 @@ block content
                     +cardLink("Mail Users")
 
     if user.admin
-        .modal.fade#addAssignment(tabindex="-1" role="dialog" aria-labelledby="assignmentLabel")
-            .modal-dialog(role="document")
-                .modal-content
-                    .modal-header
-                        button(type="button" class="close" data-dismiss="modal" aria-label="Close")
-                            span(aria-hidden="true") &times;
-                        h4.modal-title#assignmentLabel Create a New Assignment
-                    .modal-body
-                        #errorContainer.hidden
-                            .alert.alert-danger
-                                b Please review the following errors:
-                                ul#errors
-                            hr
-                        .row
-                            .col-xs-8
-                                .input-group
-                                    span.input-group-addon#addonName Name
-                                    input.form-control#assignmentName(type="text" aria-describedby="addonName")
-                            .col-xs-4
-                                .input-group
-                                    span.input-group-addon#addonType Type
-                                    select.form-control.selectTrigger#assignmentType(name="assignmentType" container="#assignment-data" aria-describedby="addonType")
-                                        option(value="defined") Defined
-                                        option(value="open") Open
-                                        option(value="autograder") Autograder
-                        #assignment-data
-                            .selectActor(data="defined")
-                                .row.mtop10
-                                    .col-xs-8
-                                        .input-group.date(data-provide="datepicker")
-                                            span.input-group-addon#addonDue Due Date
-                                            input.form-control#dueDate(type="text" aria-describedby="addonDue")
-                                            .input-group-addon
-                                                span.glyphicon.glyphicon-calendar
-                                hr
-                                label(for="infoLink") Additional Information Link (optional)
-                                .input-group
-                                    span.input-group-addon#addonLink http://
-                                    input.form-control#infoLink(type="text" aria-describedby="addonName")
-                            .selectActor.hidden(data="autograder")
-                                hr
-                                .alert.alert-warning
-                                    p Sorry, the autograder option is disabled in this version!
-
-                    .modal-footer
-                        button(type="button" class="btn btn-default" data-dismiss="modal") Close
-                        button(type="button" class="btn btn-primary" onclick="javascript:createAssignment('#{group._id}', '#{group.start}', '#{group.end}')") Create Assignment
-
-        .modal.fade#removeAssignment(tabindex="-1" role="dialog" aria-labelledby="assignmentDeleteLabel")
-            .modal-dialog(role="document")
-                .modal-content
-                    .modal-header
-                        button(type="button" class="close" data-dismiss="modal" aria-label="Close")
-                            span(aria-hidden="true") &times;
-                        h4.modal-title#assignmentDeleteLabel Are you sure?
-                    .modal-body
-                        #assignmentRemoveContainer.hidden
-                            .alert.alert-danger
-                                b Please review the following errors:
-                                ul#assignmentRemove
-                            hr
-                        .alert.alert-warning
-                            p
-                                b Warning! 
-                                | Your are about to delete the assignment: '
-                                span#removeAssignmentName
-                                |'!
-                            p This assignment will dissappear for all users. This is 
-                                b unrecoverable
-                                |!
-                        .alert.alert-info 
-                            p 
-                                b Note 
-                                | Hand-in data (files, feedback and reflections) will be kept but can only be accessed through direct links.
-                    .modal-footer
-                        button(type="button" class="btn btn-default" data-dismiss="modal") Close
-                        button#removeAssignment(type="button" class="btn btn-danger" onclick="javascript:removeAssignment()" assignment="") Delete Assignment
-
-        .modal.fade#addUsers(tabindex="-1" role="dialog" aria-labelledby="usersLabel")
-            .modal-dialog(role="document")
-                .modal-content
-                    .modal-header
-                        button(type="button" class="close" data-dismiss="modal" aria-label="Close")
-                            span(aria-hidden="true") &times;
-                        h4.modal-title#usersLabel Add Users
-                    .modal-body
-                        #errorContainerUser.hidden
-                            .alert.alert-danger
-                                b Please review the following errors:
-                                ul#errorsUser
-                            hr
-                        .row
-                            .col-xs-8
-                                .well.multiSelect#userSelect
-                                    ul.list-group.checked-list-box#allUserList
-                            .col-xs-4
-                                .input-group
-                                    span.input-group-addon#addonRole Role
-                                    select.form-control#userRole(name="userRole" aria-describedby="addonRole")
-                                        option(value="student") Student
-                                        option(value="admin") Instructor
-
-                    .modal-footer
-                        button(type="button" class="btn btn-default" data-dismiss="modal") Close
-                        button(type="button" class="btn btn-primary" onclick="javascript:addUsers('#{group._id}')") Add Users
-
-    .modal.fade#uploadAssignment(tabindex="-1" role="dialog" aria-labelledby="uploadLabel")
-        .modal-dialog(role="document")
-            .modal-content
-                .modal-header
-                    button(type="button" class="close" data-dismiss="modal" aria-label="Close")
-                        span(aria-hidden="true") &times;
-                    h4.modal-title#uploadLabel 
-                        |Upload Assignment: 
-                        span#assignmentUploadId
-                .modal-body
-                    #errorContainerUpload.hidden
-                        .alert.alert-danger
-                            b Please review the following errors:
-                            ul#errorsUpload
-                        hr
-                    .input-group
-                        span.input-group-addon#addonHName Hand-in Name
-                        input.form-control#handInName(type="text" aria-describedby="addonHName")
+        mixin assignmentModal(id, changeType)
+            .row
+                .col-xs-8
+                    +text("Name", id + 'assignmentName')
+                .col-xs-4
+                    - var extraClass = changeType? "hidden":""
+                    .input-group(class=extraClass)
+                        +select("Type", id + 'assignmentType')(class="selectTrigger" container="#assignment-data" + id)
+                            option(value="defined") Defined
+                            option(value="open") Open
+                            option(value="autograder") Autograder
+            div(id="assignment-data" + id)
+                .selectActor(data="defined")
+                    .row.mtop10
+                        .col-xs-8
+                            +date("Due Date", id + 'due')
                     hr
-                    .form-group
-                        form.dropzone.form-control#uploadedFiles(action="file-upload" method="post" enctype="multipart/form-data")
-                            input.hide(type="file" name="files")
-                            .dz-message.yAlign
-                                p Click or drag files to upload.
-                    label(for="uploadedFilesSelect") Uploaded Files
-                    .well#uploadedFilesSelect
-                        ul.list-group.checked-list-box#uploadedFilesList
+                    label(for=id + "infoLink") Additional Information Link (optional)
+                    +text("http://", id + "infoLink")
+                .selectActor.hidden(data="autograder")
                     hr
-                    label(for="userSelect") Partners
-                    .well#studentSelect
-                        ul.list-group.checked-list-box#studentUserList
-                            for student in group.students
-                                if student._id != user.id
-                                    li.list-group-item(value=student._id) #{student.name} #{student.surename} (#{student._id})
-                    .alert.alert-info
-                        span
-                            b Note
-                            |! Your partners to not need to hand in this assignment anymore, they do need to accept this hand-in however (from the dashboard).
-                    hr
-                    .form-group
-                        label.control-label(for="comments") Additional Comments (optional)
-                        textarea.form-control#comments(rows="5")
-
-                .modal-footer
-                    button(type="button" class="btn btn-default" data-dismiss="modal") Close
-                    button(type="button" class="btn btn-primary" onclick="javascript:upload()") Upload Assignment
-
-    .modal.fade#acceptAssignment(tabindex="-1" role="dialog" aria-labelledby="acceptLabel")
-        .modal-dialog(role="document")
-            .modal-content
-                .modal-header
-                    button(type="button" class="close" data-dismiss="modal" aria-label="Close")
-                        span(aria-hidden="true") &times;
-                    h4.modal-title#acceptLabel 
-                        |Accept Assignment:  
-                        span#assignmentAccept
-                .modal-body
-                    .alert.alert-info
-                        span Are you sure you want to accept this assignment?
-                .modal-footer
-                    button(type="button" class="btn btn-default" data-dismiss="modal") Close
-                    button(type="button" class="btn btn-primary" onclick="javascript:acceptAssignment('#{group._id}')") I'm Completely Sure
-
-    .modal.fade#declineAssignment(tabindex="-1" role="dialog" aria-labelledby="declineLabel")
-        .modal-dialog(role="document")
-            .modal-content
-                .modal-header
-                    button(type="button" class="close" data-dismiss="modal" aria-label="Close")
-                        span(aria-hidden="true") &times;
-                    h4.modal-title#declineLabel 
-                        |Decline Assignment:  
-                        span#assignmentDecline
-                .modal-body
                     .alert.alert-warning
-                        span Are you sure you want to decline this assignment?
-                .modal-footer
-                    button(type="button" class="btn btn-default" data-dismiss="modal") Close
-                    button(type="button" class="btn btn-primary" onclick="javascript:declineAssignment('#{group._id}')") I'm Completely Sure
+                        p Sorry, the autograder option is disabled in this version!
+
+        +modal('addAssignment', 'Create a New Assignment', 'primary', 'Create Assignment')
+            +assignmentModal('')
+
+        +modal('editAssignment', 'Edit Assignment', 'primary', 'Update Assignment')
+            +assignmentModal('update_', true)
+
+        +modal('removeAssignment', "Are you sure?", 'danger', 'Delete Assignment')
+            .alert.alert-warning
+                p
+                    b Warning! 
+                    | Your are about to delete the assignment: '
+                    span#removeAssignmentName
+                    |'!
+                p This assignment will dissappear for all users. This is 
+                    b unrecoverable
+                    |!
+            .alert.alert-info 
+                p 
+                    b Note 
+                    | Hand-in data (files, feedback and reflections) will be kept but can only be accessed through direct links.
+        
+        +modal('addUsers', "Add Users", 'primary', 'Add Users')
+            .row
+                .col-xs-8
+                    .well.multiSelect#userSelect
+                        ul.list-group.checked-list-box#allUserList
+                .col-xs-4
+                    .input-group
+                        +select("Role", 'userRole')
+                            option(value="student") Student
+                            option(value="admin") Instructor
+    else
+        +modal('uploadAssignment', "Upload Assignment: ", 'primary', 'Upload Assignment', true)
+            +text('Hand-in Name', 'handInName')
+            hr
+            .form-group
+                form.dropzone.form-control#uploadedFiles(action="file-upload" method="post" enctype="multipart/form-data")
+                    input.hide(type="file" name="files")
+                    .dz-message.yAlign
+                        p Click or drag files to upload.
+            label(for="uploadedFilesSelect") Uploaded Files
+            .well#uploadedFilesSelect
+                ul.list-group.checked-list-box#uploadedFilesList
+            hr
+            label(for="userSelect") Partners
+            .well#studentSelect
+                ul.list-group.checked-list-box#studentUserList
+                    for student in group.students
+                        if student._id != user.id
+                            li.list-group-item(value=student._id) #{student.name} #{student.surename} (#{student._id})
+            .alert.alert-info
+                span
+                    b Note
+                    |! Your partners to not need to hand in this assignment anymore, they do need to accept this hand-in however (from the dashboard).
+            hr
+            .form-group
+                label.control-label(for="comments") Additional Comments (optional)
+                textarea.form-control#comments(rows="5")
+
+        +modal('acceptAssignment', "Accept Assignment: ", 'primary', "I'm Completely Sure", true)
+            .alert.alert-info
+                span Are you sure you want to accept this assignment?
+
+        +modal('declineAssignment', "Decline Assignment: ", 'danger', "I'm Completely Sure", true)
+            .alert.alert-warning
+                span Are you sure you want to decline this assignment?

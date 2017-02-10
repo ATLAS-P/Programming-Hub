@@ -4,10 +4,10 @@
     modCreate.registerField("start", "start date", "#courseStart", ModalValues.date)
     modCreate.registerField("end", "end date", "#courseEnd", ModalValues.date)
 
-    modCreate.addValidation(ModalValidators.atLeast(8), "name")
-    modCreate.addValidation(ModalValidators.exists(), "start")
-    modCreate.addValidation(ModalValidators.exists(), "end")
-    modCreate.addValidation(ModalValidators.dateOrder(), "start", "end")
+    modCreate.addValidation(new Validator(ModalValidators.atLeast(8), "name"))
+    modCreate.addValidation(new Validator(ModalValidators.exists(), "start"))
+    modCreate.addValidation(new Validator(ModalValidators.exists(), "end"))
+    modCreate.addValidation(new Validator(ModalValidators.dateOrder(), "start", "end"))
 
     const modUpdate = new ModalFormValidator("#updateCourse", "updateCourse", "courseUpdated")
     modUpdate.registerField("course", "course id", "#update_courseName", ModalValues.attr("course"))

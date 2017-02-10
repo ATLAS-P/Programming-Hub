@@ -1,11 +1,16 @@
-﻿mixin modal(id, title, runButton, runName)
+﻿mixin modal(id, title, runButton, runName, morphTitle)
     .modal.fade(id=id tabindex="-1" role="dialog" aria-labelledby=id + "label")
         .modal-dialog(role="document")
             .modal-content
                 .modal-header
                     button(type="button" class="close" data-dismiss="modal" aria-label="Close")
                         span(aria-hidden="true") &times;
-                    h4.modal-title(id=id + "label")= title
+                    if morphTitle
+                        h4.modal-title(id=id + "label")
+                            | #{title}
+                            span(id=id + "_title")
+                    else
+                        h4.modal-title(id=id + "label")= title
                 .modal-body
                     .errorContainer.hidden
                         .alert.alert-danger
@@ -30,3 +35,9 @@ mixin inputGroup(name, id)
         span.input-group-addon(id="addon_" + id)= name
         input.form-control(id=id type="text" aria-describedby="addon_" + id)
         block
+
+mixin select(name, id)
+    div(class="input-group")
+        span.input-group-addon(id="addon_" + id)= name
+        select.form-control(name=id id=id aria-describedby="addon_" + id)&attributes(attributes)
+            block

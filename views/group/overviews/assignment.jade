@@ -16,7 +16,7 @@ block headerTitle
 block content
     .container
         h2= assignment.name
-        if assignment.length == 0
+        if assignment.files.length == 0
             p There are no hand-ins for this assignment yet!
         else
             .row

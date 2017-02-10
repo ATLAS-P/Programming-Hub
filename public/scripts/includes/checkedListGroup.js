@@ -1,5 +1,6 @@
 ﻿function getSelected(container) {
     const list = []
+    console.log(container)
     container.find("li.active").each(function (idx, li) {
         list.push($(li).attr("value"));
     })

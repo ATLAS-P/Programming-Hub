@@ -1,130 +1,73 @@
 $(document).ready(() => {
-    socket.on('assignmentCreated', assignmentCreated);
+    const assignmentCreate = new ModalFormValidator("#addAssignment", "createAssignment", "assignmentCreated");
+    assignmentCreate.addValues(getGroupId());
+    assignmentCreate.registerField("name", "assignment name", "#assignmentName", ModalValues.value);
+    assignmentCreate.registerField("type", "assignment type", "#assignmentType", ModalValues.value);
+    assignmentCreate.registerField("due", "due date", "#due", ModalValues.date);
+    assignmentCreate.registerField("link", "additional info link", "#infoLink", ModalValues.value);
+    const nameValid = new Validator(ModalValidators.atLeast(8), "name");
+    const dueExists = new Validator(ModalValidators.exists(), "due");
+    const dueValid = new Validator(ModalValidators.inbetweenDates(getStartDate(), getEndDate()), "due");
+    const ifDue = new Validator(ModalValidators.ifValid(dueExists, dueValid), "due");
+    const validURL = new Validator(ModalValidators.validURL(), "link");
+    const ifLink = new Validator(ModalValidators.ifthen(s => s.length > 0, validURL), "link");
+    const noOpen = new Validator(ModalValidators.idNotExists("openExists", "There can only be one open assignment per course!"), "type");
+    const ifTypeDefined = new Validator(ModalValidators.ifthen(s => s == "defined", nameValid, ifDue, ifLink), "type").disableErrors();
+    const ifTypeOpen = new Validator(ModalValidators.ifthen(s => s == "open", nameValid, noOpen), "type").disableErrors();
+    assignmentCreate.addValidation(new Validator(ModalValidators.not("autograder", "The autograder type is not available for now!"), "type"));
+    assignmentCreate.addValidation(ifTypeDefined);
+    assignmentCreate.addValidation(ifTypeOpen);
+    assignmentCreate.addValidation(new Validator(ModalValidators.equals("autograder", "open", "defined"), "type"));
+    const assignmentUpdate = new ModalFormValidator("#editAssignment", "updateAssignment", "assignmentUpdated", true);
+    assignmentUpdate.registerField("assignment", "assignment id", "#editAssignment", ModalValues.attr("assignment"), false);
+    assignmentUpdate.copyFrom(assignmentCreate, "update_", false);
+    assignmentUpdate.onOpen((mod) => {
+        mod.setValue("name", mod.modal.attr("name"));
+        mod.setValue("link", mod.modal.attr("link"));
+        mod.getJq("due").parent().datepicker('setDate', new Date(mod.modal.attr("due")));
+        mod.setValue("type", mod.modal.attr("type"));
+        console.log(mod.getValue("assignment"));
+        console.log(mod.getJq("assignment"));
+        selectClicked(mod.getJq("type"));
+    });
+    assignmentUpdate.addValidation(new Validator(ModalValidators.ifthen(s => s == "open", nameValid), "type").disableErrors());
+    assignmentUpdate.addValidation(ifTypeDefined);
+    const removeAssignment = new ModalFormValidator("#removeAssignment", "removeAssignment", "assignmentRemoved", true);
+    removeAssignment.registerField("assignment", "assignment id", "#removeAssignmentName", ModalValues.attr("assignment"));
+    const addUsers = new ModalFormValidator("#addUsers", "addUsers", "usersAdded");
+    addUsers.addValues(getGroupId());
+    addUsers.registerField("users", "users", "#allUserList", getSelected);
+    addUsers.registerField("role", "role", "#userRole", ModalValues.value);
+    addUsers.addValidation(new Validator(ModalValidators.minSize(1), "users"));
+    const acceptAssignment = new ModalFormValidator("#acceptAssignment", "manageFinal", "doneFinal", true);
+    acceptAssignment.addValues(true, getGroupId());
+    acceptAssignment.registerField("file", "file id", "#acceptAssignment_title", ModalValues.attr("file"));
+    const declineAssignment = new ModalFormValidator("#declineAssignment", "manageFinal", "doneFinal", true);
+    declineAssignment.addValues(false, getGroupId());
+    declineAssignment.registerField("file", "file id", "#declineAssignment_title", ModalValues.attr("file"));
+    const uploadFiles = new ModalFormValidator("#uploadAssignment", "uploadFiles", "fileUplaoded", true);
+    uploadFiles.registerField("assignment", "assignment id", "#uploadAssignment_title", ModalValues.attr("assignment"));
+    uploadFiles.registerField("name", "handin name", "#handInName", ModalValues.value);
+    uploadFiles.registerField("comments", "commnets", "#comments", ModalValues.value);
+    uploadFiles.registerField("partners", "partners", "#studentUserList", getSelected);
+    uploadFiles.registerField("files", "files", "#uploadedFilesList", getSelected);
+    uploadFiles.addValidation(nameValid);
+    uploadFiles.addValidation(new Validator(ModalValidators.or(s => s.length > 0, "Either add some comments, or upload and select at least one file!"), "comments", "files"));
     socket.on('usersGot', usersGot);
-    socket.on('usersAdded', addUsersDone);
-    socket.on('assignmentRemoved', removeAssignmentDone);
-    socket.on('fileUplaoded', uploadDone);
-    socket.on('doneFinal', () => location.reload());
     if ($(".back-final").size() > 0) {
         $("#finalWarning").removeClass("hidden");
     }
 });
-function assignmentCreated(success, error) {
-    if (success)
-        location.reload();
-    else {
-        $("#errorContainer").removeClass("hidden");
-        $("#errors").html("");
-        const li = document.createElement("li");
-        li.innerText = error.toString();
-        $("#errors").append(li);
-    }
+function getGroupId() {
+    return $("#group_data").attr("group");
 }
-function createAssignment(group, start, end) {
-    const errors = [];
-    const name = $("#assignmentName");
-    const type = $("#assignmentType");
-    const due = $("#dueDate").parent();
-    const link = $("#infoLink");
-    name.parent().removeClass("has-error");
-    due.removeClass("has-error");
-    link.parent().removeClass("has-error");
-    type.parent().removeClass("has-error");
-    const dueDate = due.datepicker("getDate");
-    const assType = type.val();
-    const info = link.val();
-    if (assType == "autograder") {
-        type.parent().addClass("has-error");
-        errors.push("The autograder type is not available for now!");
-    }
-    else if (assType == "defined" || assType == "open") {
-        if (name.val().length < 8) {
-            name.parent().addClass("has-error");
-            errors.push("The assignment name must be at least 8 characters long!");
-        }
-        if (assType == "open" && $("#openExists").size() >= 1) {
-            type.parent().addClass("has-error");
-            errors.push("There can only be one open assignment per course!");
-        }
-        if (assType == "defined") {
-            if (!dueDate) {
-                due.addClass("has-error");
-                errors.push("The due date format is incorrect!");
-            }
-            else {
-                const startDate = new Date(start);
-                const endDate = new Date(end);
-                if (dateDiff(startDate, dueDate) < 0) {
-                    due.addClass("has-error");
-                    errors.push("The due date cannot be before the start of the course!");
-                }
-                else if (dateDiff(dueDate, endDate) < 0) {
-                    due.addClass("has-error");
-                    errors.push("The due date cannot be after the end of the course!");
-                }
-            }
-            if (info.length > 0 && !validURL(info)) {
-                link.parent().addClass("has-error");
-                errors.push("The information link seems to be invalid!");
-            }
-        }
-    }
-    else {
-        type.parent().addClass("has-error");
-        errors.push("The assignment type is invalid!");
-    }
-    $("#errorContainer").addClass("hidden");
-    $("#errors").html("");
-    if (errors.length > 0) {
-        $("#errorContainer").removeClass("hidden");
-        errors.forEach(e => {
-            const li = document.createElement("li");
-            li.innerText = e;
-            $("#errors").append(li);
-        });
-    }
-    else {
-        let linkVal = link.val();
-        linkVal = linkVal.startsWith("http://") ? linkVal.substr(7) : linkVal;
-        linkVal = linkVal.startsWith("https://") ? linkVal.substr(8) : linkVal;
-        socket.emit("createAssignment", group, name.val(), assType, dueDate, linkVal);
-    }
+function getStartDate() {
+    return new Date($("#group_data").attr("start_date"));
 }
-function validURL(str) {
-    var pattern = new RegExp('^(https?:\\/\\/)?' +
-        '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|' +
-        '((\\d{1,3}\\.){3}\\d{1,3}))' +
-        '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*' +
-        '(\\?[;&a-z\\d%_.~+=-]*)?' +
-        '(\\#[-a-z\\d_]*)?$', 'i');
-    if (!pattern.test(str))
-        return false;
-    else
-        return true;
-}
-function preRemoveAssignment(id, name) {
-    $("#errorRemoveContainer").addClass("hidden");
-    $("#removeAssignment").attr("assignment", id);
-    $("#removeAssignmentName").text(name);
-}
-function removeAssignment() {
-    const assignment = $("#removeAssignment").attr("assignment");
-    socket.emit("removeAssignment", assignment);
-}
-function removeAssignmentDone(success, error) {
-    if (success)
-        location.reload();
-    else {
-        $("#errorRemoveContainer").removeClass("hidden");
-        $("#errorsRemove").html("");
-        const li = document.createElement("li");
-        li.innerText = error;
-        $("#errorsRemove").append(li);
-    }
+function getEndDate() {
+    return new Date($("#group_data").attr("end_date"));
 }
 function getUsers(users) {
-    console.log(users);
-    console.log(JSON.parse(users));
     if ($("#allUserList").html().length == 0)
         socket.emit("getUsers", JSON.parse(users));
 }
@@ -144,95 +87,4 @@ function usersGot(users) {
     }
     else
         initListGroup($("#allUserList"));
-}
-function addUsers(group) {
-    $("#errorContainerUser").addClass("hidden");
-    const users = getSelected($("#allUserList"));
-    if (users.length > 0) {
-        const role = $("#userRole").val();
-        socket.emit("addUsers", users, group, role);
-    }
-    else {
-        $("#errorContainerUser").removeClass("hidden");
-        $("#errorsUser").html("");
-        const li = document.createElement("li");
-        li.innerText = "Select at least one user!";
-        $("#errorsUser").append(li);
-    }
-}
-function addUsersDone(success, error) {
-    if (success)
-        location.reload();
-    else {
-        $("#errorContainerUsers").removeClass("hidden");
-        $("#errorsUsers").html("");
-        const li = document.createElement("li");
-        li.innerText = error;
-        $("#errorsUsers").append(li);
-    }
-}
-function preUploadAssignment(id, name) {
-    const ass = $("#assignmentUploadId");
-    ass.text(name);
-    ass.attr("assignment", id);
-}
-function upload() {
-    const errors = [];
-    const ass = $("#assignmentUploadId").attr("assignment");
-    const commentsContainer = $("#comments");
-    const comments = commentsContainer.val();
-    const handInName = $("#handInName");
-    const partners = getSelected($("#studentUserList"));
-    const files = getSelected($("#uploadedFilesList"));
-    $("#errorsUpload").html("");
-    $("#errorContainerUpload").addClass("hidden");
-    $("#uploadedFiles").parent().removeClass("has-error");
-    handInName.parent().removeClass("has-error");
-    commentsContainer.parent().removeClass("has-error");
-    if (handInName.val().length < 8) {
-        errors.push("The hand-in name should be at least 8 characters long!");
-        handInName.parent().addClass("has-error");
-    }
-    if (comments.length == 0 && files.length == 0) {
-        errors.push("Either add some comments, or upload and select at least one file!");
-        commentsContainer.parent().addClass("has-error");
-        $("#uploadedFiles").parent().addClass("has-error");
-    }
-    if (errors.length == 0)
-        socket.emit("uploadFiles", ass, handInName.val(), comments, partners, files);
-    else {
-        $("#errorContainerUpload").removeClass("hidden");
-        errors.forEach(e => {
-            const li = document.createElement("li");
-            li.innerText = e;
-            $("#errorsUpload").append(li);
-        });
-    }
-}
-function uploadDone(success, error) {
-    if (success)
-        location.reload();
-    else {
-        $("#errorContainerUpload").removeClass("hidden");
-        $("#errorsUpload").html("");
-        const li = document.createElement("li");
-        li.innerText = error;
-        $("#errorsUpload").append(li);
-    }
-}
-function preAccept(file, name) {
-    $("#assignmentAccept").attr("file", file);
-    $("#assignmentAccept").text(name);
-}
-function preDecline(file, name) {
-    $("#assignmentDecline").attr("file", file);
-    $("#assignmentDecline").text(name);
-}
-function acceptAssignment(group) {
-    const file = $("#assignmentAccept").attr("file");
-    socket.emit("manageFinal", true, group, file);
-}
-function declineAssignment(group) {
-    const file = $("#assignmentDecline").attr("file");
-    socket.emit("manageFinal", false, group, file);
 }

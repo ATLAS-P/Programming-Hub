@@ -36,6 +36,7 @@ export namespace Routes {
     const GROUP = INDEX + "group"
     const GROUP_ANY = GROUP + "/*"
     const GROUP_USER = GROUP_ANY + "/user/*"
+    const FEEDBACK_LIST = GROUP_ANY + "/feedback"
     const GROUP_ASSIGNMENT = GROUP_ANY + "/assignment/*"
     const FILE = INDEX + "file"
     const FILE_ANY = FILE + "/*"
@@ -60,6 +61,7 @@ export namespace Routes {
         //app.get(OVERVIEW, showResults("overview", 3, 2))
         app.get(GROUP_ASSIGNMENT, assignment)
         app.get(GROUP_USER, user)
+        app.get(FEEDBACK_LIST, feedbackList)
         app.get(GROUP_ANY, group)
         app.get(FILE_ANY, file)
         //app.get(FILE_OF, showResultOf)
@@ -123,6 +125,15 @@ export namespace Routes {
         if (!req.user) res.redirect("/")
         else Assignments.instance.exec(Files.forAssignment(assignment)).then(ass =>
             Render.withUser(req, res, "group/overviews/assignment", { assignment: ass }), err =>
+                Render.error(req, res, err))
+    }
+
+    function feedbackList(req: Req, res: Res) {
+        const group = req.url.split("/")[2]
+
+        if (!req.user) res.redirect("/")
+        else Groups.instance.exec(Files.forGroup(group)).then(group =>
+            Render.withUser(req, res, "group/overviews/feedback", { group: group }), err =>
                 Render.error(req, res, err))
     }
 
