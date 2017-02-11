@@ -1,6 +1,9 @@
 ﻿.flip-container:hover .flipper, .flip-container.hover .flipper
 	transform rotateY(180deg)
 
+.flip-container	
+	perspective 1000px
+
 .front, .back
 	width 100%
 	height 100%
@@ -10,7 +13,7 @@
 	left 0px
 
 .flipper
-	transition: 0.5s
+	transition: 0.65s
 	transform-style: preserve-3d
 	position: relative
 
