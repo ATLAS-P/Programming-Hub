@@ -80,14 +80,14 @@ export namespace Setup {
 
         const handleLogin = (request: express.Request, accessToken, refreshToken, profile: Users.GoogleProfile, done) => {
             process.nextTick(() => {
-                //if (profile._json.domain == "student.utwente.nl" || profile.email == "ruudvandamme55@gmail.com" || profile.email == "rikmuld@gmail.com") {
+                if (profile._json.domain == "student.utwente.nl" || profile.email == "ruudvandamme55@gmail.com") {
                     Users.getByGProfile(profile).then(u => done(null, Users.simplify(u)), e => done(null, null))
-                //} else {
-                //    done(null, null)
-                //    process.nextTick(() => {
-                //        request.logout()  
-                //    })
-                //}
+                } else {
+                    done(null, null)
+                    process.nextTick(() => {
+                        request.logout()  
+                    })
+                }
             })
         }
 
